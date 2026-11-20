@@ -2690,13 +2690,53 @@
       "source_sha256": "911cebc0ead09ffbf31c75f615da1925a004bd5e3b25d9f088f2cb448baba44b",
       "sha256": "911cebc0ead09ffbf31c75f615da1925a004bd5e3b25d9f088f2cb448baba44b",
       "classification": "audited_fixed_source_derived"
+    },
+    {
+      "path": "src/qq_nt_replica/data/primary_sec_init_qq52230/producer.bin",
+      "source_sha256": "a2e41f0459b732d4c96b742e3360d55e8f153e0e14df12119117f333add3265c",
+      "sha256": "a2e41f0459b732d4c96b742e3360d55e8f153e0e14df12119117f333add3265c",
+      "classification": "audited_fixed_source_derived_program",
+      "provenance": {
+        "wrapper_sha256": "63112ab9161e127f5f7e17998a7196e143808923fb54cbbf7b4e21426187a5f0",
+        "rva": "0x436e0b4",
+        "length": 2604
+      }
+    },
+    {
+      "path": "src/qq_nt_replica/data/primary_sign_qq52230/singleton-destroy.bin",
+      "source_sha256": "d9a05940328900460d741f9030bcf17c2d0422dbab7cc4d60d398831e4ae55d4",
+      "sha256": "d9a05940328900460d741f9030bcf17c2d0422dbab7cc4d60d398831e4ae55d4",
+      "classification": "audited_fixed_source_derived_program",
+      "provenance": {
+        "wrapper_sha256": "63112ab9161e127f5f7e17998a7196e143808923fb54cbbf7b4e21426187a5f0",
+        "rva": "0x43fd238",
+        "length": 516
+      }
+    },
+    {
+      "path": "src/qq_nt_replica/data/primary_sign_qq52230/source2581.bin",
+      "source_sha256": "5aa7b463d06b2d1d99d228f4d1ff81094e5b6c2fda97683a3cf656699c7f846a",
+      "sha256": "5aa7b463d06b2d1d99d228f4d1ff81094e5b6c2fda97683a3cf656699c7f846a",
+      "classification": "audited_fixed_source_derived_program",
+      "provenance": {
+        "wrapper_sha256": "63112ab9161e127f5f7e17998a7196e143808923fb54cbbf7b4e21426187a5f0",
+        "rva": "0x4522134",
+        "length": 664
+      }
+    },
+    {
+      "path": "src/qq_nt_replica/data/primary_sign_qq52230/source2581-setter.bin",
+      "source_sha256": "3c435a1c8d971af093c2e45eab06b681418b0c9fd6b41ff48272b5fbea243bfc",
+      "sha256": "3c435a1c8d971af093c2e45eab06b681418b0c9fd6b41ff48272b5fbea243bfc",
+      "classification": "audited_fixed_source_derived_program",
+      "provenance": {
+        "wrapper_sha256": "63112ab9161e127f5f7e17998a7196e143808923fb54cbbf7b4e21426187a5f0",
+        "rva": "0x43fa160",
+        "length": 3180
+      }
     }
   ],
   "excluded_pending_assets": [
-    "qq_nt_replica/data/primary_sec_init_qq52230/producer.bin",
-    "qq_nt_replica/data/primary_sign_qq52230/primary-signature-codec-vectors.json",
-    "qq_nt_replica/data/primary_sign_qq52230/singleton-destroy.bin",
-    "qq_nt_replica/data/primary_sign_qq52230/source2581-setter.bin",
-    "qq_nt_replica/data/primary_sign_qq52230/source2581.bin"
+    "qq_nt_replica/data/primary_sign_qq52230/primary-signature-codec-vectors.json"
   ]
 }
