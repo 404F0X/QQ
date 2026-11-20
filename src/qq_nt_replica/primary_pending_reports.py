@@ -2,10 +2,13 @@ import struct
 
 from .errors import InputError
 from .primary_logger import _String, _cstring, _format, _srw
-from .primary_sdk_records import _MASK64, _find, _index, _needed, _single, _unsigned_single, rehash
+from .primary_sdk_records import _MASK64, _find, _index, _needed, _single, _unsigned_single, _prime
 from .primary_worker_consumer import _append, _invoke
 from .primary_worker_response import _frame
 from .primary_vm import PrimaryProgramLimit, PrimarySemanticUnavailable
+
+
+_LIMIT = 1 << 20
 
 
 def install_image(memory, base):
@@ -21,6 +24,85 @@ def install_image(memory, base):
                name='fixed pending command key literal', initialized=True)
 
 
+def _rehash(runtime, address, count):
+    memory = runtime.memory
+    frame, _ = _frame(runtime, 0x28, '1BF5770.pending_report_rehash_frame')
+    if count >> 61:
+        raise PrimarySemanticUnavailable('2439 pending report bucket allocation requires its original length exception')
+    if count > _LIMIT:
+        raise PrimaryProgramLimit('pending report bucket count exceeds the bounded execution domain')
+    if not count:
+        previous = memory.load(address, 8)
+        memory.store(address, 0, 8, source='1BF57C9.pending_report_empty_buckets')
+        if previous:
+            _invoke(runtime, 0xB75029, previous)
+        memory.store(address + 8, 0, 8, source='1BF57DA.pending_report_empty_bucket_count')
+        memory.unmap(frame)
+        return
+    buckets = _invoke(runtime, 0xB75000, count * 8)
+    previous = memory.load(address, 8)
+    memory.store(address, buckets, 8, source='1BF57A1.pending_report_new_buckets')
+    if previous:
+        _invoke(runtime, 0xB75029, previous)
+    memory.store(address + 8, count, 8, source='1BF57AE.pending_report_bucket_count')
+    for index in range(count):
+        memory.store(memory.load(address, 8) + index * 8, 0, 8, source='1BF57F0.pending_report_bucket_zero')
+    current = memory.load(address + 16, 8)
+    if not current:
+        memory.unmap(frame)
+        return
+    current_bucket = _index(memory.load(current + 8, 8), count)
+    memory.store(memory.load(address, 8) + current_bucket * 8, address + 16, 8, source='1BF58ED.pending_report_first_predecessor')
+    for _ in range(_LIMIT):
+        following = memory.load(current, 8)
+        if not following:
+            memory.unmap(frame)
+            return
+        bucket = _index(memory.load(following + 8, 8), count)
+        if bucket == current_bucket:
+            current = following
+            continue
+        predecessor = memory.load(memory.load(address, 8) + bucket * 8, 8)
+        if not predecessor:
+            memory.store(memory.load(address, 8) + bucket * 8, current, 8, source='1BF59A4.pending_report_new_predecessor')
+            current, current_bucket = following, bucket
+            continue
+        last = following
+        after = memory.load(last, 8)
+        for _ in range(_LIMIT):
+            if not after or memory.load(following + 16, 8) != memory.load(after + 16, 8):
+                break
+            last, after = after, memory.load(after, 8)
+        else:
+            raise PrimaryProgramLimit('pending equal-key report run exceeds the bounded execution domain')
+        memory.store(current, after, 8, source='1BF5985.pending_report_detach_bucket_run')
+        predecessor = memory.load(memory.load(address, 8) + bucket * 8, 8)
+        memory.store(last, memory.load(predecessor, 8), 8, source='1BF5992.pending_report_bucket_run_tail')
+        predecessor = memory.load(memory.load(address, 8) + bucket * 8, 8)
+        memory.store(predecessor, following, 8, source='1BF599C.pending_report_insert_bucket_run')
+    raise PrimaryProgramLimit('pending report rehash traversal exceeds the bounded execution domain')
+
+
+def rehash(runtime, address, requested):
+    frame, _ = _frame(runtime, 0x28, '1BF5620.pending_report_capacity_frame')
+    count = 2 if requested == 1 else requested if not requested & (requested - 1) else _prime(requested)
+    previous = runtime.memory.load(address + 8, 8)
+    if count < previous:
+        needed = _needed(runtime, address, runtime.memory.load(address + 24, 8))
+        if previous >= 3 and previous.bit_count() <= 1:
+            needed = needed if needed < 2 else (1 << ((needed - 1).bit_length() & 63))
+        else:
+            needed = _prime(needed)
+        count = max(count, needed)
+        if count >= previous:
+            runtime.memory.unmap(frame)
+            return
+    if count != previous:
+        runtime.memory.unmap(frame)
+        return _rehash(runtime, address, count)
+    runtime.memory.unmap(frame)
+
+
 def insert(runtime, address, output, key_pointer, pair):
     memory = runtime.memory
     frame, _ = _frame(runtime, 0x38, '1BF52B0.pending_report_insert_frame')
@@ -32,7 +114,7 @@ def insert(runtime, address, output, key_pointer, pair):
         memory.store(output + 8, 0, 1, source='1BF55B2.pending_report_duplicate')
         memory.unmap(frame)
         return output
-    node = runtime._operator_new(56)
+    node = _invoke(runtime, 0xB75000, 56)
     memory.store(node + 16, memory.load(pair, 8), 8, source='1BF53EC.pending_report_key')
     _String.read(runtime, pair + 8).write_to(node + 24)
     memory.write(pair + 8, bytes(24), source='1BF5406.pending_report_payload_moved')
@@ -158,7 +240,7 @@ def erase(runtime, address, key_pointer):
     if node:
         if memory.load(handle + 16, 1):
             _String.read(runtime, node + 24).destroy()
-        runtime._free_allocation(node)
+        _invoke(runtime, 0xB75029, node)
     memory.unmap(frame)
     return 1
 

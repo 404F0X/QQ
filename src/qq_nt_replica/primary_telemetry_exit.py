@@ -4,6 +4,7 @@ from .primary_provider_init import _mutex
 from .primary_task_exit import destroy_base_record
 from .primary_vm import PrimaryProgramLimit, PrimarySemanticUnavailable
 from .primary_worker_tasks import _observe
+from .primary_worker_consumer import _invoke
 
 
 def _vector(runtime, header, stride, destroy):
@@ -61,12 +62,12 @@ def destroy_telemetry(runtime):
         seen.add(node)
         following = memory.load(node, 8)
         _String.read(runtime, node + 0x18).destroy()
-        runtime._free_allocation(node)
+        _invoke(runtime, 0xB75029, node)
         node = following
     raw = memory.load(owner + 0xC8, 8)
     memory.store(owner + 0xC8, 0, 8, source='BCD380.telemetry_raw_clear')
     if raw:
-        runtime._free_allocation(raw)
+        _invoke(runtime, 0xB75029, raw)
     if memory.load(owner + 0xC0, 8):
         sentinel = owner + 0xB0
         tail = memory.load(owner + 0xB0, 8)

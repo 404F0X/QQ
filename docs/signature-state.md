@@ -37,3 +37,8 @@ The static-unit checks retain the original eight model groups. The environment c
 The eleventh group additionally pins the dispatch to its exact current export-inventory SHA, so its existing capability guards must remain byte-for-byte unchanged. Historical reports are retained separately and have not been rewritten. The earlier label “CPP8” referred to these same eight static-unit groups; there is no additional CPP suite.
 
 The fixed C-locale multibyte table is now bundled after its narrow fixed-source provenance audit; its existing consumer hash and layout checks are unchanged. The remaining five exclusions above still apply.
+
+
+The pending-report container now uses the source upper allocator pair B75000/B75029 for its 56-byte nodes and bucket arrays. Its private rehash retains source capacity rounding, collision/equal-key runs and pointer-publication/old-free/count/zero order. Erase frees a nonnull node regardless of payload ownership; telemetry exit changes only its D8 nodes and C8 bucket array. Shared SDK allocation paths and allocator ownership guards are unchanged.
+
+Validation covers the same-thread explicit CUSTOM model issuer with the actual independent guest-address supplier. The telemetry helper check supplies an explicitly initialized model container in existing mapped regions; it does not prove canonical owner construction, callback registration or actual exit dispatch. Cross-thread transfer/free, real notification-owner shutdown, original OOM/length-exception handling and full material-B remain unsupported or unproved. A stale selector epoch intentionally poisons its separate fixture and is never resumed. Model storage disposal is checked separately from source frees.

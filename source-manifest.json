@@ -1605,7 +1605,7 @@
     {
       "path": "src/qq_nt_replica/primary_pending_reports.py",
       "source_sha256": "1951ab2bc5a6c663b7fc8064fbf7e0f40fa08d1ed536d01f8511a95fcf6fe06b",
-      "sha256": "1951ab2bc5a6c663b7fc8064fbf7e0f40fa08d1ed536d01f8511a95fcf6fe06b",
+      "sha256": "c04b96a5e908e390fbe43d464050ded0afa91b11571be26274ae9cd671b9bc79",
       "classification": "project_source"
     },
     {
@@ -2193,7 +2193,7 @@
     {
       "path": "src/qq_nt_replica/primary_telemetry_exit.py",
       "source_sha256": "b6fcb662ad485633bb27ea351a3068ec8d71450c69e8dbf537ec749488a38ed4",
-      "sha256": "b6fcb662ad485633bb27ea351a3068ec8d71450c69e8dbf537ec749488a38ed4",
+      "sha256": "398a5f303b490b19a96a013c67bd74cf935c8a25c9b87b89feeb308d7f7bce9f",
       "classification": "project_source"
     },
     {
