@@ -1,0 +1,42 @@
+{
+  "source_sha256": "63112ab9161e127f5f7e17998a7196e143808923fb54cbbf7b4e21426187a5f0",
+  "image_base": 6442450944,
+  "segments": [
+    {
+      "rva": 68457640,
+      "hex": "a04201800100000040a4c2810100000050a4c28101000000f028008001000000e01f00800100000070a4c28101000000",
+      "relocations": [
+        0,
+        8,
+        16,
+        24,
+        32,
+        40
+      ]
+    },
+    {
+      "rva": 108515016,
+      "hex": "0000000000000000",
+      "relocations": []
+    },
+    {
+      "rva": 68457816,
+      "hex": "c06cd480010000007050bf8101000000e0a7c28101000000",
+      "relocations": [
+        0,
+        8,
+        16
+      ]
+    },
+    {
+      "rva": 67044264,
+      "hex": "c06cd480010000000016788001000000306bd48001000000",
+      "relocations": [
+        0,
+        8,
+        16
+      ]
+    }
+  ],
+  "meaning": "Actual source notification and shared-state vtables plus PE zero-fill manager pointer; no observed callback results or signature bytes"
+}

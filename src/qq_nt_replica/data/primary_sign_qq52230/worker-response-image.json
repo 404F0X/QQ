@@ -1,0 +1,241 @@
+{
+  "source_sha256": "63112ab9161e127f5f7e17998a7196e143808923fb54cbbf7b4e21426187a5f0",
+  "image_base": 6442450944,
+  "segments": [
+    {
+      "rva": 66941552,
+      "hex": "40fabd8001000000",
+      "relocations": [
+        0
+      ]
+    },
+    {
+      "rva": 66941736,
+      "hex": "3009be800100000060d1bc800100000050d2bc800100000070379a8001000000",
+      "relocations": [
+        0,
+        8,
+        16,
+        24
+      ]
+    },
+    {
+      "rva": 66940104,
+      "hex": "20e9bc8001000000",
+      "relocations": [
+        0
+      ]
+    },
+    {
+      "rva": 66939432,
+      "hex": "b0d0bc8001000000",
+      "relocations": [
+        0
+      ]
+    },
+    {
+      "rva": 68454704,
+      "hex": "21402324255e262a2829313233343536305b5d2b2100",
+      "relocations": []
+    },
+    {
+      "rva": 74026049,
+      "hex": "7c00",
+      "relocations": []
+    },
+    {
+      "rva": 76561424,
+      "hex": "0000",
+      "relocations": []
+    }
+  ],
+  "owner_initialization": [
+    {
+      "instruction_rva": 12379595,
+      "rva": 108337592,
+      "hex": "00",
+      "relocation": false
+    },
+    {
+      "instruction_rva": 12379602,
+      "rva": 108337593,
+      "hex": "00",
+      "relocation": false
+    },
+    {
+      "instruction_rva": 12379612,
+      "rva": 108337600,
+      "hex": "00000000000000000000000000000000",
+      "relocation": false
+    },
+    {
+      "instruction_rva": 12379619,
+      "rva": 108337616,
+      "hex": "0000000000000000",
+      "relocation": false
+    },
+    {
+      "instruction_rva": 12379630,
+      "rva": 108337632,
+      "hex": "00",
+      "relocation": false
+    },
+    {
+      "instruction_rva": 12379637,
+      "rva": 108337640,
+      "hex": "0000000000000000",
+      "relocation": false
+    },
+    {
+      "instruction_rva": 12379648,
+      "rva": 108337648,
+      "hex": "01000000",
+      "relocation": false
+    },
+    {
+      "instruction_rva": 12379658,
+      "rva": 108337656,
+      "hex": "00000000000000000000000000000000",
+      "relocation": false
+    },
+    {
+      "instruction_rva": 12379665,
+      "rva": 108337672,
+      "hex": "0000000000000000",
+      "relocation": false
+    },
+    {
+      "instruction_rva": 12379676,
+      "rva": 108337680,
+      "hex": "0c",
+      "relocation": false
+    },
+    {
+      "instruction_rva": 12379683,
+      "rva": 108337681,
+      "hex": "57617463",
+      "relocation": false
+    },
+    {
+      "instruction_rva": 12379693,
+      "rva": 108337685,
+      "hex": "6864",
+      "relocation": false
+    },
+    {
+      "instruction_rva": 12379702,
+      "rva": 108337687,
+      "hex": "00",
+      "relocation": false
+    },
+    {
+      "instruction_rva": 12379709,
+      "rva": 108337704,
+      "hex": "00000000000000000000000000000000",
+      "relocation": false
+    },
+    {
+      "instruction_rva": 12379723,
+      "rva": 108337624,
+      "hex": "a86afd8301000000",
+      "relocation": true
+    },
+    {
+      "instruction_rva": 12379730,
+      "rva": 108337760,
+      "hex": "0000000000000000",
+      "relocation": false
+    },
+    {
+      "instruction_rva": 12379741,
+      "rva": 108337736,
+      "hex": "00000000000000000000000000000000",
+      "relocation": false
+    },
+    {
+      "instruction_rva": 12379748,
+      "rva": 108337720,
+      "hex": "00000000000000000000000000000000",
+      "relocation": false
+    },
+    {
+      "instruction_rva": 12379762,
+      "rva": 108337768,
+      "hex": "681a758601000000",
+      "relocation": true
+    },
+    {
+      "instruction_rva": 12379769,
+      "rva": 108337776,
+      "hex": "681a758601000000",
+      "relocation": true
+    },
+    {
+      "instruction_rva": 12379776,
+      "rva": 108337784,
+      "hex": "00000000000000000000000000000000",
+      "relocation": false
+    },
+    {
+      "instruction_rva": 12379783,
+      "rva": 108337800,
+      "hex": "00000000000000000000000000000000",
+      "relocation": false
+    },
+    {
+      "instruction_rva": 12379790,
+      "rva": 108337816,
+      "hex": "0000000000000000",
+      "relocation": false
+    },
+    {
+      "instruction_rva": 12379801,
+      "rva": 108337824,
+      "hex": "0000803f",
+      "relocation": false
+    },
+    {
+      "instruction_rva": 12379811,
+      "rva": 108337832,
+      "hex": "0000000000000000",
+      "relocation": false
+    }
+  ],
+  "owner_guard_rva": 108337840,
+  "owner_exit_callback_rva": 12375392,
+  "response_log": {
+    "seed": 35,
+    "length": 13,
+    "encrypted_hex": "6b78797e7f085b5557041f0747"
+  },
+  "transport_error": {
+    "seed": 35,
+    "length": 51,
+    "encrypted_hex": "554647404136707d6d3a6f73767b71206470716b7727276d7b78647e6e616b550b17571858705651555f5f6854535a531b0747"
+  },
+  "parse_error": {
+    "seed": 35,
+    "length": 49,
+    "encrypted_hex": "77756273657d747672627c3e6b7376676d206474756b772b277a6c7a352c2856131c5c70565d595f5f6c50535a4f070747"
+  },
+  "empty_token": {
+    "seed": 35,
+    "length": 12,
+    "encrypted_hex": "5a42474e44094d4a56515d02"
+  },
+  "success_token": {
+    "seed": 35,
+    "length": 15,
+    "encrypted_hex": "5e0e4043080a4e5c551c02440d0750"
+  },
+  "persistent_prefix": {
+    "seed": 35,
+    "length": 14,
+    "encrypted_hex": "485b4d4277191a1712171713197c"
+  },
+  "telemetry_kind": {
+    "seed": 35,
+    "length": 14,
+    "encrypted_hex": "4b4a5a765c4441404a78454e5357"
+  }
+}

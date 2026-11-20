@@ -1,0 +1,102 @@
+{
+  "source_sha256": "63112ab9161e127f5f7e17998a7196e143808923fb54cbbf7b4e21426187a5f0",
+  "imports": {
+    "GetCurrentProcessId": 76611048,
+    "GetCurrentProcess": 76611040,
+    "GetProcessTimes": 76611408,
+    "QueryFullProcessImageNameW": 76612176,
+    "GetFileAttributesExW": 76611160,
+    "GetCommandLineW": 76610984,
+    "GetCurrentDirectoryW": 76611032,
+    "FileTimeToSystemTime": 76610800,
+    "MultiByteToWideChar": 76612080,
+    "GetModuleHandleA": 76611320,
+    "GetProcAddress": 76611392,
+    "OpenProcess": 76612096,
+    "CloseHandle": 76610520,
+    "CryptQueryObject": 76615240,
+    "CryptMsgGetParam": 76615224,
+    "CertFindCertificateInStore": 76615160,
+    "CertGetNameStringW": 76615192,
+    "CryptMsgClose": 76615216,
+    "CertFreeCertificateContext": 76615168,
+    "CertCloseStore": 76615144,
+    "GetFileVersionInfoSizeW": 76607584,
+    "GetFileVersionInfoW": 76607592,
+    "VerQueryValueW": 76607600
+  },
+  "segments": [
+    {
+      "rva": 74516985,
+      "width": 1,
+      "hex": "4e745175657279496e666f726d6174696f6e50726f6365737300"
+    },
+    {
+      "rva": 75013619,
+      "width": 1,
+      "hex": "6e74646c6c2e646c6c00"
+    },
+    {
+      "rva": 76122535,
+      "width": 1,
+      "hex": "253034642d253032642d2530326454253032643a253032643a253032645a00"
+    },
+    {
+      "rva": 76207483,
+      "width": 1,
+      "hex": "322e352e342e3300"
+    },
+    {
+      "rva": 76562446,
+      "width": 2,
+      "hex": "5c00570069006e0064006f00770073000000"
+    },
+    {
+      "rva": 76563552,
+      "width": 2,
+      "hex": "5c00560061007200460069006c00650049006e0066006f005c005400720061006e0073006c006100740069006f006e000000"
+    },
+    {
+      "rva": 76563648,
+      "width": 2,
+      "hex": "5c0053007400720069006e006700460069006c00650049006e0066006f005c00250030003400780025003000340078005c00460069006c006500560065007200730069006f006e000000"
+    },
+    {
+      "rva": 76565202,
+      "width": 2,
+      "hex": "5c0053007400720069006e006700460069006c00650049006e0066006f005c00250030003400780025003000340078005c0043006f006d00700061006e0079004e0061006d0065000000"
+    },
+    {
+      "rva": 76565302,
+      "width": 2,
+      "hex": "5c0053007400720069006e006700460069006c00650049006e0066006f005c00250030003400780025003000340078005c00500072006f0064007500630074004e0061006d0065000000"
+    },
+    {
+      "rva": 76566078,
+      "width": 2,
+      "hex": "5c005300790073006e00610074006900760065005c000000"
+    },
+    {
+      "rva": 76566126,
+      "width": 2,
+      "hex": "5c00530079007300740065006d00330032005c000000"
+    }
+  ],
+  "roles": {
+    "module": 75013619,
+    "procedure": 74516985,
+    "calendar_format": 76122535,
+    "certificate_oid": 76207483,
+    "windows": 76562446,
+    "system32": 76566126,
+    "sysnative": 76566078,
+    "translation": 76563552
+  },
+  "version_templates": {
+    "CompanyName": 76565202,
+    "ProductName": 76565302,
+    "FileVersion": 76563648
+  },
+  "process_record_bytes": 10504,
+  "native_report_sha256": "5f67f83d92dc2984436ff3e7541734668dc30ce2345e9445ce6b5e222571ed3d"
+}

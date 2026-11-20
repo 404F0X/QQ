@@ -1,0 +1,194 @@
+{
+  "source_sha256": "63112ab9161e127f5f7e17998a7196e143808923fb54cbbf7b4e21426187a5f0",
+  "imports": {
+    "RegOpenKeyExA": 76614176,
+    "RegQueryValueExA": 76614208,
+    "RegCloseKey": 76614112,
+    "GetNativeSystemInfo": 76611352,
+    "GetTickCount64": 76611568,
+    "GetSystemTimeAsFileTime": 76611512,
+    "GetSystemTime": 76611504,
+    "GetLocalTime": 76611248,
+    "GetDynamicTimeZoneInformation": 76611120,
+    "GetSystemDefaultLocaleName": 76611456,
+    "GetLocaleInfoEx": 76611256,
+    "GetVolumeInformationA": 76611632,
+    "GetDiskFreeSpaceExA": 76611088,
+    "LocalFree": 76611992,
+    "AllocateAndInitializeSid": 76613928,
+    "CheckTokenMembership": 76613936,
+    "FreeSid": 76614048,
+    "GetSystemFirmwareTable": 76611480,
+    "PowerGetActiveScheme": 76616160,
+    "WideCharToMultiByte": 76612704
+  },
+  "segments": [
+    {
+      "rva": 56541140,
+      "hex": "5edeffff67deffff67deffff67deffff67deffff70deffff67deffff67deffff67deffff80deffff67deffff67deffff79deffff"
+    },
+    {
+      "rva": 72518336,
+      "hex": "000000000005"
+    },
+    {
+      "rva": 72518352,
+      "hex": "da7f5e8cbfe8964a9a85a6e23a8c635c22421b3894f6f0419685ff5bb260df2e081384a14135ab4fbc81f71556f20b4a"
+    },
+    {
+      "rva": 74914301,
+      "hex": "556e6b6e6f776e00"
+    },
+    {
+      "rva": 76120785,
+      "hex": "433a5c00"
+    },
+    {
+      "rva": 76141848,
+      "hex": "41524d00"
+    },
+    {
+      "rva": 76200105,
+      "hex": "78383600"
+    },
+    {
+      "rva": 76204557,
+      "hex": "78363400"
+    },
+    {
+      "rva": 76204883,
+      "hex": "41524d363400"
+    }
+  ],
+  "registry": [
+    {
+      "entry": "0x3c715d0",
+      "root": 18446744071562067970,
+      "path_hex": "534f4654574152455c4d6963726f736f66745c57696e646f7773204e545c43757272656e7456657273696f6e",
+      "key_hex": "50726f647563744e616d65",
+      "owner_offset": 0,
+      "capacity": 128
+    },
+    {
+      "entry": "0x3c715d0",
+      "root": 18446744071562067970,
+      "path_hex": "534f4654574152455c4d6963726f736f66745c57696e646f7773204e545c43757272656e7456657273696f6e",
+      "key_hex": "45646974696f6e4944",
+      "owner_offset": 128,
+      "capacity": 64
+    },
+    {
+      "entry": "0x3c715d0",
+      "root": 18446744071562067970,
+      "path_hex": "534f4654574152455c4d6963726f736f66745c57696e646f7773204e545c43757272656e7456657273696f6e",
+      "key_hex": "43757272656e744275696c64",
+      "owner_offset": 192,
+      "capacity": 32
+    },
+    {
+      "entry": "0x3c715d0",
+      "root": 18446744071562067970,
+      "path_hex": "534f4654574152455c4d6963726f736f66745c57696e646f7773204e545c43757272656e7456657273696f6e",
+      "key_hex": "446973706c617956657273696f6e",
+      "owner_offset": 224,
+      "capacity": 16
+    },
+    {
+      "entry": "0x3c715d0",
+      "root": 18446744071562067970,
+      "path_hex": "534f4654574152455c4d6963726f736f66745c57696e646f7773204e545c43757272656e7456657273696f6e",
+      "key_hex": "496e7374616c6c6174696f6e54797065",
+      "owner_offset": 240,
+      "capacity": 32
+    },
+    {
+      "entry": "0x3c716b0",
+      "root": 18446744071562067970,
+      "path_hex": "534f4654574152455c4d6963726f736f66745c57696e646f7773204e545c43757272656e7456657273696f6e",
+      "key_hex": "496e7374616c6c44617465",
+      "owner_offset": 336
+    },
+    {
+      "entry": "0x3c716b0",
+      "root": 18446744071562067970,
+      "path_hex": "534f4654574152455c4d6963726f736f66745c57696e646f77735c43757272656e7456657273696f6e5c506f6c69636965735c53797374656d",
+      "key_hex": "456e61626c654c5541",
+      "owner_offset": null
+    },
+    {
+      "entry": "0x3c715d0",
+      "root": 18446744071562067970,
+      "path_hex": "534f4654574152455c4d6963726f736f66745c43727970746f677261706879",
+      "key_hex": "4d616368696e6547756964",
+      "owner_offset": 1168,
+      "capacity": 64
+    },
+    {
+      "entry": "0x3c715d0",
+      "root": 18446744071562067970,
+      "path_hex": "534f4654574152455c4d6963726f736f66745c53514d436c69656e74",
+      "key_hex": "4d616368696e654964",
+      "owner_offset": 1232,
+      "capacity": 64
+    },
+    {
+      "entry": "0x3c715d0",
+      "root": 18446744071562067970,
+      "path_hex": "534f4654574152455c4d6963726f736f66745c57696e646f7773204e545c43757272656e7456657273696f6e",
+      "key_hex": "50726f647563744964",
+      "owner_offset": 1296,
+      "capacity": 64
+    },
+    {
+      "entry": "0x3c715d0",
+      "root": 18446744071562067970,
+      "path_hex": "53595354454d5c4861726477617265436f6e666967",
+      "key_hex": "4c617374436f6e666967",
+      "owner_offset": 1872,
+      "capacity": 64
+    },
+    {
+      "entry": "0x3c716b0",
+      "root": 18446744071562067970,
+      "path_hex": "53595354454d5c43757272656e74436f6e74726f6c5365745c436f6e74726f6c5c53657373696f6e204d616e616765725c4d656d6f7279204d616e6167656d656e745c5072656665746368506172616d6574657273",
+      "key_hex": "426f6f744964",
+      "owner_offset": 1936
+    },
+    {
+      "entry": "0x3c715d0",
+      "root": 18446744071562067970,
+      "path_hex": "534f4654574152455c4d6963726f736f66745c57696e646f77735c43757272656e7456657273696f6e5c57696e646f7773557064617465",
+      "key_hex": "537573436c69656e744964",
+      "owner_offset": 1940,
+      "capacity": 64
+    },
+    {
+      "entry": "0x3c715d0",
+      "root": 18446744071562067970,
+      "path_hex": "53595354454d5c43757272656e74436f6e74726f6c5365745c436f6e74726f6c5c4944436f6e66696744425c48617264776172652050726f66696c65735c30303031",
+      "key_hex": "487750726f66696c6547756964",
+      "owner_offset": 2068,
+      "capacity": 64
+    }
+  ],
+  "architecture_table_rva": 56541140,
+  "architecture_branches": {
+    "56532530": 76200105,
+    "56532539": 74914301,
+    "56532548": 76141848,
+    "56532564": 76204557,
+    "56532557": 76204883
+  },
+  "architecture_default_rva": 74914301,
+  "authority_rva": 72518336,
+  "volume_root_rva": 76120785,
+  "power_labels": {
+    "72518352": "4869676820506572666f726d616e6365",
+    "72518368": "42616c616e636564",
+    "72518384": "506f776572205361766572"
+  },
+  "custom_power_hex": "437573746f6d",
+  "mounted_path_hex": "53595354454d5c4d6f756e74656444657669636573",
+  "mounted_key_hex": "5c446f73446576696365735c433a",
+  "native_report_sha256": "3d110b85f276bb8edf6b73551584eefc549d469d7980856682ebc65799a02ddb"
+}

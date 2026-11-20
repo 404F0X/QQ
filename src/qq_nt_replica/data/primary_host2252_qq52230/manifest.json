@@ -1,0 +1,116 @@
+{
+  "schema": 1,
+  "wrapper": {
+    "version": "QQ9.9.33-52230",
+    "sha256": "63112ab9161e127f5f7e17998a7196e143808923fb54cbbf7b4e21426187a5f0"
+  },
+  "rva_begin": "43FD440",
+  "rva_end": "4521480",
+  "bytes": 1196096,
+  "concatenated_sha256": "8c74f394535cd8744e277c00d4e4a7d648922dd35dcb9c50e5bd48aab8d811f4",
+  "banks": [
+    {
+      "name": "pi",
+      "file": "pi.bin",
+      "offset": 0,
+      "bytes": 64,
+      "rva_begin": "43FD440",
+      "rva_end": "43FD480",
+      "sha256": "950371a100e35d80fb89f5bec4e5d943386fe24d9b8509d899515e7d338fdd05",
+      "source_member": "research-source:read-001-data-43FD440.bin"
+    },
+    {
+      "name": "T",
+      "file": "T.bin",
+      "offset": 64,
+      "bytes": 491520,
+      "rva_begin": "43FD480",
+      "rva_end": "4475480",
+      "sha256": "04422fdc993c5e5db3dc3fee9b903876ab637053fd1425360617c31e5004a175",
+      "source_member": "research-source:read-094-data-43FD480.bin"
+    },
+    {
+      "name": "N",
+      "file": "N.bin",
+      "offset": 491584,
+      "bytes": 245760,
+      "rva_begin": "4475480",
+      "rva_end": "44B1480",
+      "sha256": "417b65b3a8ae9e038958879d7b00e8e67fc1b6c4b31832afb2049baa6f90f51c",
+      "source_member": "research-source:compiledN-4475480-44B1480.bin"
+    },
+    {
+      "name": "BYTE",
+      "file": "BYTE.bin",
+      "offset": 737344,
+      "bytes": 131072,
+      "rva_begin": "44B1480",
+      "rva_end": "44D1480",
+      "sha256": "d001f42d66d504e12562c3c7dcf7906339f3013fc12341769af14bd4f90a5bcf",
+      "source_member": "research-source:read-002-data-44B1480.bin"
+    },
+    {
+      "name": "TA",
+      "file": "TA.bin",
+      "offset": 868416,
+      "bytes": 163840,
+      "rva_begin": "44D1480",
+      "rva_end": "44F9480",
+      "sha256": "bc00ddde10a759342a141e9015c8490aaab67437541533fffa0fab1d2a527a61",
+      "source_member": "research-source:read-095-data-44D1480.bin"
+    },
+    {
+      "name": "TB",
+      "file": "TB.bin",
+      "offset": 1032256,
+      "bytes": 163840,
+      "rva_begin": "44F9480",
+      "rva_end": "4521480",
+      "sha256": "f7fe444ee27216b24610d6026328dd6bd912e48ab2cbf0c23b28a14866585acc",
+      "source_member": "research-source:read-096-data-44F9480.bin"
+    }
+  ],
+  "source_bindings": {
+    "source_report": {
+      "path": "research-source:R15-qq-primary-host2252-byte-bridge-20261019-report-a1.md",
+      "sha256": "01d07de41a11dc35655ec49c2ef97c46ed4f17626de6fe5cb21b7ef73f2f8a90"
+    },
+    "source_final_manifest": {
+      "path": "research-source:FINAL-evidence-manifest.json",
+      "sha256": "1a2a381e51ad56fe194caa33c0cd23962896df1fae6d75dac0bafe3a4ab175d7"
+    },
+    "source_final_receipt": {
+      "path": "research-source:FINAL-receipt.json",
+      "sha256": "e2729d7aba398c25a3905461caa2b8b2d61e1a45ad5c7de943a9543f0f0f9fef"
+    },
+    "integrated_normal_contract": {
+      "path": "research-source:host2252-integrated-normal-contract.json",
+      "sha256": "03e3523fc011a0b64040b31079b6bba919f10d34ee81dc365ba4bc97e9f5f9c3"
+    },
+    "N_source_report": {
+      "path": "research-source:R15-qq-primary-host2252-dispatch-tables-20261019-report-a1.md",
+      "sha256": "d0511ea8a938934b8bbe6ab8b4d593145915744572446b851dab0253116ead7d"
+    },
+    "M16": {
+      "rva_begin": "35937EA",
+      "rva_end": "3593C0A",
+      "sha256": "3d5fbd85851efe4659d383c0f8f56358d2029b7a84edc3cf3c1c30ac20d9411e"
+    },
+    "M4": {
+      "rva_begin": "3C63B4F",
+      "rva_end": "3C63C57",
+      "sha256": "b943df655755d4f472ad0b21740225df8d4555d93ba680cfbb08407336ea9553"
+    },
+    "bridge": {
+      "rva_begin": "3C63AF0",
+      "rva_end": "3C63B32",
+      "sha256": "9a0d3e058e8ae3e968664d09aa2b79a7fcdc83d3cb2df2730359550b331f2ff4"
+    },
+    "program": {
+      "rva_begin": "45977C8",
+      "rva_end": "45981B8",
+      "sha256": "9990d1fa315c605547b48d96b60868b0992025401f0a61213e03da5607039dea"
+    }
+  },
+  "scope": "Real fixed compiled assets; not current loaded equality evidence; all ten compiled rounds retained, normal traversal uses rounds0..8 only"
+}
