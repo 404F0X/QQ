@@ -112,7 +112,7 @@ def copy_shared_locale(runtime,destination):
 
 _SOURCE='63112ab9161e127f5f7e17998a7196e143808923fb54cbbf7b4e21426187a5f0'
 _METHODS=((0x3EBE770,0x760A30),(0x3EBE778,0x40098),(0x3F73068,0x7824C0),(0x3F73070,0x7824B0),(0x3F73100,0x784A60),(0x3F73108,0x784A80),(0x3F735B8,0x76EA30))
-_ZERO_SPANS=((0x6D8F0F0,4),(0x674DDF0,16),(0x674DE00,4),(0x674DE08,16),(0x674DE18,4),(0x674DE1C,4),(0x674D4D0,8),(0x674D4D8,8),(0x674E808,0x288),(0x674EA90,0x138))
+_ZERO_SPANS=((0x6D8F0F0,4),(0x674DDF0,16),(0x674DE00,4),(0x674DE08,16),(0x674DE18,4),(0x674DE1C,4),(0x674E808,0x288),(0x674EA90,0x138))
 
 
 def current_character_table(runtime):
@@ -180,6 +180,8 @@ class _SharedLocaleSource:
         _srw(runtime,base+0x674D4D0,True)
         memory.store(base+identifier,-1,8,source='75B0E0.once_complete')
         _srw(runtime,base+0x674D4D0,False)
+        from .primary_module_sync import shared_wake
+        shared_wake(runtime)
         runtime.events.append(('shared_locale.WakeAllConditionVariable.no_waiters',base+0x674D4D8))
 
     def _guard(self,runtime,rva,construct):

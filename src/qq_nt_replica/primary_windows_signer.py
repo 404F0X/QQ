@@ -198,6 +198,8 @@ def open_windows_signer(*, bridge_path, storage_root, host_profile_string, initi
                                               display_environment=display_environment)
         owner._provider.bind_source(owner._factory.source)
         profile = CallerProfile(None, host_profile_string, device_factory=owner._factory)
+        from .primary_module_sync import _begin_birth, _seal_birth
+        sync_birth = _begin_birth(owner, outer_sync_permit) if outer_sync_permit is not None else None
         owner._signer = PrimarySigner(environment, initial_stack=initial_stack, profile=profile,
                                       primary_backend=primary_backend,
                                       retain_diagnostics=retain_diagnostics,
@@ -209,7 +211,10 @@ def open_windows_signer(*, bridge_path, storage_root, host_profile_string, initi
                                       host2252_f_read_budget=host2252_f_read_budget,
                                       host2252_pair_m_retry=host2252_pair_m_retry,
                                       host2252_pair_m_read_budget=host2252_pair_m_read_budget,
-                                      host2252_control_m=host2252_control_m)
+                                      host2252_control_m=host2252_control_m,
+                                      _module_sync_birth=sync_birth)
+        if sync_birth is not None:
+            _seal_birth(owner)
         if owner._ownimage_module is not None:
             owner._ownimage_module.bind(owner._signer.runtime)
         if notification_environment:
@@ -240,6 +245,8 @@ def open_windows_signer(*, bridge_path, storage_root, host_profile_string, initi
             owner._independent_setup.prepare(independent_provider_metadata)
         return owner
     except BaseException as original:
+        from .primary_module_sync import _cancel_pending_birth
+        _cancel_pending_birth(owner)
         try:
             owner.close()
         except BaseException as cleanup:
@@ -611,6 +618,9 @@ class WindowsSigner:
                     raise PrimarySemanticUnavailable('own-image retained until raw and caller consumers are confirmed closed')
                 attempt('ownimage_module', retain_ownimage)
         if self._signer is not None:
+            from .primary_module_sync import dispose_terminal as dispose_module_sync
+            if errors:return errors
+            if not attempt('host_module_sync', lambda: dispose_module_sync(self)):return errors
             port=getattr(self._signer.runtime,'_outer_sync_port',None)
             if port is not None:
                 if errors:return errors

@@ -37,6 +37,16 @@ def _convert(value):
     return _Config(tuple(strings),appid,external)
 
 
+def login_nt_data_path(runtime,source):
+    """9AE42A finite drive-absolute ASCII path; independent owned result."""
+    raw=source.value()
+    import re
+    if (any(value>=128 for value in raw) or b'\0' in raw or
+            re.fullmatch(rb'[A-Za-z]:\\[A-Za-z0-9_-]+(?:\\[A-Za-z0-9_-]+)*',raw) is None):
+        raise PrimarySemanticUnavailable('9AE42A unsupported path normalization/encoding domain')
+    return _String.construct(runtime,raw+b'\\nt_data')
+
+
 def _global_sync(runtime):
     memory,base=runtime.memory,runtime.image_base
     current=memory.load(base+0x6745268,8)
@@ -219,8 +229,12 @@ class _LoginService:
             if memory.load(self.__object+0x178,1) or memory.load(self.__object+0x190,1):
                 raise PrimarySemanticUnavailable('6C4A20 populated appid optional-copy/destruction domain unavailable')
             memory.store(self.__object+0x1a0,int(config.external_version),1,source='D56F50.externalVersion')
-            # Exact subsequent source call must dispatch or fail there, never select a default.
-            raise PrimarySemanticUnavailable('6D3DCC path/MSF-record continuation requires exact owned argument binding before 6D4BBC')
+            target=self.__object+0x100
+            path=login_nt_data_path(self.__runtime,_String.read(self.__runtime,target))
+            _String.read(self.__runtime,target).destroy();path.write_to(target)
+            from .primary_msf_selection import initialize_login_msf
+            initialize_login_msf(self.__runtime,self.__object)
+            raise PrimarySemanticUnavailable('6D4BBC continuation after existing MSF owner unavailable')
         except BaseException as error:
             if self.__state=='INITIALIZING':
                 self.__state='UNAVAILABLE';self.__failure=type(error).__name__

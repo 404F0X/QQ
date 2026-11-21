@@ -505,7 +505,7 @@ class PrimarySigner:
 
                     host2252_control_m=False, main_clock_inputs=None, host129_source_clock_inputs=None,
 
-                    primary_backend='reference'):
+                    primary_backend='reference', _module_sync_birth=None):
 
         if type(primary_backend) is not str or primary_backend not in ('reference', 'direct'):
 
@@ -631,6 +631,7 @@ class PrimarySigner:
 
         self._empty_body_token = profile.empty_body_token if isinstance(profile, CallerProfile) else None
 
+        self._module_sync_birth = _module_sync_birth
         self._initialize_image()
 
         from .primary_sdk_blob import LoadedModuleImage
@@ -661,6 +662,8 @@ class PrimarySigner:
         bind_runtime_core(self)
         from .primary_shared_locale import bind_fresh_runtime as bind_shared_locale_runtime
         bind_shared_locale_runtime(self)
+        from .primary_module_sync import bind_fresh_runtime as bind_module_sync
+        bind_module_sync(self)
         from .primary_notification_static_initializers import bind_static_unit
         bind_static_unit(self)
 
@@ -1627,6 +1630,12 @@ class PrimarySigner:
 
         from .primary_shared_locale import install_fresh_image as install_shared_locale_image
         self._shared_locale_image = install_shared_locale_image(self)
+        from .primary_module_sync import install_fresh_image as install_module_sync
+        self._module_sync_image = install_module_sync(self)
+        from .primary_msf_selection import install_fresh_image as install_msf_selection
+        from .primary_nt_wrapper_owner import install_fresh_image as install_nt_wrapper_owner
+        install_msf_selection(self)
+        install_nt_wrapper_owner(self)
 
 
     def _bind_runtime(self):

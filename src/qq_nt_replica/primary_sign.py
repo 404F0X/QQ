@@ -1104,7 +1104,18 @@ class PrimaryRuntime:
                 self.events.append(("CRT.atexit", self.image_base + 0x3591F69))
                 self._thread_footer(guard)
         once, slot = self.image_base + 0x6D88CA8, self.image_base + 0x6D88CB0
+        from .primary_module_sync import backend, MODEL_NATIVE, source_once, shared_acquire, shared_release
+        if backend(self) == MODEL_NATIVE:
+            from .primary_worker_consumer import _invoke
+            def source_callback_3591F77():
+                address = _invoke(self, 0xB75000, 1)
+                # CD18 has not been source-closed. The allocated byte remains unknown;
+                # source3592018 publication occurs only after that constructor returns.
+                raise PrimarySemanticUnavailable('sourceCD18 random-device constructor unavailable after B75000(1)')
+            source_once(self, once, source_callback_3591F77)
+            return self.memory.load(slot, 8)
         if self.memory.load(once, 8) != _MASK64:
+            shared_acquire(self)
             self.events.append(("call_once.lock", self.image_base + 0x674D4D0))
             state = self.memory.load(once, 8)
             if state == 1:
@@ -1117,6 +1128,7 @@ class PrimaryRuntime:
                 self.memory.store(slot, address, 8, source="359201D.random_device_publish")
                 self.memory.store(once, _MASK64, 8, source="75B190.once_publish")
             self.events.append(("call_once.unlock", self.image_base + 0x674D4D0))
+            shared_release(self)
         return self.memory.load(slot, 8)
 
     def _ansi_name(self, pointer):

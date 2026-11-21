@@ -54,7 +54,9 @@ class Prefix(unittest.TestCase):
         # Explicit test-only TLS observation boundary, never a genuine receipt claim.
         return patch('qq_nt_replica.primary_shared_locale.resolve_current_module_tls',return_value=SimpleNamespace(epoch_address=runtime.tls_epoch_address,image_epoch=runtime.epoch))
     def run_config(self,owner,service,value):
-        with self.tls(owner.signer.runtime):return service.initConfig(value)
+        # Keep these existing CS/setup checks at their controlled next-port boundary.
+        with self.tls(owner.signer.runtime),patch('qq_nt_replica.primary_msf_selection.initialize_login_msf',side_effect=PrimarySemanticUnavailable('controlled MSF factory boundary')):
+            return service.initConfig(value)
     def test_real_owner_control_selfweak_and_local_release(self):
         owner=self.owner();r=owner.signer.runtime
         with self.tls(r):service=get_login_service(owner);other=get_login_service(owner)
@@ -120,7 +122,7 @@ class Prefix(unittest.TestCase):
                 return None
             with self.tls(r):service=get_login_service(owner)
             with patch.object(WindowsOuterSync,'_api',api):
-                with self.assertRaisesRegex(PrimarySemanticUnavailable,'path/MSF-record'):self.run_config(owner,service,self.config())
+                with self.assertRaisesRegex(PrimarySemanticUnavailable,'controlled MSF factory boundary'):self.run_config(owner,service,self.config())
                 pointer=r.memory.load(r.image_base+0x6745268,8)
                 self.assertEqual(r.memory.read(pointer+0x18,40),b'Z'*40)
                 self.assertEqual(r.memory.load(pointer+8,4),0 if not result and error else 0x38)
@@ -197,9 +199,9 @@ class Prefix(unittest.TestCase):
         def api(unused,name,result,types,*args):
             if name=='InitializeCriticalSectionEx':return 1
             return None
-        with patch.object(WindowsOuterSync,'_api',api):
+        with patch.object(WindowsOuterSync,'_api',api),patch('qq_nt_replica.primary_msf_selection.initialize_login_msf',side_effect=PrimarySemanticUnavailable('controlled MSF factory boundary')):
             config=self.config();config['externalVersion']=True
-            with self.assertRaisesRegex(PrimarySemanticUnavailable,'path/MSF-record'):setup.prepare_outer_prefix(config)
+            with self.assertRaisesRegex(PrimarySemanticUnavailable,'controlled MSF factory boundary'):setup.prepare_outer_prefix(config)
             owner._state='closing';port.dispose_terminal()
         self.assertEqual(setup.state,'failed')
         self.assertEqual(events,['before','lease','native_context','native_context_exit','lease_exit','after'])

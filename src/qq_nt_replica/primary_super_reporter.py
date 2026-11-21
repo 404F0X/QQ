@@ -102,22 +102,70 @@ def initialize_joint_module(runtime):
 
 def _once(runtime, flag, callback):
     memory, base = runtime.memory, runtime.image_base
+    from .primary_module_sync import backend, MODEL_NATIVE, source_once, shared_acquire, shared_release, shared_wake
+    if backend(runtime) == MODEL_NATIVE:
+        if memory.load(flag, 8) == _U64:
+            return
+        import sys
+        caller = sys._getframe(1)
+        bindings = {
+            initialize.__code__: (base + 0x677C0C8, 0x1BF37D0, 0x1BF3780),
+            _registry.__code__: (base + 0x6D85F50, 0x1BF37D0, 0x2DE0B00),
+            _joint_body.__code__: (base + 0x677CCC0, 0x1BF37D0, 0x1C026E0),
+            submit_joint.__code__: (base + 0x677C258, 0x1C02430, caller.f_locals.get('source')),
+            start.__code__: (caller.f_locals.get('owner'), 0x2DE0D60, caller.f_locals.get('owner')),
+        }
+        binding = bindings.get(caller.f_code)
+        if caller.f_code is invoke.__code__ and caller.f_locals.get('rva') == 0x2DF4800:
+            binding = (base + 0x677C0C8, 0x1BF37D0, 0x1BF3780)
+        if binding is None or binding[0] != flag or type(binding[2]) is not int:
+            raise InputError('super reporter once source callsite/flag binding mismatch')
+        _, entry, target = binding
+        # These are guest closure cells, never native addresses or origin receipts.
+        size = 24 if entry == 0x1BF37D0 else 16
+        closure, _ = _frame(runtime, size, 'super_reporter.source_once_closure')
+        memory.store(closure, closure + 8, 8, source='super_reporter.once_closure_outer')
+        if entry == 0x1BF37D0:
+            memory.store(closure + 8, closure + 16, 8, source='super_reporter.once_closure_inner')
+            memory.store(closure + 16, base + target, 8, source='super_reporter.once_fixed_target')
+        else:
+            memory.store(closure + 8, target, 8, source='super_reporter.once_captured_argument')
+        def source_callback():
+            resolved = memory.load(memory.load(closure, 8), 8)
+            if entry == 0x1BF37D0:
+                resolved = memory.load(resolved, 8)
+                if resolved != base + target:
+                    raise InputError('super reporter fixed once thunk target changed')
+            elif resolved != target:
+                raise InputError('super reporter once captured argument changed')
+            raise PrimarySemanticUnavailable('super reporter source callback body unavailable: ' + hex(
+                target if entry == 0x1BF37D0 else entry))
+        try:
+            return source_once(runtime, flag, source_callback)
+        finally:
+            memory.unmap(closure)
     if memory.load(flag, 8) == _U64:
         return
+    shared_acquire(runtime)
     _mutex(runtime, base + 0x674D4D0, True)
     state = memory.load(flag, 8)
     if state == 1:
         runtime.events.append(('super_reporter.once_wait', flag))
         raise PrimarySemanticUnavailable('super reporter once requires actual concurrent initialization completion')
     if state:
+        shared_release(runtime)
         _mutex(runtime, base + 0x674D4D0, False)
         return
     memory.store(flag, 1, 8, source='75B0E0.super_reporter_once_claim')
+    shared_release(runtime)
     _mutex(runtime, base + 0x674D4D0, False)
     callback()
+    shared_acquire(runtime)
     _mutex(runtime, base + 0x674D4D0, True)
     memory.store(flag, _U64, 8, source='75B0E0.super_reporter_once_completed')
+    shared_release(runtime)
     _mutex(runtime, base + 0x674D4D0, False)
+    shared_wake(runtime)
     runtime.events.append(('super_reporter.once_notify', base + 0x674D4D8, flag))
 
 

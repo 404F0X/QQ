@@ -57,6 +57,11 @@ def _srw(runtime, pointer, acquire):
     expected = runtime.worker_imports.get(name)
     if expected is None or runtime.memory.load(runtime.image_base + _IMPORTS[name], 8) != expected:
         raise PrimarySemanticUnavailable('logger current synchronization import is not bound: ' + name)
+    if pointer == runtime.image_base + 0x674D4D0:
+        from .primary_module_sync import shared_acquire, shared_release
+        (shared_acquire if acquire else shared_release)(runtime)
+        runtime.events.append(('logger.' + name, pointer))
+        return
     if not hasattr(runtime, '_logger_locks'):
         runtime._logger_locks = {}
     held = runtime._logger_locks.get(pointer, False)
