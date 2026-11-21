@@ -2734,6 +2734,20 @@
         "rva": "0x43fa160",
         "length": 3180
       }
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_ipc.py",
+      "source_sha256": "882b573c9581e5a64ddf2b7d283fdf49de480c66ca167044751913604035cfa4",
+      "sha256": "882b573c9581e5a64ddf2b7d283fdf49de480c66ca167044751913604035cfa4",
+      "classification": "project_source",
+      "origin": "MAT-QIMEI-IPC-IMPLEMENT/a1 new source-derived implementation; authoring snapshot: qimei-ipc-implementation/primary_qimei_ipc.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_windows_qimei_ipc.py",
+      "source_sha256": "70146915a7368b99523a72cf2dcef7b42e3f5bfc1ae475f9a9a74cf7cbe4a40f",
+      "sha256": "4b7fa97ababcaec12af23d61caa9060ca18ebf12294d8878ee52ce40288b0cfc",
+      "classification": "project_source",
+      "origin": "MAT-QIMEI-IPC-IMPLEMENT/a1 new source-derived implementation; authoring snapshot: qimei-ipc-implementation/primary_windows_qimei_ipc.py"
     }
   ],
   "excluded_pending_assets": [
