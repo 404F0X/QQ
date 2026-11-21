@@ -33,8 +33,9 @@ class QimeiTransportMaterial:
 class QimeiTransportGlobals:
     _api = QimeiExtraSources._api
 
-    def __init__(self, observations, *, random=None):
+    def __init__(self, observations, *, random=None, beacon=None):
         self.observations = observations
+        self.beacon = beacon
         self.random = QimeiTransportRandom(observations) if random is None else random
         self._lock = RLock()
         self._manager = self._config = b''
@@ -68,8 +69,19 @@ class QimeiTransportGlobals:
                 self._model = _bytes(value)
             return self._model
 
+    def refresh_config(self):
+        """Explicit697FA per-init refresh; no automatic a2 registration."""
+        with self._lock:
+            if self.beacon is None:
+                raise QimeiRequestBoundary('source beacon refresh producer required')
+            value=self.beacon.refresh()
+            self._config=value
+            return value
+
     def config(self):
         with self._lock:
+            if not self._config and self.beacon is not None:
+                return self.refresh_config()
             if not self._config:
                 data = StorageBuffer(bytes(261))
                 status, output = self._api('SHGetFolderPathA', (0, 0x801A, 0, 0, data), {'data': data})

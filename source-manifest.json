@@ -1821,7 +1821,7 @@
     {
       "path": "src/qq_nt_replica/primary_qimei_transport_material.py",
       "source_sha256": "569ac4e27f64396efbbe3539e5478b4e4925e42aa41543498ea2fbf63cbce129",
-      "sha256": "569ac4e27f64396efbbe3539e5478b4e4925e42aa41543498ea2fbf63cbce129",
+      "sha256": "b9f9cf01f54621189b7a14dcd732d2e7e0f7bd00c36241ae4469ede3810addee",
       "classification": "project_source"
     },
     {
@@ -2783,6 +2783,20 @@
       "sha256": "25281696f8be25a1b0e7bb0e094d2e3da5e0b3be4f591f5c5083b9f7029ee944",
       "classification": "project_source",
       "origin": "MAT-QIMEI-KIND5-IMPLEMENT/a1 new source-derived implementation; authoring snapshot: qimei-kind5-implementation/metadata/primary_qimei_kind5_request.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_beacon.py",
+      "source_sha256": "43eea0f9609189b76fd2eefb211f5eb85c2d136a8165e03c9110ebbf779feb96",
+      "sha256": "43eea0f9609189b76fd2eefb211f5eb85c2d136a8165e03c9110ebbf779feb96",
+      "classification": "project_source",
+      "origin": "MAT-QIMEI-BEACON-IMPLEMENT/a1 new source-derived NORMAL implementation; first stable authoring snapshot: qimei-beacon-implementation/origins/primary_qimei_beacon.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_windows_qimei_beacon.py",
+      "source_sha256": "ba61cfc406e3e08e1d7b0b370ef53ef2074706b9c3c8518fbe08bdabf612aea2",
+      "sha256": "2ec12301009c0bf0a9ebe49c429b1c51fe4ec806d9649f82fdf30bc3d11d823e",
+      "classification": "project_source",
+      "origin": "MAT-QIMEI-BEACON-IMPLEMENT/a1 new source-derived NORMAL implementation; first stable authoring snapshot: qimei-beacon-implementation/origins/primary_windows_qimei_beacon.py"
     }
   ],
   "excluded_pending_assets": [
