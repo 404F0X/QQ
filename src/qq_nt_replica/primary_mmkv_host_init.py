@@ -93,17 +93,9 @@ def _validate(runtime):
         if actual is not region or current!=offset:raise InputError('MMKV image cell backing changed')
 
 
-def _stdio_options(runtime):
-    runtime.events.append(('source.input.unavailable',0x6749cc0,8,'3E6EE80'))
-    raise PrimarySemanticUnavailable('3E6EE80 full u64 source stdio options6749CC0 current-epoch input unavailable')
-
-
 def _log(runtime,level,file,function,line,template,arguments):
-    from .primary_worker_response import _frame
-    if runtime.memory.load(runtime.image_base+0x6188c48,4,signed=True)>level:return
-    runtime.events.append(('1BDF22C.arguments',level,file,function,line,template,arguments))
-    _frame(runtime,16,'7017B4 initial stdio output buffer')
-    _stdio_options(runtime)
+    from .primary_mmkv_log import log
+    return log(runtime,level,file,function,line,template,arguments)
 
 
 def _version_log(runtime,page_size):

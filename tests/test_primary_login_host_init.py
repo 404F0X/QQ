@@ -98,6 +98,7 @@ class AttachPhase(unittest.TestCase):
                 windows.open_windows_signer(bridge_path='controlled.dll',storage_root='controlled',host_profile_string=b'explicit-model-profile',primary_backend='direct')
             owner=owners[0];r=owner._signer.runtime
             record=attach._PHASES[id(r)]
+            self.assertEqual(r.memory.load(r.image_base+0x6749cc0,8),0x24)
             self.assertEqual(record['state'],'failed')
             self.assertIs(record['failure'],caught.exception)
             self.assertEqual(record['pointer'],0x7990000000)
@@ -106,7 +107,7 @@ class AttachPhase(unittest.TestCase):
             with self.assertRaises(UnknownMemory):r.memory.read(record['pointer'],24)
             with self.assertRaises(PrimarySemanticUnavailable):attach.require_complete(r)
 
-    def _scoped_native_port_case(self,failure=None):
+    def _scoped_native_port_case(self,failure=None,stdio_transform=None,stdio_failure=False,stage_failure=None,defer_terminal=False):
         from unittest.mock import patch
         from contextlib import ExitStack
         from pathlib import Path
@@ -117,8 +118,9 @@ class AttachPhase(unittest.TestCase):
         from types import SimpleNamespace
         import threading
         constructors=('WindowsCallerAPIBackend','WindowsCallerBridge','WindowsSDKThreadService','WindowsCallerObservations','WindowsProviderObservations','WindowsWorkerObservations','WindowsDeviceFileObservations','WindowsCoreObservations','WindowsCRTObservations')
-        observed=[]
+        observed=[];stage_owners=[]
         def allocator(owner):
+            stage_owners.append(owner)
             r=owner._signer.runtime
             issuer=WindowsAllocatorIssuer.__new__(WindowsAllocatorIssuer)
             issuer.owner=owner;issuer.epoch=r._custom_allocator_backend.source.epoch;issuer.source=SimpleNamespace(_borrow=None)
@@ -126,6 +128,14 @@ class AttachPhase(unittest.TestCase):
             owner._threads._runtime=r
         def crt_thread(r):
             r.crt_thread_address=0x7980000000
+            if stage_failure=='thread':raise RuntimeError('controlled stdio prerequisite failure')
+            if stage_failure=='write':
+                original=r.memory.store
+                def store(*args,**kwargs):
+                    result=original(*args,**kwargs)
+                    if kwargs.get('source')=='3E6BA7C.MODEL_stdio_OR24':raise RuntimeError('controlled stdio OR observation failure')
+                    return result
+                r.memory.store=store
             return r.crt_thread_address
         def invoke(r,rva,*args):
             observed.append((rva,args))
@@ -150,6 +160,18 @@ class AttachPhase(unittest.TestCase):
             stack.enter_context(patch.object(PrimaryRuntime,'_crt_thread',crt_thread))
             stack.enter_context(patch.object(attach,'_invoke',side_effect=invoke))
             stack.enter_context(patch('qq_nt_replica.primary_windows_signer_setup.IndependentWindowsSetup'))
+            if stage_failure:
+                with patch.object(windows.WindowsSigner,'close'),patch.object(windows.WindowsSigner,'diagnostics',new=property(lambda actual:{})):
+                    with self.assertRaisesRegex(RuntimeError,'controlled stdio'):
+                        windows.open_windows_signer(bridge_path='controlled.dll',storage_root='controlled',host_profile_string=b'explicit-model-profile',primary_backend='direct',outer_login_config={},outer_sync_permit=lambda actual,operation:True)
+                r=stage_owners[0].signer.runtime
+                from qq_nt_replica import primary_crt_stdio_options as options
+                self.assertEqual(observed,[])
+                self.assertEqual(r.memory.load(r.image_base+0x6749cc0,8),0 if stage_failure=='thread' else 0x24)
+                if stage_failure=='thread':self.assertNotIn(id(r),options._PHASES)
+                else:self.assertEqual(options._PHASES[id(r)]['state'],'failed')
+                with self.assertRaises(PrimarySemanticUnavailable):options.read_options(r)
+                return
             owner=windows.open_windows_signer(bridge_path='controlled.dll',storage_root='controlled',host_profile_string=b'explicit-model-profile',primary_backend='direct',outer_login_config={},outer_sync_permit=lambda actual,operation:True)
             r=owner.signer.runtime;m=r.memory;b=r.image_base
             r.next=0x7b00000000;r.calls=[];r.fail_size=None;r.epoch=r._custom_allocator_backend.source.epoch
@@ -171,22 +193,39 @@ class AttachPhase(unittest.TestCase):
                 if name=='DeleteCriticalSection':return
                 raise AssertionError(name)
             receipt=SimpleNamespace(epoch_address=r.tls_epoch_address,image_epoch=object())
-            with patch.object(WindowsMMKVHost,'_api',api),patch('qq_nt_replica.primary_shared_locale.resolve_current_module_tls',return_value=receipt),owner._registrar.operation():
+            from qq_nt_replica.primary_windows_mmkv_stdio import WindowsMMKVStdio
+            from test_primary_mmkv_stdio import fake_ucrt
+            stdio_calls=[];stdio_functions=fake_ucrt(stdio_calls)
+            if stdio_transform is not None:stdio_functions=stdio_transform(stdio_functions,r,stdio_calls)
+            with patch.object(WindowsMMKVStdio,'_load',return_value=stdio_functions),patch.object(WindowsMMKVHost,'_api',api),patch('qq_nt_replica.primary_shared_locale.resolve_current_module_tls',return_value=receipt),owner._registrar.operation():
                 service=get_login_service(owner)
                 with patch('qq_nt_replica.primary_outer_init._global_sync',return_value=1):
-                    with self.assertRaisesRegex(RuntimeError if failure=='init_api' else PrimarySemanticUnavailable,'controlled MMKV native failure' if failure=='init_api' else 'stdio options6749CC0'):
+                    with self.assertRaisesRegex(RuntimeError if failure=='init_api' or stdio_failure else PrimarySemanticUnavailable,'controlled MMKV native failure' if failure=='init_api' else ('controlled stdio' if stdio_failure else '1BD8F45')):
                         service.initConfig(dict(commonPath='C:\\data',clientVer='v',machineId='machine',platVer='p',hostName='h'))
-                self.assertEqual(calls,['InitializeCriticalSectionAndSpinCount'] if failure=='init_api' else (['InitializeCriticalSectionAndSpinCount','GetLastError'] if failure=='init_false' else ['InitializeCriticalSectionAndSpinCount','GetSystemInfo']))
+                self.assertEqual(calls,['InitializeCriticalSectionAndSpinCount'] if failure=='init_api' else (['InitializeCriticalSectionAndSpinCount','GetLastError','GetSystemInfo'] if failure=='init_false' else ['InitializeCriticalSectionAndSpinCount','GetSystemInfo']))
                 lock=m.load(b+0x6751390,8);cache=m.load(b+0x6751388,8)
                 self.assertEqual(m.read(lock,40),bytes(40) if failure=='init_api' else b'Z'*40)
                 with self.assertRaises(UnknownMemory):m.read(cache+36,4)
-                self.assertEqual(m.load(b+0x67513c8,4),1)
+                self.assertEqual(m.load(b+0x67513c8,4),1 if failure=='init_api' or stdio_failure else 2)
                 obj=m.load(b+0x674c730,8);self.assertEqual(m.read(obj+0x90,16),bytes(16))
                 from qq_nt_replica.primary_memory import PrimaryMemoryLimit
                 with self.assertRaises(PrimaryMemoryLimit):m.unmap(lock)
                 service.release_wrappers()
+            if defer_terminal:return dict(runtime=r,stdio_calls=stdio_calls,owner=owner,mmkv_api=api)
             owner._state='closing'
             port=for_runtime(r)
+            if stdio_failure:
+                from qq_nt_replica.primary_windows_mmkv_stdio import for_runtime as stdio_for_runtime
+                stdio_port=stdio_for_runtime(r)
+                with self.assertRaises(PrimarySemanticUnavailable):stdio_port.dispose_terminal()
+                self.assertTrue(stdio_port._WindowsMMKVStdio__records)
+                self.assertTrue(stdio_port._WindowsMMKVStdio__failures)
+                # Only private controlled functions ran: release test pins, no production recovery.
+                for token,(view,native) in tuple(stdio_port._WindowsMMKVStdio__pins.items()):
+                    m._unpin_native_span(token,stdio_port);view.release()
+                lock_backing=port._WindowsMMKVHost__lock
+                m._unpin_native_span(lock_backing.token,port);lock_backing.view.release()
+                return dict(runtime=r,stdio_calls=stdio_calls,owner=owner)
             with patch.object(WindowsMMKVHost,'_api',api):
                 if failure=='init_api':
                     with self.assertRaises(PrimarySemanticUnavailable):port.dispose_terminal()
@@ -199,7 +238,7 @@ class AttachPhase(unittest.TestCase):
                     port.dispose_terminal()
                     if failure=='init_false':
                         self.assertNotIn('DeleteCriticalSection',calls)
-                        log=[event for event in r.events if event[0]=='1BDF22C.arguments'][-1]
+                        log=[event for event in r.events if event[0]=='1BDF22C.arguments' and event[1]==3][-1]
                         self.assertEqual(log[1:],(3,b'ThreadLock_Win32.cpp',b'initialize',0x29,b'fail to init critical section:%d',(5,)))
                     else:self.assertEqual(calls[-1],'DeleteCriticalSection')
             if failure in ('init_api','delete_record'):
@@ -208,6 +247,10 @@ class AttachPhase(unittest.TestCase):
                 backing=port._WindowsMMKVHost__lock
                 m._unpin_native_span(backing.token,port);backing.view.release()
             m._assert_no_native_pin(lock,40)
+            from qq_nt_replica.primary_windows_mmkv_stdio import for_runtime as stdio_for_runtime
+            stdio_for_runtime(r).dispose_terminal()
+            return dict(runtime=r,stdio_calls=stdio_calls,owner=owner)
+
 
     def test_scoped_native_port_same_buffer_options_stop_and_terminal(self):
         self._scoped_native_port_case()

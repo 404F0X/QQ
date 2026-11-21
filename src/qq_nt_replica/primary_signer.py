@@ -1373,6 +1373,12 @@ class PrimarySigner:
 
                 raw[offset:offset + 8] = value.to_bytes(8, "little")
 
+            if int(segment["rva"],16)==0x6749cc0:
+                if raw!=bytes(8) or segment["relocations"]:raise InputError('stdio source birth segment mismatch')
+                from .primary_crt_stdio_options import install_fresh_image as install_stdio_options
+                install_stdio_options(self)
+                continue
+
             self.memory.map(self.image_base + int(segment["rva"], 16), raw,
 
                             name="fixed QQ52230 runtime image", initialized=True)
