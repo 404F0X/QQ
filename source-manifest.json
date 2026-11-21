@@ -837,7 +837,7 @@
     {
       "path": "src/qq_nt_replica/primary_custom_allocator.py",
       "source_sha256": "8697c9f10af1f0708a6d5dc88e35237cda33feb5d7153e6ff30acddd0e83e408",
-      "sha256": "8697c9f10af1f0708a6d5dc88e35237cda33feb5d7153e6ff30acddd0e83e408",
+      "sha256": "723d773bb0672de904ce592fc2a30017bf6033fc6e80c0b6248e117c701f8511",
       "classification": "project_source"
     },
     {
@@ -1389,7 +1389,7 @@
     {
       "path": "src/qq_nt_replica/primary_memory.py",
       "source_sha256": "59d9f68d880e0d32324015e0164114c4cd959486c03f6db4879ca8525a0b4fd0",
-      "sha256": "59d9f68d880e0d32324015e0164114c4cd959486c03f6db4879ca8525a0b4fd0",
+      "sha256": "3a14929f3480f3d6ec482adb70c2958289bb798c72a6910a3951f0a743806271",
       "classification": "project_source"
     },
     {
@@ -2499,13 +2499,13 @@
     {
       "path": "src/qq_nt_replica/primary_windows_signer.py",
       "source_sha256": "9bda5a58bbdde36c7cb526a64b572810f9a918fbbea72652d4df34d8253bdda0",
-      "sha256": "9bda5a58bbdde36c7cb526a64b572810f9a918fbbea72652d4df34d8253bdda0",
+      "sha256": "89b100ac5d41aac60c2054a07d055e17e4a82391e9658a2e4aa94d564d0a29e3",
       "classification": "project_source"
     },
     {
       "path": "src/qq_nt_replica/primary_windows_signer_setup.py",
       "source_sha256": "0477b527053bf1b70eebe24feee3edd328415c834f99d4e2dd08d9fe0fcaad32",
-      "sha256": "0477b527053bf1b70eebe24feee3edd328415c834f99d4e2dd08d9fe0fcaad32",
+      "sha256": "b0666ea078dad5374861c82ffc4980ce44dcb64ea750a23e8f81059d1767a005",
       "classification": "project_source"
     },
     {
@@ -2797,6 +2797,20 @@
       "sha256": "2ec12301009c0bf0a9ebe49c429b1c51fe4ec806d9649f82fdf30bc3d11d823e",
       "classification": "project_source",
       "origin": "MAT-QIMEI-BEACON-IMPLEMENT/a1 new source-derived NORMAL implementation; first stable authoring snapshot: qimei-beacon-implementation/origins/primary_windows_qimei_beacon.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_outer_init.py",
+      "source_sha256": "100f19fe66db1a89e7b601208880fc6b9eeb0d6fcb1a67c2d011368e5c017fa3",
+      "sha256": "c22fe5be5c8e4d2dd47952769841cc0b888e001c149ad4324467d68239da1e9f",
+      "classification": "project_source",
+      "origin": "MAT-SIGN-OUTER-PREFIX-IMPLEMENT/a1 source-aligned bounded prefix; first authoring snapshot: outer-prefix-implementation/primary_outer_init.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_windows_outer_sync.py",
+      "source_sha256": "357b25756b43330e7d38937132c2f1c5b2f7f83658553dc433205bb2d63136b0",
+      "sha256": "357b25756b43330e7d38937132c2f1c5b2f7f83658553dc433205bb2d63136b0",
+      "classification": "project_source",
+      "origin": "MAT-SIGN-OUTER-PREFIX-IMPLEMENT/a1 rework1 owned CS implementation; initial authoring snapshot: outer-prefix-implementation/primary_windows_outer_sync.py"
     }
   ],
   "excluded_pending_assets": [

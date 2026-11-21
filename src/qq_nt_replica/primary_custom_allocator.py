@@ -141,7 +141,7 @@ class _OwnedStorage:
         return pointer
 
     def free(self,pointer):
-        self._validate();self.hooks.before_free()
+        self._validate()
         if type(pointer) is not int:raise InputError('custom free needs an actual pointer')
         record=self.live.get(pointer)
         if record is None:raise InputError('custom free requires live custom-family ownership')
@@ -150,6 +150,8 @@ class _OwnedStorage:
             raise CustomDomainUnsupported('unproved cross-thread free transfer',mode)
         actual,offset=self.runtime.memory._span(pointer,size)
         if actual is not region or offset:raise InputError('custom allocation region identity changed')
+        self.runtime.memory._assert_no_native_pin(pointer,size)
+        self.hooks.before_free()
         self.runtime.memory.forget(pointer,size,source='B74C19.custom_invalidated')
         self.runtime.memory.unmap(pointer);region.data.release();del self.live[pointer]
         self.source_free_seen.append(record)
@@ -192,6 +194,7 @@ class _CustomBackend:
         if epoch is not self.source.epoch or thread!=threading.get_ident():raise CustomDomainUnsupported('unproved upper free ownership transfer')
         actual,offset=self.runtime.memory._span(pointer,size)
         if actual is not region or offset or (family=='CRT') is not crt:raise InputError('upper free region/selection/family changed')
+        self.runtime.memory._assert_no_native_pin(pointer,size)
         if crt:_invoke(self.runtime,0x3E94F90,pointer)
         else:self.storage.free(pointer)
         del self.records[pointer]
@@ -205,6 +208,11 @@ class _CustomBackend:
         if not self.operation.acquire(False):
             raise CustomDomainUnsupported('custom storage disposal during active upper operation')
         try:
+            # Preflight all records before any retirement effect.
+            for pointer,record in self.storage.live.items():
+                actual,offset=self.runtime.memory._span(pointer,record[1])
+                if actual is not record[0] or offset:raise InputError('retired custom storage identity changed')
+                self.runtime.memory._assert_no_native_pin(pointer,record[1])
             # Host-model teardown after guest dtors, never reported as source B74C19 frees.
             for pointer,record in tuple(self.storage.live.items()):
                 region,size=record[:2]

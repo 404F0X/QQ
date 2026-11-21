@@ -28,6 +28,7 @@ class IndependentWindowsSetup:
         self.bootstrap_state = 'not_observed'
 
     def prepare(self, metadata):
+        """Diagnostic direct-inner initialization; does not execute source outer init."""
         owner = self.owner
         if self.state != 'preparing' or owner._state != 'open' or owner._busy:
             raise InputError('independent Windows setup requires its idle newly constructed owner')
@@ -63,6 +64,31 @@ class IndependentWindowsSetup:
         except BaseException:
             self.state = 'failed'
             raise
+
+    def prepare_outer_prefix(self, *arguments):
+        """Explicit reached source prefix; never aliases diagnostic prepare()."""
+        from .primary_outer_init import get_login_service,select_outer_entry
+        if self.state != 'preparing' or self.owner._state != 'open' or self.owner._busy:
+            raise InputError('outer prefix requires its idle newly constructed owner')
+        self.state = 'preparing_outer'
+        owner=self.owner
+        selected=select_outer_entry(owner)
+        entered=False
+        try:
+            owner._threads.before_public_operation();entered=True
+            with owner._registrar.operation():
+                # Owner-thread _crt_callback_context only supplies a lease; this
+                # existing issuer also activates validated guest module TLS.
+                with owner._threads._native_crt_context():
+                    service=get_login_service(owner)
+                    try:return service.initConfig(*arguments)
+                    finally:service.release_wrappers()
+        except BaseException:
+            selected.fail();raise
+        finally:
+            try:
+                if entered:owner._threads.after_public_operation()
+            finally:self.state = 'failed'
 
     @contextmanager
     def operation(self, method):

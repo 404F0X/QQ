@@ -33,6 +33,7 @@ class PrimaryMemory:
 
     def __init__(self):
         self._regions = []
+        self.__native_pins = {}
         self.writes = []
         self._write_extents = {}
 
@@ -72,11 +73,43 @@ class PrimaryMemory:
         self._regions.append(_Region(address, data, bytearray([int(initialized)]) * len(data), name))
         self._regions.sort(key=lambda region: region.address)
 
+    def _pin_native_span(self, address, size, issuer):
+        region,offset=self._span(address,size)
+        if region.data.readonly:raise PrimaryMemoryLimit('native span requires writable backing')
+        token=object()
+        self.__native_pins[token]=(region,offset,size,issuer,region.data)
+        return token,region.data[offset:offset+size]
+
+    def _assert_no_native_pin(self,address,size):
+        region,offset=self._span(address,size)
+        for pinned,start,length,issuer,backing in self.__native_pins.values():
+            if pinned is region and offset<start+length and start<offset+size:
+                raise PrimaryMemoryLimit('live native resource pins this allocation')
+
+    def _validate_native_pin(self,token,issuer):
+        record=self.__native_pins.get(token)
+        if record is None or record[3] is not issuer:raise PrimaryMemoryLimit('unissued native write')
+        region,offset,size,unused,backing=record
+        actual,observed=self._span(region.address+offset,size)
+        if actual is not region or observed!=offset or region.data is not backing:raise PrimaryMemoryLimit('native backing replaced')
+        return record
+
+    def _record_native_write(self,token,issuer,*,source):
+        region,offset,size,unused,backing=self._validate_native_pin(token,issuer)
+        region.initialized[offset:offset+size]=bytes([1])*size
+        self._record_write((region.address+offset,bytes(region.data[offset:offset+size]),source),size)
+
+    def _unpin_native_span(self,token,issuer):
+        record=self.__native_pins.get(token)
+        if record is None or record[3] is not issuer:raise PrimaryMemoryLimit('unissued native unpin')
+        del self.__native_pins[token]
+
     def unmap(self, address: int) -> None:
         if type(address) is not int or not 0 <= address <= _MASK64:
             raise InputError("memory unmap address must be unsigned64")
         for index, region in enumerate(self._regions):
             if region.address == address:
+                self._assert_no_native_pin(address,len(region.data))
                 del self._regions[index]
                 return
         raise PrimaryMemoryLimit(f"no primary memory mapping starts at 0x{address:x}")
@@ -153,6 +186,7 @@ class PrimaryMemory:
             raise PrimaryMemoryLimit("unknown writes on virtual aliases need a shared initialization map")
         if region.data.readonly:
             raise PrimaryMemoryLimit(f"unknown write to readonly region {region.name}")
+        self._assert_no_native_pin(address,size)
         region.initialized[offset:offset + size] = bytes(size)
         self._record_write((address & _MASK64, None, source), size)
 

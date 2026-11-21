@@ -127,7 +127,13 @@ def open_windows_signer(*, bridge_path, storage_root, host_profile_string, initi
                     host2252_pair_m_retry=False, host2252_pair_m_read_budget=4096,
                     host2252_control_m=False, independent_provider_metadata=None, common_guid=None,
                     allow_qqprotect_registry=False, allow_capi_creation=False,
-                    request_transport=None, construction_setup=None, display_environment='independent_windows'):
+                    request_transport=None, construction_setup=None, display_environment='independent_windows', outer_login_config=None, outer_sync_permit=None):
+    if outer_login_config is not None and construction_setup is not None:
+        raise InputError('source outer entry cannot run an unrelated construction hook first')
+    if outer_sync_permit is not None and (outer_login_config is None or not callable(outer_sync_permit)):
+        raise InputError('outer native sync permit requires explicit outer selection')
+    if outer_login_config is not None and independent_provider_metadata is not None:
+        raise InputError('choose source outer prefix or diagnostic inner preparation')
     if type(display_environment) is not str or display_environment not in ('source_frame', 'independent_windows'):
         raise InputError('WINDOWS_DISPLAY_ENVIRONMENT_MODE')
     if request_transport is not None and not isinstance(request_transport, RequestTransportBinding):
@@ -221,7 +227,14 @@ def open_windows_signer(*, bridge_path, storage_root, host_profile_string, initi
         if construction_setup is not None:
             construction_setup(owner)
         owner._state = 'open'
-        if independent_provider_metadata is not None:
+        if outer_login_config is not None:
+            if outer_sync_permit is not None:
+                from .primary_windows_outer_sync import bind_outer_sync
+                bind_outer_sync(owner,permit=outer_sync_permit)
+            from .primary_windows_signer_setup import IndependentWindowsSetup
+            owner._independent_setup = IndependentWindowsSetup(owner)
+            owner._independent_setup.prepare_outer_prefix(outer_login_config)
+        elif independent_provider_metadata is not None:
             from .primary_windows_signer_setup import IndependentWindowsSetup
             owner._independent_setup = IndependentWindowsSetup(owner)
             owner._independent_setup.prepare(independent_provider_metadata)
@@ -395,6 +408,8 @@ class WindowsSigner:
 
     def _operation(self, method, *arguments, **options):
         self._check_owner()
+        from .primary_outer_init import require_selected_outer_ready
+        require_selected_outer_ready(self._signer.runtime)
         if self._state != 'open' or self._busy or self._signer.failed:
             raise InputError('Windows signer is unavailable for a new serial signing operation')
         self._busy = True
@@ -428,6 +443,8 @@ class WindowsSigner:
 
     def drain(self):
         self._check_owner()
+        from .primary_outer_init import require_selected_outer_ready
+        require_selected_outer_ready(self._signer.runtime)
         if self._busy or self._threads is None:
             raise InputError('Windows signer cannot drain during an active operation or without thread service')
         return self._threads.drain()
@@ -453,6 +470,8 @@ class WindowsSigner:
 
     def pump_device_request(self):
         self._check_owner()
+        from .primary_outer_init import require_selected_outer_ready
+        require_selected_outer_ready(self._signer.runtime)
         if self._state != 'open' or self._busy or self._signer.failed or self._threads is None:
             raise InputError('device request pump requires its idle open Windows owner')
         return self._threads.pump_device_request()
@@ -592,6 +611,10 @@ class WindowsSigner:
                     raise PrimarySemanticUnavailable('own-image retained until raw and caller consumers are confirmed closed')
                 attempt('ownimage_module', retain_ownimage)
         if self._signer is not None:
+            port=getattr(self._signer.runtime,'_outer_sync_port',None)
+            if port is not None:
+                if errors:return errors
+                if not attempt('host_outer_sync',port.dispose_terminal):return errors
             issuer=getattr(self._signer.runtime,'_primary_allocator_issuer',None)
             if issuer is not None:
                 # Keep capability/storage if guest teardown failed; this is model storage retirement.
