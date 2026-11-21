@@ -1,0 +1,1452 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "controlled_source_derived_not_genuine_runtime_evidence",
+  "provenance": {
+    "contract": "MAT-QIMEI-CONFIG-VECTORS/a1",
+    "source_contract": "MAT-QIMEI-REQUEST-GATE-CONTRACT/a1",
+    "source_report_sha256": "8f34fd7e6ba6c87817e315368dd796f4796dbe8d058ee694dd08ee0016a8472c",
+    "canonical_base": "eb93a52569b431d3dc4dc8653ae67494dab0f6a7",
+    "source_symbols": [
+      "8B314",
+      "8BF05",
+      "80F8C",
+      "A3B18",
+      "61D22",
+      "50E1E",
+      "9EEF9",
+      "9F276"
+    ],
+    "input_convention": "Omitted port outcomes are ordinary successful outcomes; no real paths, accounts, tokens, hardware or native calls."
+  },
+  "cases": [
+    {
+      "id": "build_14392",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          14392
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 7,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_14393",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          14393
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 9,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_15062",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          15062
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 9,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_15063",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          15063
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 10,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_16298",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          16298
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 10,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_16299",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          16299
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 11,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_17133",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          17133
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 11,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_17134",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          17134
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 12,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_17762",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          17762
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 12,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_17763",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          17763
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 13,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_18361",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          18361
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 13,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_18362",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          18362
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 14,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_18363",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          18363
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 15,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_19040",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          19040
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 15,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_19041",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          19041
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 16,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_21999",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          21999
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 16,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_22000",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          22000
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 17,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_22620",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          22620
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 17,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_22621",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          22621
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 18,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_22630",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          22630
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 18,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_22631",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          22631
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 19,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_2147483648",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          2147483648
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 7,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "build_4294967295",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          4294967295
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 7,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "major_minor_5_0",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          5,
+          0,
+          0
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 0,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "major_minor_5_1",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          5,
+          1,
+          0
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 1,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "major_minor_5_2",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          5,
+          2,
+          0
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 2,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "major_minor_5_4294967295",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          5,
+          4294967295,
+          0
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 2,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "major_minor_6_0",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          6,
+          0,
+          0
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 3,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "major_minor_6_1",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          6,
+          1,
+          0
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 4,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "major_minor_6_3",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          6,
+          3,
+          0
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 6,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "major_minor_6_4294967295",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          6,
+          4294967295,
+          0
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 6,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "major_minor_7_0",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          7,
+          0,
+          0
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 20,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "major_minor_2147483647_0",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          2147483647,
+          0,
+          0
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 20,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "major_minor_2147483648_0",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          2147483648,
+          0,
+          0
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 0,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "major_minor_4294967295_0",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          4294967295,
+          0,
+          0
+        ],
+        "get_version_ex_result": true
+      },
+      "expected": {
+        "classification": 0,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "query_false_partial",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          10,
+          0,
+          22631
+        ],
+        "get_version_ex_result": false
+      },
+      "expected": {
+        "classification": 19,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "query_false_untouched",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          0,
+          0,
+          0
+        ],
+        "get_version_ex_result": false
+      },
+      "expected": {
+        "classification": 0,
+        "dynamic_lookup": false
+      }
+    },
+    {
+      "id": "proc_null",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          6,
+          2,
+          12345
+        ],
+        "get_version_ex_result": true,
+        "module_present": false,
+        "proc_present": false
+      },
+      "expected": {
+        "classification": 5,
+        "dynamic_lookup": true,
+        "final_backing": [
+          6,
+          2,
+          12345
+        ],
+        "lookup_even_if_module_null": true
+      }
+    },
+    {
+      "id": "partial_build",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          6,
+          2,
+          12345
+        ],
+        "get_version_ex_result": true,
+        "module_present": true,
+        "proc_present": true,
+        "rtl_writes": {
+          "build": 4026554471
+        }
+      },
+      "expected": {
+        "classification": 5,
+        "dynamic_lookup": true,
+        "final_backing": [
+          6,
+          2,
+          22631
+        ],
+        "lookup_even_if_module_null": true
+      }
+    },
+    {
+      "id": "low16",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          6,
+          2,
+          12345
+        ],
+        "get_version_ex_result": true,
+        "module_present": true,
+        "proc_present": true,
+        "rtl_writes": {
+          "major": 10,
+          "build": 4026554471
+        }
+      },
+      "expected": {
+        "classification": 19,
+        "dynamic_lookup": true,
+        "final_backing": [
+          10,
+          2,
+          22631
+        ],
+        "lookup_even_if_module_null": true
+      }
+    },
+    {
+      "id": "partial_major",
+      "group": "windows_version",
+      "input": {
+        "initial": [
+          6,
+          2,
+          12345
+        ],
+        "get_version_ex_result": true,
+        "module_present": true,
+        "proc_present": true,
+        "rtl_writes": {
+          "major": 10
+        }
+      },
+      "expected": {
+        "classification": 7,
+        "dynamic_lookup": true,
+        "final_backing": [
+          10,
+          2,
+          12345
+        ],
+        "lookup_even_if_module_null": true
+      }
+    },
+    {
+      "id": "arch_0",
+      "group": "architecture",
+      "input": {
+        "processor_architecture": 0
+      },
+      "expected": {
+        "classification": 0
+      }
+    },
+    {
+      "id": "arch_9",
+      "group": "architecture",
+      "input": {
+        "processor_architecture": 9
+      },
+      "expected": {
+        "classification": 1
+      }
+    },
+    {
+      "id": "arch_6",
+      "group": "architecture",
+      "input": {
+        "processor_architecture": 6
+      },
+      "expected": {
+        "classification": 2
+      }
+    },
+    {
+      "id": "arch_12",
+      "group": "architecture",
+      "input": {
+        "processor_architecture": 12
+      },
+      "expected": {
+        "classification": 3
+      }
+    },
+    {
+      "id": "arch_65535",
+      "group": "architecture",
+      "input": {
+        "processor_architecture": 65535
+      },
+      "expected": {
+        "classification": 4
+      }
+    },
+    {
+      "id": "local_fields",
+      "group": "clock",
+      "input": {
+        "systemtime": [
+          2024,
+          7,
+          6,
+          31,
+          23,
+          59,
+          58,
+          999
+        ],
+        "systemtime_order": [
+          "year",
+          "month",
+          "day_of_week",
+          "day",
+          "hour",
+          "minute",
+          "second",
+          "milliseconds"
+        ]
+      },
+      "expected": {
+        "tm": [
+          58,
+          59,
+          23,
+          31,
+          6,
+          124,
+          0,
+          0,
+          0
+        ],
+        "converter": "signed64 local mktime, isdst=0",
+        "ignored": [
+          "day_of_week",
+          "milliseconds"
+        ]
+      }
+    },
+    {
+      "id": "local_failure",
+      "group": "clock",
+      "input": {
+        "converter_signed64_result": -1
+      },
+      "expected": {
+        "stored_qword": 18446744073709551615,
+        "failure_unchecked": true
+      }
+    },
+    {
+      "id": "gate_before",
+      "group": "gate_sequence",
+      "input": {
+        "now_signed64": 86399,
+        "saved_qword": 0,
+        "counter_qword": 2147483648
+      },
+      "expected": {
+        "elapsed_u64": 86399,
+        "allowed": false,
+        "gate_mutates_timestamp": false,
+        "gate_mutates_counter": false
+      }
+    },
+    {
+      "id": "gate_edge",
+      "group": "gate_sequence",
+      "input": {
+        "now_signed64": 86400,
+        "saved_qword": 0,
+        "counter_qword": 2147483648
+      },
+      "expected": {
+        "elapsed_u64": 86400,
+        "allowed": true,
+        "gate_mutates_timestamp": false,
+        "gate_mutates_counter": false
+      }
+    },
+    {
+      "id": "gate_backward",
+      "group": "gate_sequence",
+      "input": {
+        "now_signed64": 9,
+        "saved_qword": 10,
+        "counter_qword": 2147483648
+      },
+      "expected": {
+        "elapsed_u64": 18446744073709551615,
+        "allowed": true,
+        "gate_mutates_timestamp": false,
+        "gate_mutates_counter": false
+      }
+    },
+    {
+      "id": "gate_failure",
+      "group": "gate_sequence",
+      "input": {
+        "now_signed64": -1,
+        "saved_qword": 0,
+        "counter_qword": 2147483648
+      },
+      "expected": {
+        "elapsed_u64": 18446744073709551615,
+        "allowed": true,
+        "gate_mutates_timestamp": false,
+        "gate_mutates_counter": false
+      }
+    },
+    {
+      "id": "gate_wrap_small",
+      "group": "gate_sequence",
+      "input": {
+        "now_signed64": 5,
+        "saved_qword": 18446744073709551610,
+        "counter_qword": 2147483648
+      },
+      "expected": {
+        "elapsed_u64": 11,
+        "allowed": false,
+        "gate_mutates_timestamp": false,
+        "gate_mutates_counter": false
+      }
+    },
+    {
+      "id": "seq_2147483647",
+      "group": "gate_sequence",
+      "input": {
+        "dispatch_counter_qword": 2147483647
+      },
+      "expected": {
+        "header_sequence_signed32": 2147483647,
+        "counter_after_dispatch": 2147483648
+      }
+    },
+    {
+      "id": "seq_2147483648",
+      "group": "gate_sequence",
+      "input": {
+        "dispatch_counter_qword": 2147483648
+      },
+      "expected": {
+        "header_sequence_signed32": -2147483648,
+        "counter_after_dispatch": 2147483649
+      }
+    },
+    {
+      "id": "seq_4294967295",
+      "group": "gate_sequence",
+      "input": {
+        "dispatch_counter_qword": 4294967295
+      },
+      "expected": {
+        "header_sequence_signed32": -1,
+        "counter_after_dispatch": 4294967296
+      }
+    },
+    {
+      "id": "seq_18446744073709551615",
+      "group": "gate_sequence",
+      "input": {
+        "dispatch_counter_qword": 18446744073709551615
+      },
+      "expected": {
+        "header_sequence_signed32": -1,
+        "counter_after_dispatch": 0
+      }
+    },
+    {
+      "id": "reply_tag_mix",
+      "group": "reply22",
+      "input": {
+        "count": 22,
+        "slot0": {
+          "tag": 1,
+          "cstring_hex": "61626300"
+        },
+        "slots_1_onward": [
+          {
+            "tag": 4,
+            "dword": 287454020
+          },
+          {
+            "tag": 1,
+            "cstring_hex": "787900"
+          },
+          {
+            "tag": 4,
+            "data_null": true
+          },
+          {
+            "tag": 0
+          },
+          {
+            "tag": 4,
+            "dword": 0
+          },
+          {
+            "tag": 4,
+            "dword": 0
+          },
+          {
+            "tag": 4,
+            "dword": 0
+          },
+          {
+            "tag": 4,
+            "dword": 0
+          },
+          {
+            "tag": 4,
+            "dword": 0
+          },
+          {
+            "tag": 4,
+            "dword": 0
+          },
+          {
+            "tag": 4,
+            "dword": 0
+          },
+          {
+            "tag": 4,
+            "dword": 0
+          },
+          {
+            "tag": 4,
+            "dword": 0
+          },
+          {
+            "tag": 4,
+            "dword": 0
+          },
+          {
+            "tag": 4,
+            "dword": 0
+          },
+          {
+            "tag": 4,
+            "dword": 0
+          },
+          {
+            "tag": 4,
+            "dword": 0
+          },
+          {
+            "tag": 4,
+            "dword": 0
+          },
+          {
+            "tag": 4,
+            "dword": 0
+          },
+          {
+            "tag": 4,
+            "dword": 0
+          },
+          {
+            "tag": 4,
+            "dword": 0
+          }
+        ],
+        "old_flags_fill_hex": "aa"
+      },
+      "expected": {
+        "string_hex": "616263",
+        "flags_copy_length": 82,
+        "flags_prefix_hex": "44332211000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "preserved_tail_from_offset": 82,
+        "order": [
+          "refresh",
+          "string_update",
+          "flags_prefix_copy",
+          "clock",
+          "save"
+        ]
+      }
+    },
+    {
+      "id": "reply_unknown_prefix",
+      "group": "reply22",
+      "input": {
+        "count": 22,
+        "slot0": {
+          "tag": 4
+        },
+        "slots_1_onward": [
+          {
+            "tag": 4,
+            "dword": 287454020
+          },
+          {
+            "tag": 99
+          },
+          {
+            "tag": 4,
+            "dword": 4294967295
+          }
+        ],
+        "old_flags_fill_hex": "aa"
+      },
+      "expected": {
+        "string": "preserved",
+        "flags_copy_length": 4,
+        "flags_prefix_hex": "44332211",
+        "preserved_tail_from_offset": 4,
+        "clock_and_save": true
+      }
+    },
+    {
+      "id": "reply_string_hole",
+      "group": "reply22",
+      "input": {
+        "count": 22,
+        "slot0": {
+          "tag": 1,
+          "data_null": true
+        },
+        "slots_1_onward": [
+          {
+            "tag": 1,
+            "cstring_hex": "616263646500"
+          },
+          {
+            "tag": 4,
+            "dword": 287454020
+          },
+          {
+            "tag": 99
+          }
+        ],
+        "old_flags_fill_hex": "aa"
+      },
+      "expected": {
+        "string": "preserved",
+        "flags_copy_length": 9,
+        "flags_prefix_hex": "000000004433221100",
+        "preserved_tail_from_offset": 9
+      }
+    },
+    {
+      "id": "reply_null",
+      "group": "reply22",
+      "input": {
+        "response_null": true,
+        "count": 22
+      },
+      "expected": {
+        "order": [
+          "refresh"
+        ],
+        "clock_and_save": false,
+        "record_update": false
+      }
+    },
+    {
+      "id": "reply_zero",
+      "group": "reply22",
+      "input": {
+        "count": 0
+      },
+      "expected": {
+        "order": [
+          "refresh"
+        ],
+        "clock_and_save": false,
+        "record_update": false
+      }
+    },
+    {
+      "id": "reply_negative",
+      "group": "reply22",
+      "input": {
+        "count": -1
+      },
+      "expected": {
+        "order": [
+          "refresh"
+        ],
+        "clock_and_save": false,
+        "record_update": false
+      }
+    },
+    {
+      "id": "writer_alloc",
+      "group": "writer",
+      "input": {
+        "allocation_null": true
+      },
+      "expected": {
+        "return_code": 1,
+        "ordered_events": [
+          "allocate"
+        ],
+        "partial_file_possible": false,
+        "dedup_insert": false,
+        "dirty_set_to_1": false
+      }
+    },
+    {
+      "id": "writer_cipher",
+      "group": "writer",
+      "input": {
+        "cipher_produced": false
+      },
+      "expected": {
+        "return_code": 3,
+        "ordered_events": [
+          "allocate",
+          "encode"
+        ],
+        "partial_file_possible": false,
+        "dedup_insert": false,
+        "dirty_set_to_1": false
+      }
+    },
+    {
+      "id": "writer_open",
+      "group": "writer",
+      "input": {
+        "open_succeeds": false
+      },
+      "expected": {
+        "return_code": 2,
+        "ordered_events": [
+          "allocate",
+          "encode",
+          "open"
+        ],
+        "partial_file_possible": false,
+        "dedup_insert": false,
+        "dirty_set_to_1": false
+      }
+    },
+    {
+      "id": "writer_short",
+      "group": "writer",
+      "input": {
+        "written": 3,
+        "cipher_length": 8
+      },
+      "expected": {
+        "return_code": 2,
+        "ordered_events": [
+          "allocate",
+          "encode",
+          "open",
+          "write",
+          "close"
+        ],
+        "partial_file_possible": true,
+        "dedup_insert": false,
+        "dirty_set_to_1": false
+      }
+    },
+    {
+      "id": "writer_close_ignored",
+      "group": "writer",
+      "input": {
+        "written": 8,
+        "cipher_length": 8,
+        "close_result": -1,
+        "logical_path_nonempty": false
+      },
+      "expected": {
+        "return_code": 0,
+        "ordered_events": [
+          "allocate",
+          "encode",
+          "open",
+          "write",
+          "close",
+          "path_nonempty_gate"
+        ],
+        "partial_file_possible": false,
+        "dedup_insert": false,
+        "dirty_set_to_1": true
+      }
+    },
+    {
+      "id": "acl_empty",
+      "group": "writer",
+      "input": {
+        "file_write_exact": true,
+        "logical_path_nonempty": false
+      },
+      "expected": {
+        "return_code": 0,
+        "dedup_insert": false,
+        "acl_subprocess_entered": false,
+        "dirty_set_to_1": true,
+        "gate_order": [
+          "logical_path_nonempty",
+          "path_exists",
+          "is_admin",
+          "dedup_absent"
+        ],
+        "cleanup_before_dedup_insert": true,
+        "free_only_acquired": true,
+        "no_persistent_file_handle": true
+      }
+    },
+    {
+      "id": "acl_missing",
+      "group": "writer",
+      "input": {
+        "file_write_exact": true,
+        "path_exists": false
+      },
+      "expected": {
+        "return_code": 0,
+        "dedup_insert": false,
+        "acl_subprocess_entered": false,
+        "dirty_set_to_1": true,
+        "gate_order": [
+          "logical_path_nonempty",
+          "path_exists",
+          "is_admin",
+          "dedup_absent"
+        ],
+        "cleanup_before_dedup_insert": true,
+        "free_only_acquired": true,
+        "no_persistent_file_handle": true
+      }
+    },
+    {
+      "id": "acl_not_admin",
+      "group": "writer",
+      "input": {
+        "file_write_exact": true,
+        "is_admin": false
+      },
+      "expected": {
+        "return_code": 0,
+        "dedup_insert": false,
+        "acl_subprocess_entered": false,
+        "dirty_set_to_1": true,
+        "gate_order": [
+          "logical_path_nonempty",
+          "path_exists",
+          "is_admin",
+          "dedup_absent"
+        ],
+        "cleanup_before_dedup_insert": true,
+        "free_only_acquired": true,
+        "no_persistent_file_handle": true
+      }
+    },
+    {
+      "id": "acl_already",
+      "group": "writer",
+      "input": {
+        "file_write_exact": true,
+        "dedup_contains_original_path": true
+      },
+      "expected": {
+        "return_code": 0,
+        "dedup_insert": false,
+        "acl_subprocess_entered": false,
+        "dirty_set_to_1": true,
+        "gate_order": [
+          "logical_path_nonempty",
+          "path_exists",
+          "is_admin",
+          "dedup_absent"
+        ],
+        "cleanup_before_dedup_insert": true,
+        "free_only_acquired": true,
+        "no_persistent_file_handle": true
+      }
+    },
+    {
+      "id": "acl_account_failure",
+      "group": "writer",
+      "input": {
+        "file_write_exact": true,
+        "account_lookup_ordinary_failure": true
+      },
+      "expected": {
+        "return_code": 0,
+        "dedup_insert": true,
+        "acl_subprocess_entered": true,
+        "dirty_set_to_1": true,
+        "gate_order": [
+          "logical_path_nonempty",
+          "path_exists",
+          "is_admin",
+          "dedup_absent"
+        ],
+        "cleanup_before_dedup_insert": true,
+        "free_only_acquired": true,
+        "no_persistent_file_handle": true
+      }
+    },
+    {
+      "id": "acl_acl_failure",
+      "group": "writer",
+      "input": {
+        "file_write_exact": true,
+        "set_file_security_result": false
+      },
+      "expected": {
+        "return_code": 0,
+        "dedup_insert": true,
+        "acl_subprocess_entered": true,
+        "dirty_set_to_1": true,
+        "gate_order": [
+          "logical_path_nonempty",
+          "path_exists",
+          "is_admin",
+          "dedup_absent"
+        ],
+        "cleanup_before_dedup_insert": true,
+        "free_only_acquired": true,
+        "no_persistent_file_handle": true
+      }
+    },
+    {
+      "id": "acl_acl_success",
+      "group": "writer",
+      "input": {
+        "file_write_exact": true,
+        "set_file_security_result": true
+      },
+      "expected": {
+        "return_code": 0,
+        "dedup_insert": true,
+        "acl_subprocess_entered": true,
+        "dirty_set_to_1": true,
+        "gate_order": [
+          "logical_path_nonempty",
+          "path_exists",
+          "is_admin",
+          "dedup_absent"
+        ],
+        "cleanup_before_dedup_insert": true,
+        "free_only_acquired": true,
+        "no_persistent_file_handle": true
+      }
+    },
+    {
+      "id": "acl_policy",
+      "group": "writer",
+      "input": {
+        "old_sd_control": 5120,
+        "aces": [
+          {
+            "inherited": false,
+            "matches_user": true
+          },
+          {
+            "inherited": false,
+            "matches_user": false
+          },
+          {
+            "inherited": true,
+            "matches_user": true
+          }
+        ]
+      },
+      "expected": {
+        "kept_ace_indices": [
+          1,
+          2
+        ],
+        "insert_before_original_index": 2,
+        "allow_mask": 268435456,
+        "allow_flags": 3,
+        "acl_revision": 2,
+        "sd_control_mask": 1280,
+        "sd_control_value": 1280,
+        "security_information": 4,
+        "dedup_key": "original logical path, not converted path"
+      }
+    }
+  ]
+}

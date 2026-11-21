@@ -1761,7 +1761,7 @@
     {
       "path": "src/qq_nt_replica/primary_qimei_reply.py",
       "source_sha256": "fa7f0fad9da2ca3fec769b53f6ce8f7dfff62eabc58227456582ebb4f0d8b6de",
-      "sha256": "fa7f0fad9da2ca3fec769b53f6ce8f7dfff62eabc58227456582ebb4f0d8b6de",
+      "sha256": "2ab401ae015eda669968020c1caa3f6f400ad3458194d047b89371c4481ffa64",
       "classification": "project_source"
     },
     {
@@ -1797,7 +1797,7 @@
     {
       "path": "src/qq_nt_replica/primary_qimei_settings.py",
       "source_sha256": "be7c76c4cbff14b556fa7f6f85e188011f2c159486b0e5f2e650732d4c77e0a2",
-      "sha256": "be7c76c4cbff14b556fa7f6f85e188011f2c159486b0e5f2e650732d4c77e0a2",
+      "sha256": "016410977d1913058d0058493b8213953ba8323ef02f037a6b0312cfe66fc578",
       "classification": "project_source"
     },
     {
@@ -2748,6 +2748,34 @@
       "sha256": "4b7fa97ababcaec12af23d61caa9060ca18ebf12294d8878ee52ce40288b0cfc",
       "classification": "project_source",
       "origin": "MAT-QIMEI-IPC-IMPLEMENT/a1 new source-derived implementation; authoring snapshot: qimei-ipc-implementation/primary_windows_qimei_ipc.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_config_request.py",
+      "source_sha256": "6fa6240194c214f0f1246e9160eb884033eb8f77114ab9f99aa8afd144bf903e",
+      "sha256": "3362f88eaf07510e7994198d5ede7058caf01cf8362cbae55bcf7e4b84668f5e",
+      "classification": "project_source",
+      "origin": "MAT-QIMEI-CONFIG-IMPLEMENT/a1 new source-derived implementation; authoring snapshot: qimei-config-implementation/primary_qimei_config_request.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_windows_qimei_config.py",
+      "source_sha256": "506eb8cdeed3996a7994702f682169e863b7581f00dbff8922c2a18c6a402155",
+      "sha256": "506eb8cdeed3996a7994702f682169e863b7581f00dbff8922c2a18c6a402155",
+      "classification": "project_source",
+      "origin": "MAT-QIMEI-CONFIG-IMPLEMENT/a1 new source-derived implementation; authoring snapshot: qimei-config-implementation/primary_windows_qimei_config.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_settings_writer.py",
+      "source_sha256": "50d94facf0cc9b005d1f0ab140cfc048615bd602d84e3b0994eb356e10ef716b",
+      "sha256": "50d94facf0cc9b005d1f0ab140cfc048615bd602d84e3b0994eb356e10ef716b",
+      "classification": "project_source",
+      "origin": "MAT-QIMEI-CONFIG-IMPLEMENT/a1 new source-derived implementation; authoring snapshot: qimei-config-implementation/primary_qimei_settings_writer.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_windows_qimei_settings_writer.py",
+      "source_sha256": "c592c0e78c4272da57769c5fc2bc7537d75cd07fc7d83438d6a5be52927f6781",
+      "sha256": "25a9ba152bf9f7e5b87f624ff3b93e417502016bc3aaaf3431fcad74dc60e6b8",
+      "classification": "project_source",
+      "origin": "MAT-QIMEI-CONFIG-IMPLEMENT/a1 new source-derived implementation; authoring snapshot: qimei-config-implementation/primary_windows_qimei_settings_writer.py"
     }
   ],
   "excluded_pending_assets": [

@@ -121,6 +121,46 @@ class QimeiSettings:
             self.loaded, self.dirty = 1, 0
             return 0
 
+    def update_response(self, slots, *, clock, writer, **refresh_dependencies):
+        """50E1E/A42B8: refresh, prefix update, source time, then persist."""
+        self.refresh(**refresh_dependencies)
+        if slots is None or not slots:
+            return
+        from .primary_qimei_reply import ReplySlot
+        slots = tuple(slots)
+        if len(slots) > 22 or any(not isinstance(slot, ReplySlot) for slot in slots):
+            raise QimeiRequestBoundary('kind4 response requires at most 22 typed source slots')
+        first = slots[0]
+        if first.tag == 1 and first.data is not None:
+            text = first.cstr[:31]
+            self.record[17:18 + len(text)] = text + b'\0'
+        flags = bytearray(512)
+        length = 0
+        for index, slot in enumerate(slots[1:]):
+            if slot.tag in (0, 4):
+                data = bytes(4) if slot.tag == 0 or slot.data is None else slot.data[:4]
+                if len(data) != 4:
+                    raise QimeiRequestBoundary('settings DWORD slot backing is shorter than four bytes')
+                flags[index * 4:index * 4 + 4] = data
+                length += 4
+            elif slot.tag == 1:
+                length += len(slot.cstr)
+            else:
+                break
+            if length >= 512:
+                length = 512
+                break
+        self.record[49:49 + length] = flags[:length]
+        value = _integer(clock())
+        if not -(1 << 63) <= value < (1 << 63):
+            raise QimeiRequestBoundary('source _mktime64 result must be signed64')
+        self.record[9:17] = (value & ((1 << 64) - 1)).to_bytes(8, 'little')
+        if self.initialized & 1:
+            with self._lock:
+                status = writer.save(self.path, bytes(self.record))
+                if status == 0:
+                    self.dirty = 1
+
     def flag(self, number, *, group=0, **dependencies):
         if group not in (0, 1) or type(group) is not int:
             raise QimeiRequestError('source settings flag group must be zero or one')

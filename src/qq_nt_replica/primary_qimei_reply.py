@@ -64,9 +64,12 @@ def _varint(payload, cursor, limit):
     return False, value, cursor
 
 
-def parse_reply(payload, *, allocate=None):
+def parse_reply(payload, *, allocate=None, count=3):
     payload = _bytes(payload)
-    slots = [ReplySlot() for _ in range(3)]
+    count = _integer(count)
+    if not 0 < count < 0x80000000:
+        raise QimeiReplyError('positive signed32 scanner slot count required')
+    slots = [ReplySlot() for _ in range(count)]
     cursor = 0
     limit = len(payload) & 0xFFFFFFFF
     visited = set()
