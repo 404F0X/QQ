@@ -58,7 +58,7 @@ class AttachPhase(unittest.TestCase):
         from qq_nt_replica import primary_login_model_attach as attach
         from types import SimpleNamespace
         import threading
-        constructors=('WindowsCallerAPIBackend','WindowsCallerBridge','WindowsSDKThreadService','WindowsCallerObservations','WindowsProviderObservations','WindowsWorkerObservations','WindowsDeviceFileObservations','WindowsCoreObservations','WindowsCRTObservations')
+        constructors=('WindowsCallerAPIBackend','WindowsCallerBridge','WindowsCallerObservations','WindowsProviderObservations','WindowsWorkerObservations','WindowsDeviceFileObservations','WindowsCoreObservations')
         observed=[];owners=[]
         def allocator(owner):
             owners.append(owner)
@@ -66,7 +66,6 @@ class AttachPhase(unittest.TestCase):
             issuer=WindowsAllocatorIssuer.__new__(WindowsAllocatorIssuer)
             issuer.owner=owner;issuer.epoch=object();issuer.source=SimpleNamespace(_borrow=None)
             r._primary_allocator_issuer=issuer
-            owner._threads._runtime=r
         def crt_thread(r):
             r.crt_thread_address=0x7980000000
             return r.crt_thread_address
@@ -83,7 +82,10 @@ class AttachPhase(unittest.TestCase):
         with ExitStack() as stack:
             stack.enter_context(patch.object(windows,'_validated_paths',return_value=(Path('controlled.dll'),Path('controlled'))))
             for name in constructors:stack.enter_context(patch.object(windows,name))
-            windows.WindowsSDKThreadService.return_value.observations.return_value=None
+            from test_primary_creator_domain import PhysicalKernel
+            import ctypes as C
+            stack.enter_context(patch.object(C,'WinDLL',return_value=PhysicalKernel()))
+            stack.enter_context(patch.object(C,'CDLL',side_effect=AssertionError('no actual DLL')))
             stack.enter_context(patch.object(windows.DeviceFactory,'windows'))
             stack.enter_context(patch.object(windows.WindowsSigner,'_host_environment',return_value=(b'C:/explicit/p.exe',None,())))
             stack.enter_context(patch.object(windows.WindowsSigner,'_initialize_notification_statics'))
@@ -117,7 +119,7 @@ class AttachPhase(unittest.TestCase):
         from qq_nt_replica import primary_login_model_attach as attach
         from types import SimpleNamespace
         import threading
-        constructors=('WindowsCallerAPIBackend','WindowsCallerBridge','WindowsSDKThreadService','WindowsCallerObservations','WindowsProviderObservations','WindowsWorkerObservations','WindowsDeviceFileObservations','WindowsCoreObservations','WindowsCRTObservations')
+        constructors=('WindowsCallerAPIBackend','WindowsCallerBridge','WindowsCallerObservations','WindowsProviderObservations','WindowsWorkerObservations','WindowsDeviceFileObservations','WindowsCoreObservations')
         observed=[];stage_owners=[]
         def allocator(owner):
             stage_owners.append(owner)
@@ -125,7 +127,6 @@ class AttachPhase(unittest.TestCase):
             issuer=WindowsAllocatorIssuer.__new__(WindowsAllocatorIssuer)
             issuer.owner=owner;issuer.epoch=r._custom_allocator_backend.source.epoch;issuer.source=SimpleNamespace(_borrow=None)
             r._primary_allocator_issuer=issuer
-            owner._threads._runtime=r
         def crt_thread(r):
             r.crt_thread_address=0x7980000000
             if stage_failure=='thread':raise RuntimeError('controlled stdio prerequisite failure')
@@ -150,7 +151,10 @@ class AttachPhase(unittest.TestCase):
         with ExitStack() as stack:
             stack.enter_context(patch.object(windows,'_validated_paths',return_value=(Path('controlled.dll'),Path('controlled'))))
             for name in constructors:stack.enter_context(patch.object(windows,name))
-            windows.WindowsSDKThreadService.return_value.observations.return_value=None
+            from test_primary_creator_domain import PhysicalKernel
+            import ctypes as C
+            stack.enter_context(patch.object(C,'WinDLL',return_value=PhysicalKernel()))
+            stack.enter_context(patch.object(C,'CDLL',side_effect=AssertionError('no actual DLL')))
             stack.enter_context(patch.object(windows.DeviceFactory,'windows'))
             stack.enter_context(patch.object(windows.WindowsSigner,'_host_environment',return_value=(b'C:/explicit/p.exe',None,())))
             stack.enter_context(patch.object(windows.WindowsSigner,'_initialize_notification_statics'))
@@ -270,14 +274,13 @@ class AttachPhase(unittest.TestCase):
         from qq_nt_replica import primary_login_model_attach as attach
         from types import SimpleNamespace
         import threading
-        constructors=('WindowsCallerAPIBackend','WindowsCallerBridge','WindowsSDKThreadService','WindowsCallerObservations','WindowsProviderObservations','WindowsWorkerObservations','WindowsDeviceFileObservations','WindowsCoreObservations','WindowsCRTObservations')
+        constructors=('WindowsCallerAPIBackend','WindowsCallerBridge','WindowsCallerObservations','WindowsProviderObservations','WindowsWorkerObservations','WindowsDeviceFileObservations','WindowsCoreObservations')
         observed=[]
         def allocator(owner):
             r=owner._signer.runtime
             issuer=WindowsAllocatorIssuer.__new__(WindowsAllocatorIssuer)
             issuer.owner=owner;issuer.epoch=object();issuer.source=SimpleNamespace(_borrow=None)
             r._primary_allocator_issuer=issuer
-            owner._threads._runtime=r
         def crt_thread(r):
             r.crt_thread_address=0x7980000000
             return r.crt_thread_address
@@ -294,7 +297,10 @@ class AttachPhase(unittest.TestCase):
         with ExitStack() as stack:
             stack.enter_context(patch.object(windows,'_validated_paths',return_value=(Path('controlled.dll'),Path('controlled'))))
             for name in constructors:stack.enter_context(patch.object(windows,name))
-            windows.WindowsSDKThreadService.return_value.observations.return_value=None
+            from test_primary_creator_domain import PhysicalKernel
+            import ctypes as C
+            stack.enter_context(patch.object(C,'WinDLL',return_value=PhysicalKernel()))
+            stack.enter_context(patch.object(C,'CDLL',side_effect=AssertionError('no actual DLL')))
             stack.enter_context(patch.object(windows.DeviceFactory,'windows'))
             stack.enter_context(patch.object(windows.WindowsSigner,'_host_environment',return_value=(b'C:/explicit/p.exe',None,())))
             stack.enter_context(patch.object(windows.WindowsSigner,'_initialize_notification_statics'))

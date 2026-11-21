@@ -423,6 +423,9 @@ class ModuleTLSReceipt:
         if self.origin=='synthetic-test-input':
             if self.domain is not source.model_input:raise InputError('model TLS domain replaced')
             self.domain.validate(runtime,source)
+        elif self.origin=='model-windows-creator-domain':
+            from .primary_creator_domain import _validate_receipt
+            _validate_receipt(self,runtime,source)
         elif self.origin=='guest-windows-thread-domain':
             from .primary_windows_threads import WindowsSDKThreadService,_LIVE_SERVICES
             service=self.service;domain=self.domain;tid=self.thread[2]
@@ -445,6 +448,9 @@ def _invalidate_module_tls(runtime,*,domain=None):
         if entry is not None and entry[1] is domain:del registry[id(domain)]
     receipt=getattr(runtime,'_current_module_tls_receipt',None)
     if type(receipt) is ModuleTLSReceipt and (domain is None or receipt.domain is domain):
+        if receipt.origin=='model-windows-creator-domain':
+            from .primary_creator_domain import _revoke_receipt
+            _revoke_receipt(runtime,receipt)
         receipt.active=False
         runtime._current_module_tls_receipt=None
 
@@ -508,3 +514,19 @@ def _has_registered_native_module_tls(runtime,service,domain):
     registry=getattr(source,'_registered_module_domains',None)
     prior=None if type(registry) is not dict else registry.get(id(domain))
     return prior is not None and prior[0] is service and prior[1] is domain and prior[2]==threading.get_native_id()
+
+
+def _activate_creator_module_tls(runtime,service,domain):
+    import sys
+    from .primary_windows_threads import WindowsSDKThreadService
+    from .primary_creator_domain import _validate_domain,_mint_receipt
+    f=sys._getframe(1)
+    if f.f_code not in (WindowsSDKThreadService._creator_crt_context.__wrapped__.__code__,WindowsSDKThreadService._creator_closing_context.__wrapped__.__code__,WindowsSDKThreadService._restore_domain.__code__) or f.f_locals.get('self') is not service:
+        raise InputError('creator TLS requires original context/restore')
+    record=_validate_domain(service,domain)
+    if record.runtime is not runtime:raise InputError('creator TLS runtime mismatch')
+    _invalidate_module_tls(runtime)
+    receipt=ModuleTLSReceipt(runtime,record.source,'model-windows-creator-domain',record.domain['tls'],service,domain,_TLS_RECEIPT_FACTORY)
+    _mint_receipt(runtime,service,domain,receipt)
+    runtime._current_module_tls_receipt=receipt
+    return receipt

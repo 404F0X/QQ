@@ -831,7 +831,7 @@
     {
       "path": "src/qq_nt_replica/primary_crt_thread.py",
       "source_sha256": "476021c78c48d0c2112d2d0646a2b49fc008558c1807044f91bc8a48fbf6e906",
-      "sha256": "476021c78c48d0c2112d2d0646a2b49fc008558c1807044f91bc8a48fbf6e906",
+      "sha256": "f1712ad943c07de0c55e29af6b662b0f82245781b32a241c851ff36b49ddc2eb",
       "classification": "project_source"
     },
     {
@@ -2031,7 +2031,7 @@
     {
       "path": "src/qq_nt_replica/primary_shared_locale.py",
       "source_sha256": "453af6554808eb03229ee12a2592cec3bd15cf7a93d0b93cb610ce025fcea1b0",
-      "sha256": "74825419c439509a23ee578af43415f150b9bb51b278ad6afbcaf28a293062b7",
+      "sha256": "f9461aaaaddd7d11a5ad57110e0a8876f6cb6a3050fd03050af0a9ca8f179f32",
       "classification": "project_source"
     },
     {
@@ -2313,7 +2313,7 @@
     {
       "path": "src/qq_nt_replica/primary_windows_crt.py",
       "source_sha256": "f79029cc38e11f7460b99679801ce18b037994e58c819375a6266bb0c1fda85e",
-      "sha256": "f79029cc38e11f7460b99679801ce18b037994e58c819375a6266bb0c1fda85e",
+      "sha256": "f777cd1a4fcd8c7f7cee6359aa6b3200f4590f2d4e24d3e94a8fe21286bcaa2d",
       "classification": "project_source"
     },
     {
@@ -2499,13 +2499,13 @@
     {
       "path": "src/qq_nt_replica/primary_windows_signer.py",
       "source_sha256": "9bda5a58bbdde36c7cb526a64b572810f9a918fbbea72652d4df34d8253bdda0",
-      "sha256": "ece84ef4313c9638ece1dd2b5ecd8d48beeb218ce5a1a97f02d9853d55379590",
+      "sha256": "9e52d8c399ef930646aac21ef22166db98b8e14d61fe5eba6a50dd76fba69f6e",
       "classification": "project_source"
     },
     {
       "path": "src/qq_nt_replica/primary_windows_signer_setup.py",
       "source_sha256": "0477b527053bf1b70eebe24feee3edd328415c834f99d4e2dd08d9fe0fcaad32",
-      "sha256": "b0666ea078dad5374861c82ffc4980ce44dcb64ea750a23e8f81059d1767a005",
+      "sha256": "98ff867e85f1852637486915cad261f1877966f13252016e5a173ff58f5eb013",
       "classification": "project_source"
     },
     {
@@ -2517,7 +2517,7 @@
     {
       "path": "src/qq_nt_replica/primary_windows_threads.py",
       "source_sha256": "2023f50fc6d66e8112238b87c180b2bba9497cec7cbc919a575df5b9770c14d7",
-      "sha256": "e001122c5f6eec19ef0fff81d6f6216c0f2a570e7e602fb9d6feb59cfca8e8e8",
+      "sha256": "4cf854af48dd652edd5c74e6b4b19d043ffebcc15e378f5c4b9d72119192fef2",
       "classification": "project_source"
     },
     {
@@ -2895,6 +2895,13 @@
       "sha256": "90798522f0c6e07587aaf184c0459ba44fd0ca3e5b0647a6cc37214ac8e999a2",
       "classification": "project_source",
       "origin": "MAT-SIGN-MMKV-STDIO-SUBUNIT/a1 first retained authored snapshot: mmkv-stdio-subunit-a1/first-retained-source/primary_windows_mmkv_stdio.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_creator_domain.py",
+      "source_sha256": "45104107165948b2129482381154f5a1ef71454544eebe1e3151a28846ca7c17",
+      "sha256": "45104107165948b2129482381154f5a1ef71454544eebe1e3151a28846ca7c17",
+      "classification": "project_source",
+      "origin": "MAT-SIGN-CREATOR-DOMAIN-REPAIR/a1 limited MODEL creator qualification/PTD journal; first retained authored snapshot: creator-domain-repair-a1/first-retained-source/primary_creator_domain.py"
     }
   ],
   "excluded_pending_assets": [

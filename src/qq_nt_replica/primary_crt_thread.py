@@ -183,30 +183,40 @@ def initialize(runtime, thread):
 
 
 def create(runtime):
-    memory, base = runtime.memory, runtime.image_base
-    error = _api(runtime, 'GetLastError')
-    identifier = memory.load(base + 0x6744470, 4)
-    if not _api(runtime, 'FlsSetValue', identifier, _MASK64):
+    from .primary_creator_domain import _ptd_create,_ptd_failure
+    _ptd_create(runtime,'begin')
+    try:
+        memory, base = runtime.memory, runtime.image_base
+        error = _api(runtime, 'GetLastError')
+        identifier = memory.load(base + 0x6744470, 4)
+        if not _api(runtime, 'FlsSetValue', identifier, _MASK64):
+            _api(runtime, 'SetLastError', error)
+            _ptd_create(runtime,'returned_zero')
+            return 0
+        pointer = calloc(runtime, 1, 0x3C8)
+        identifier = memory.load(base + 0x6744470, 4)
+        if not pointer:
+            _api(runtime, 'FlsSetValue', identifier, 0)
+            free(runtime, 0)
+            _api(runtime, 'SetLastError', error)
+            _ptd_create(runtime,'returned_zero')
+            return 0
+        _ptd_create(runtime,'allocated',pointer)
+        if not _api(runtime, 'FlsSetValue', identifier, pointer):
+            _api(runtime, 'FlsSetValue', memory.load(base + 0x6744470, 4), 0)
+            free(runtime, pointer)
+            result = 0
+        else:
+            initialize(runtime, pointer)
+            _ptd_create(runtime,'initialized',pointer)
+            free(runtime, 0)
+            result = pointer
         _api(runtime, 'SetLastError', error)
-        return 0
-    pointer = calloc(runtime, 1, 0x3C8)
-    identifier = memory.load(base + 0x6744470, 4)
-    if not pointer:
-        _api(runtime, 'FlsSetValue', identifier, 0)
-        free(runtime, 0)
-        _api(runtime, 'SetLastError', error)
-        return 0
-    if not _api(runtime, 'FlsSetValue', identifier, pointer):
-        _api(runtime, 'FlsSetValue', memory.load(base + 0x6744470, 4), 0)
-        free(runtime, pointer)
-        result = 0
-    else:
-        initialize(runtime, pointer)
-        free(runtime, 0)
-        result = pointer
-    _api(runtime, 'SetLastError', error)
-    return result
-
+        if not result:_ptd_create(runtime,'returned_zero')
+        return result
+    except BaseException as error:
+        _ptd_failure(runtime,error)
+        raise
 
 def destroy(runtime, thread):
     memory, base = runtime.memory, runtime.image_base
@@ -231,9 +241,12 @@ def cleanup(runtime):
     pointer = 0 if identifier == 0xFFFFFFFF else _api(runtime, 'FlsGetValue', identifier)
     identifier = memory.load(base + 0x6744470, 4)
     if pointer:
+        from .primary_creator_domain import _ptd_cleanup
+        _ptd_cleanup(runtime,'begin',pointer)
         _api(runtime, 'FlsSetValue', identifier, 0)
         destroy(runtime, pointer)
         free(runtime, pointer)
+        _ptd_cleanup(runtime,'consumed',pointer)
 
 
 def invoke(runtime, rva, values):

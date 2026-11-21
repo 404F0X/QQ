@@ -79,7 +79,7 @@ class IndependentWindowsSetup:
             with owner._registrar.operation():
                 # Owner-thread _crt_callback_context only supplies a lease; this
                 # existing issuer also activates validated guest module TLS.
-                with owner._threads._native_crt_context():
+                with owner._threads._creator_crt_context():
                     service=get_login_service(owner)
                     try:return service.initConfig(*arguments)
                     finally:service.release_wrappers()

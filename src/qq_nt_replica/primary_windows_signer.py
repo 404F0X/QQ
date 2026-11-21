@@ -228,6 +228,8 @@ def open_windows_signer(*, bridge_path, storage_root, host_profile_string, initi
         install_early_allocator(owner)
         owner._initialize_notification_statics()
         owner._threads.bind(owner._signer.runtime, owner._registrar, owner._worker_services)
+        from .primary_creator_domain import grant as grant_creator
+        grant_creator(owner)
         owner._initialize_crt()
         if construction_setup is not None:
             construction_setup(owner)
@@ -559,28 +561,29 @@ class WindowsSigner:
                     raise PrimarySemanticUnavailable('unbound Windows signer registrar retains unresolved guest callbacks')
                 elif self._supplied_environment is not None:
                     self._registrar.abandon_fresh(owner=self)
-            attempt('guest_callbacks', release_guest)
+            if not attempt('guest_callbacks', release_guest):
+                return errors
         if self._threads is not None:
-            if not attempt('sdk_threads_finish', self._threads.finish_close):
+            if not attempt('sdk_threads_finish_workers', self._threads.finish_workers):
                 return errors
         if self._crt is not None:
             def release_crt():
                 from .primary_crt_thread import cleanup
-                runtime = self._signer.runtime
-                failures = []
-                try:
-                    runtime._crt_call(cleanup)
-                except BaseException as error:
-                    failures.append(error)
-                try:
-                    self._crt.close()
-                except BaseException as error:
-                    failures.append(error)
-                if len(failures) == 1:
-                    raise failures[0]
-                if failures:
-                    raise BaseExceptionGroup('Windows signer CRT guest and backing cleanup failed', failures)
-            attempt('crt_process', release_crt)
+                from .primary_creator_domain import _for_service,_source_cleanup_allowed,_retire_domain,_finish_domain
+                runtime=self._signer.runtime
+                if _for_service(self._threads) is not None:
+                    with self._threads.closing_context():
+                        if _source_cleanup_allowed(self._threads):runtime._crt_call(cleanup)
+                        _retire_domain(self._threads)
+                    _finish_domain(self._threads)
+                else:runtime._crt_call(cleanup)
+                self._threads.finish_close()
+                self._crt.close()
+            if not attempt('crt_process_and_creator',release_crt):return errors
+        elif self._threads is not None:
+            from .primary_creator_domain import _finish_domain
+            if not attempt('creator_no_crt_retirement',lambda:_finish_domain(self._threads)):return errors
+            if not attempt('sdk_service_finish',self._threads.finish_close):return errors
         if self._factory is not None:
             attempt('device_source', lambda: self._factory.source.close())
         if self._provider is not None:

@@ -687,6 +687,8 @@ class WindowsSDKThreadService(WorkerObservations):
                 crt['callback_failure'] is None and not crt['callbacks_active'])
 
     def _restore_domain(self, domain):
+        from .primary_creator_domain import _safe_restore
+        domain=_safe_restore(self,domain)
         from .primary_shared_locale import _invalidate_module_tls,_activate_native_module_tls,_has_registered_native_module_tls
         _invalidate_module_tls(self._runtime)
         for name, value in domain.items():
@@ -697,7 +699,12 @@ class WindowsSDKThreadService(WorkerObservations):
                 setattr(self._runtime, name, value)
 
         current=self._crt_domains.get(threading.get_native_id())
-        if (current is not None and not self._closed and
+        from .primary_creator_domain import _for_service
+        creator=_for_service(self)
+        if creator is not None and creator.domain is not None and current is creator.domain['value'] and creator.domain['active'] and not creator.ptd['consumed'] and self._runtime.tls_base_address==creator.domain['tls']:
+            from .primary_shared_locale import _activate_creator_module_tls
+            _activate_creator_module_tls(self._runtime,self,current)
+        elif (current is not None and not self._closed and
                 _has_registered_native_module_tls(self._runtime,self,current) and
                 self._runtime.tls_base_address==current['tls'] and
                 self._runtime.tls_epoch_address==current['tls']+0xA8):
@@ -721,6 +728,10 @@ class WindowsSDKThreadService(WorkerObservations):
         if runtime is not self._runtime or tid != threading.get_native_id() or os.getpid() != self._owner[0]:
             raise InputError('CRT callback requires its original native thread and runtime')
         if tid == self._owner[1]:
+            from .primary_creator_domain import _close_lease_active
+            if _close_lease_active(self):
+                yield
+                return
             if self._active_owner:
                 with self._registrar.operation(token=self._close_token):
                     yield
@@ -755,7 +766,117 @@ class WindowsSDKThreadService(WorkerObservations):
                     self._restore_domain(saved)
 
     @contextmanager
+    def _creator_closing_context(self):
+        from .primary_creator_domain import _for_service,_safe_restore
+        from .primary_host_services import _ExecutionLease
+        from .primary_windows_signer import WindowsSigner
+        from .primary_shared_locale import _activate_creator_module_tls,_invalidate_module_tls
+        import sys
+        record=_for_service(self)
+        if record is None:raise InputError('creator closing context issuer missing')
+        record.validate(lease=False,closing=True)
+        f=sys._getframe(1);owner_close=False;release=False
+        while f is not None:
+            if f.f_code is WindowsSigner.close.__code__ and f.f_locals.get('self') is record.owner:owner_close=True
+            if f.f_code is WindowsSigner._release_resources.__code__ and f.f_locals.get('self') is record.owner:release=True
+            f=f.f_back
+        if not owner_close or not release or getattr(record,'close_lease',None) is not None:
+            raise InputError('creator close lease requires original private owner close path')
+        saved=self._save_domain();d=record.domain
+        try:
+            with _ExecutionLease(self._registrar,closing=True) as lease:
+                record.close_lease=lease
+                if d is not None:
+                    d['active']=True
+                    values=_safe_restore(self,d['value']['state'])
+                    for name,value in values.items():
+                        if value is _ABSENT:self._runtime.__dict__.pop(name,None)
+                        else:setattr(self._runtime,name,value)
+                    if record.ptd is not None and not record.ptd['consumed']:
+                        _activate_creator_module_tls(self._runtime,self,d['value'])
+                yield
+        finally:
+            _invalidate_module_tls(self._runtime)
+            if d is not None:d['value']['state']=self._save_domain();d['active']=False
+            record.close_lease=None
+            self._restore_domain(saved)
+
+    @contextmanager
+    def _creator_crt_context(self):
+        from .primary_creator_domain import _for_service,_register_domain,_associate_ptd
+        from .primary_shared_locale import _activate_creator_module_tls,_invalidate_module_tls
+        record=_for_service(self)
+        if record is None:raise InputError('creator context has no private factory issuer')
+        record.validate();runtime=self._runtime;tid=threading.get_native_id()
+        if getattr(record,'pending_unpublished',None) is not None:
+            raise PrimarySemanticUnavailable('creator retains unresolved partial service effects; retry denied')
+        if record.ptd is None or not record.ptd['initialized'] or record.ptd['cleanup'] or record.ptd['consumed']:
+            raise PrimarySemanticUnavailable('creator consumer requires complete unconsumed PTD')
+        if self._closing or record.domain is not None and record.domain['active']:
+            raise InputError('creator public context cannot reenter/close-resume')
+        saved=self._save_domain();entered=False;services=None;tls=None;published=False
+        try:
+            if record.domain is None:
+                self._enter_worker_domain()
+                services=self._observer_factory();record.service_phase='entering';record.events.append(('services_enter_start',))
+                values=services.__enter__();entered=True;record.service_phase='entered';record.events.append(('services_entered',))
+                runtime.worker_observations=values['observations'];runtime._filetimes=values['filetime']
+                runtime.crt_thread_address=None
+                runtime.__dict__.pop('_crt_dispatch_active',None)
+                tls=runtime._allocate(0xd78,True);record.events.append(('tls_allocated',tls))
+                runtime.tls_base_address= tls;runtime.tls_epoch_address=tls+0xa8;record.events.append(('aliases_published',tls))
+                runtime.memory.store(tls+0xa8,0x80000001,4,source='MODEL_creator.initial_TLS_epoch')
+                domain={'services':services,'values':values,'tls':tls,'state':self._save_domain(),'owner_state':saved,'services_closed':False,'source_fls_completed':False}
+                self._crt_domains[tid]=domain;published=True;record.events.append(('domain_published',tls))
+                _register_domain(self,domain);record.events.append(('domain_registered',tls))
+            else:
+                domain=record.domain['value']
+                if record.domain['retired'] or record.domain['failure'] is not None:raise PrimarySemanticUnavailable('creator domain retains failed/retired effects')
+                # Alias restoration is authorized only while this genuine context is active.
+                for name,value in domain['state'].items():
+                    if value is _ABSENT:runtime.__dict__.pop(name,None)
+                    else:setattr(runtime,name,value)
+            record.domain['active']=True
+            runtime._crt_thread()
+            _associate_ptd(self);record.events.append(('ptd_borrow_verified',))
+            _activate_creator_module_tls(runtime,self,domain);record.events.append(('receipt_published',))
+            record.events.append(('consumer_enter',))
+            yield
+        except BaseException as error:
+            if not record.failures:record.failures.append(error)
+            if record.domain is not None and record.domain['failure'] is None:record.domain['failure']=error
+            raise
+        finally:
+            _invalidate_module_tls(runtime)
+            if record.domain is not None:
+                record.domain['value']['state']=self._save_domain();record.domain['active']=False
+            elif published:
+                record.pending_unpublished=(tls,services,record.failures[0] if record.failures else None)
+            elif not entered and getattr(record,'service_phase',None)=='entering':
+                record.pending_unpublished=(tls,services,record.failures[0] if record.failures else None)
+                record.service_phase='enter_failed_unknown'
+            elif entered:
+                try:services.__exit__(None,None,None);record.service_phase='exit_confirmed'
+                except BaseException as error:
+                    record.service_phase='exit_failed'
+                    if not record.failures:record.failures.append(error)
+                    record.pending_unpublished=(tls,services,error)
+                    raise
+            try:self._restore_domain(saved)
+            except BaseException as error:
+                if not record.failures:record.failures.append(error)
+                record.pending_unpublished=(tls,services,error)
+                raise
+            if record.domain is None and not published and tls is not None and getattr(record,'service_phase',None)=='exit_confirmed':
+                runtime._free_allocation(tls)
+
+    @contextmanager
     def _native_crt_context(self):
+        from .primary_creator_domain import _for_service
+        creator=_for_service(self)
+        if creator is not None and creator.thread[2]==threading.get_native_id():
+            with self._creator_crt_context():yield
+            return
         runtime = self._runtime
         tid = threading.get_native_id()
         saved = self._save_domain()
@@ -981,8 +1102,10 @@ class WindowsSDKThreadService(WorkerObservations):
         crt = getattr(self._runtime, 'crt_startup_observations', None)
         self._retire_joined_domains()
         resident_ids = {row['thread_id'] for row in self._secondary if row['state'] == 'parked_at_BD4B60'}
+        from .primary_creator_domain import _closing_ids
+        creator_ids=_closing_ids(self) if self._closing else set()
         if crt is not None and (crt.snapshot()['callback_failure'] is not None or
-                                crt.snapshot()['callbacks_active'] or set(self._crt_domains) - resident_ids):
+                                crt.snapshot()['callbacks_active'] or set(self._crt_domains) - resident_ids - creator_ids):
             if self._failure is None:
                 self._failure = PrimarySemanticUnavailable('native SDK CRT FLS destruction is incomplete; thread domains retained')
             raise self._failure_for_raise()
@@ -1061,7 +1184,7 @@ class WindowsSDKThreadService(WorkerObservations):
             raise InputError('secondary close preparation requires released owner execution')
         self._closing = True
         self._quiesce(consume=False)
-        self._check_teardown_obligations(allow_resident=True)
+        self._check_teardown_obligations(allow_resident=True,allow_creator=True)
 
     @contextmanager
     def closing_context(self):
@@ -1071,7 +1194,10 @@ class WindowsSDKThreadService(WorkerObservations):
         self._execution.acquire()
         self._active_owner, self._execution_tid = True, threading.get_native_id()
         try:
-            yield
+            from .primary_creator_domain import _for_service
+            if _for_service(self) is not None:
+                with self._creator_closing_context():yield
+            else:yield
         finally:
             self._active_owner, self._execution_tid = False, None
             self._execution.release()
@@ -1133,7 +1259,7 @@ class WindowsSDKThreadService(WorkerObservations):
                         row['crt_fls_cleanup'] = 'completed_after_join'
                         row['holder_fls_cleanup'] = 'completed_after_join' if domain.get('holder_fls_completed') else 'no_thread_value'
 
-    def _check_teardown_obligations(self, *, allow_resident):
+    def _check_teardown_obligations(self, *, allow_resident,allow_creator=False):
         resident_ids = {row['thread_id'] for row in self._secondary
                         if allow_resident and row['state'] == 'parked_at_BD4B60'}
         crt = getattr(self._runtime, 'crt_startup_observations', None)
@@ -1141,17 +1267,24 @@ class WindowsSDKThreadService(WorkerObservations):
         from .primary_windows_crt import WindowsCRTObservations
         creator_ids = {self._owner[1]} if (type(crt) is WindowsCRTObservations and
             crt._owner == self._owner and crt._runtime is self._runtime and not crt._closed) else set()
+        if allow_creator:
+            from .primary_creator_domain import _closing_ids
+            creator_ids=_closing_ids(self)
         if (self._active_owner or self._execution.locked() or self._draining or
                 any(row['handle'] and row['thread_id'] not in resident_ids and
                     (not row['joined'] or not row['handle_closed']) for row in self._threads) or
                 any(row.get('_kind') == 'notification' and row['source_handle'] and
                     not row['source_handle_closed'] for row in self._threads) or
                 any(row['thread_id'] not in resident_ids and not row['_launch'].retired for row in self._secondary) or
-                set(self._crt_domains) - resident_ids or self._module_pending or
+                set(self._crt_domains) - resident_ids - (creator_ids if allow_creator else set()) or self._module_pending or
                 set(self._holder_values) - resident_ids or self._holder_active or self._holder_failure is not None or
                 snapshot is not None and (snapshot['callback_failure'] is not None or snapshot['callbacks_active'] or
                                           set(snapshot['pending_thread_ids']) - resident_ids - creator_ids)):
             raise PrimarySemanticUnavailable('secondary shutdown retains live, failed or unknown source/native obligations')
+
+    def finish_workers(self):
+        self._check_owner()
+        self._check_teardown_obligations(allow_resident=False,allow_creator=True)
 
     def finish_close(self):
         self._check_owner()

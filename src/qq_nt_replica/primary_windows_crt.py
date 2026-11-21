@@ -306,7 +306,13 @@ class WindowsCRTObservations(WorkerObservations):
             token = ctypes.addressof(storage) if storage is not None else 0
             if token:
                 self._tokens[token] = (storage, value, tid, identifier)
-            result, error = self._call(name, identifier, token or None)
+            from .primary_creator_domain import _fls_attempt,_fls_return
+            attempt=_fls_attempt(self,name,identifier,value,token,storage)
+            try:result,error=self._call(name,identifier,token or None)
+            except BaseException as failure:
+                _fls_return(self,attempt,None,None,failure)
+                raise
+            _fls_return(self,attempt,result,error)
             if result:
                 previous = self._values.pop((tid, identifier), None)
                 if previous:
@@ -328,6 +334,8 @@ class WindowsCRTObservations(WorkerObservations):
         record = self._tokens.get(int(pointer))
         if record is None or record[2:] != (tid, identifier):
             raise PrimarySemanticUnavailable('native CRT FLS returned an unowned or foreign-thread token')
+        from .primary_creator_domain import _fls_get
+        _fls_get(self,identifier,int(pointer),record)
         return record[1]
 
     def _cleanup_token(self, pointer):
@@ -341,12 +349,15 @@ class WindowsCRTObservations(WorkerObservations):
             if record is None or record[2] != tid:
                 raise PrimarySemanticUnavailable('native CRT FLS callback requires its original thread and owned token')
             value, identifier = record[1], record[3]
+            from .primary_creator_domain import _callback_ptd
+            _callback_ptd(self,int(pointer),'begin')
             with self._callback_context(self._runtime, tid):
                 from .primary_crt_startup import fls_callback
                 fls_callback(self._runtime, value)
+            _callback_ptd(self,int(pointer),'consumed')
             completed = True
         except BaseException as error:
-            self._callback_failure = error
+            if self._callback_failure is None:self._callback_failure = error
         finally:
             if completed:
                 self._tokens.pop(int(pointer), None)
