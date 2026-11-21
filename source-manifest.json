@@ -1797,7 +1797,7 @@
     {
       "path": "src/qq_nt_replica/primary_qimei_settings.py",
       "source_sha256": "be7c76c4cbff14b556fa7f6f85e188011f2c159486b0e5f2e650732d4c77e0a2",
-      "sha256": "016410977d1913058d0058493b8213953ba8323ef02f037a6b0312cfe66fc578",
+      "sha256": "d1a5adc52dc73c38aacd8c31be38d1e802d2707748e7d5df681c8447858b0d43",
       "classification": "project_source"
     },
     {
@@ -2776,6 +2776,13 @@
       "sha256": "25a9ba152bf9f7e5b87f624ff3b93e417502016bc3aaaf3431fcad74dc60e6b8",
       "classification": "project_source",
       "origin": "MAT-QIMEI-CONFIG-IMPLEMENT/a1 new source-derived implementation; authoring snapshot: qimei-config-implementation/primary_windows_qimei_settings_writer.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_kind5_request.py",
+      "source_sha256": "25281696f8be25a1b0e7bb0e094d2e3da5e0b3be4f591f5c5083b9f7029ee944",
+      "sha256": "25281696f8be25a1b0e7bb0e094d2e3da5e0b3be4f591f5c5083b9f7029ee944",
+      "classification": "project_source",
+      "origin": "MAT-QIMEI-KIND5-IMPLEMENT/a1 new source-derived implementation; authoring snapshot: qimei-kind5-implementation/metadata/primary_qimei_kind5_request.py"
     }
   ],
   "excluded_pending_assets": [

@@ -123,17 +123,24 @@ class QimeiSettings:
 
     def update_response(self, slots, *, clock, writer, **refresh_dependencies):
         """50E1E/A42B8: refresh, prefix update, source time, then persist."""
+        return self._update_record(slots, base=9, count=22, clock=clock, writer=writer, **refresh_dependencies)
+
+    def update_kind5_response(self, slots, *, clock, writer, **refresh_dependencies):
+        """5127A: update the second record without replacing untouched tails."""
+        return self._update_record(slots, base=0x231, count=16, clock=clock, writer=writer, **refresh_dependencies)
+
+    def _update_record(self, slots, *, base, count, clock, writer, **refresh_dependencies):
         self.refresh(**refresh_dependencies)
         if slots is None or not slots:
             return
         from .primary_qimei_reply import ReplySlot
         slots = tuple(slots)
-        if len(slots) > 22 or any(not isinstance(slot, ReplySlot) for slot in slots):
-            raise QimeiRequestBoundary('kind4 response requires at most 22 typed source slots')
+        if len(slots) > count or any(not isinstance(slot, ReplySlot) for slot in slots):
+            raise QimeiRequestBoundary('response exceeds typed source record slot count')
         first = slots[0]
         if first.tag == 1 and first.data is not None:
             text = first.cstr[:31]
-            self.record[17:18 + len(text)] = text + b'\0'
+            self.record[base + 8:base + 9 + len(text)] = text + b'\0'
         flags = bytearray(512)
         length = 0
         for index, slot in enumerate(slots[1:]):
@@ -150,11 +157,11 @@ class QimeiSettings:
             if length >= 512:
                 length = 512
                 break
-        self.record[49:49 + length] = flags[:length]
+        self.record[base + 40:base + 40 + length] = flags[:length]
         value = _integer(clock())
         if not -(1 << 63) <= value < (1 << 63):
             raise QimeiRequestBoundary('source _mktime64 result must be signed64')
-        self.record[9:17] = (value & ((1 << 64) - 1)).to_bytes(8, 'little')
+        self.record[base:base + 8] = (value & ((1 << 64) - 1)).to_bytes(8, 'little')
         if self.initialized & 1:
             with self._lock:
                 status = writer.save(self.path, bytes(self.record))
