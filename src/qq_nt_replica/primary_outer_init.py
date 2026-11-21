@@ -232,6 +232,21 @@ class _LoginService:
             target=self.__object+0x100
             path=login_nt_data_path(self.__runtime,_String.read(self.__runtime,target))
             _String.read(self.__runtime,target).destroy();path.write_to(target)
+            from .primary_login_host_init import publish_hostname,msf_directory,publish_msf_directory
+            publish_hostname(self.__runtime,_String.read(self.__runtime,self.__object+0x160))
+            directory=msf_directory(self.__runtime,_String.read(self.__runtime,target))
+            if not directory.value():
+                from .primary_native_logger import empty_msf_path
+                empty_msf_path(self.__runtime)
+            publish_msf_directory(self.__runtime,directory.clone())
+            temporaries.append(directory)
+            log_values={}
+            for offset in (0x148,0x130,0x118,0x100):
+                log_values[offset]=_String.read(self.__runtime,self.__object+offset).clone()
+            from .primary_native_logger import login_config
+            login_config(self.__runtime,*(log_values[offset] for offset in (0x100,0x118,0x130,0x148)))
+            from .primary_mmkv_host_init import initialize_login_root
+            initialize_login_root(self.__runtime,_String.read(self.__runtime,target))
             from .primary_msf_selection import initialize_login_msf
             initialize_login_msf(self.__runtime,self.__object)
             raise PrimarySemanticUnavailable('6D4BBC continuation after existing MSF owner unavailable')

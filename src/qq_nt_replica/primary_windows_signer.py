@@ -236,6 +236,8 @@ def open_windows_signer(*, bridge_path, storage_root, host_profile_string, initi
             if outer_sync_permit is not None:
                 from .primary_windows_outer_sync import bind_outer_sync
                 bind_outer_sync(owner,permit=outer_sync_permit)
+                from .primary_windows_mmkv_host_init import bind_windows_mmkv_host
+                bind_windows_mmkv_host(owner,outer_sync_permit)
             from .primary_windows_signer_setup import IndependentWindowsSetup
             owner._independent_setup = IndependentWindowsSetup(owner)
             owner._independent_setup.prepare_outer_prefix(outer_login_config)
@@ -311,7 +313,9 @@ class WindowsSigner:
             with self._registrar.operation():
                 if runtime._crt_call(primary_crt_startup.initialize) != 1:
                     raise PrimarySemanticUnavailable('Windows signer source CRT process initialization returned false')
-                runtime._crt_thread()
+                crt_thread=runtime._crt_thread()
+                from .primary_login_model_attach import _run_login_model_attach
+                _run_login_model_attach(self)
         finally:
             self._threads.after_public_operation()
 
@@ -618,6 +622,9 @@ class WindowsSigner:
                     raise PrimarySemanticUnavailable('own-image retained until raw and caller consumers are confirmed closed')
                 attempt('ownimage_module', retain_ownimage)
         if self._signer is not None:
+            from .primary_windows_mmkv_host_init import dispose_terminal as dispose_mmkv
+            if errors:return errors
+            if not attempt('host_mmkv',lambda:dispose_mmkv(self)):return errors
             from .primary_module_sync import dispose_terminal as dispose_module_sync
             if errors:return errors
             if not attempt('host_module_sync', lambda: dispose_module_sync(self)):return errors
@@ -630,6 +637,8 @@ class WindowsSigner:
                 # Keep capability/storage if guest teardown failed; this is model storage retirement.
                 if errors:return errors
                 try:
+                    from .primary_login_model_attach import retire_terminal
+                    retire_terminal(self)
                     issuer.retire()
                 except BaseException as error:
                     errors.append(error)

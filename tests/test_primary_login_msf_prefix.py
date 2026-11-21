@@ -92,7 +92,7 @@ class SelectionChecks(unittest.TestCase):
             service=get_login_service(owner)
             # CS operation has its own existing same-buffer ABI checks; no native here.
             with patch('qq_nt_replica.primary_outer_init._global_sync',return_value=1),patch.object(selection,'_callback_7510f1',observe):
-                with self.assertRaisesRegex(PrimarySemanticUnavailable,'B99200'):
+                with self.assertRaisesRegex(PrimarySemanticUnavailable,'C6 MODEL process-attach'):
                     service.initConfig(dict(commonPath='C:\\data',clientVer='v',machineId='machine',platVer='p',hostName='h'))
             obj=m.load(b+0x674c730,8)
             self.assertEqual(_String.read(r,obj+0x100).value(),b'C:\\data\\nt_data')

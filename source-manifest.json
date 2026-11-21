@@ -2079,7 +2079,7 @@
     {
       "path": "src/qq_nt_replica/primary_signer.py",
       "source_sha256": "3284517ba2f38548e60b440ebf13003b40a38c09e8db23d11039efe823e55745",
-      "sha256": "149c1bc9f2afea191959ec3d783507a2a54ea283d9452387298a043e2346f436",
+      "sha256": "1e6ffbd6fba21773efc5cf14f77d88d87a682fa6b8d12f9d16301cc6bce47205",
       "classification": "project_source"
     },
     {
@@ -2499,7 +2499,7 @@
     {
       "path": "src/qq_nt_replica/primary_windows_signer.py",
       "source_sha256": "9bda5a58bbdde36c7cb526a64b572810f9a918fbbea72652d4df34d8253bdda0",
-      "sha256": "e1c09a0fdf8ea2c396b472c198dab017ed5dd2b33552204b8e558f000b4dff07",
+      "sha256": "b015e5f969f7752741b6ad59974ffce7d8ca8893e6c9ab836db393ff4e125dab",
       "classification": "project_source"
     },
     {
@@ -2801,7 +2801,7 @@
     {
       "path": "src/qq_nt_replica/primary_outer_init.py",
       "source_sha256": "100f19fe66db1a89e7b601208880fc6b9eeb0d6fcb1a67c2d011368e5c017fa3",
-      "sha256": "33e4405febb7efd93163345a73516a443016ad613c20e29319b2099cdce226b2",
+      "sha256": "4f1170f7e07bb35eed6171c72a789e7e81ce74baaddb21b0f57a72b8f2be5895",
       "classification": "project_source",
       "origin": "MAT-SIGN-OUTER-PREFIX-IMPLEMENT/a1 source-aligned bounded prefix; first authoring snapshot: outer-prefix-implementation/primary_outer_init.py"
     },
@@ -2839,6 +2839,41 @@
       "sha256": "cca38fbe30a1f212c439f8b8b4c4416c43fece41e360651820580bed47c5f64e",
       "classification": "project_source",
       "origin": "Joint MODEL loader-birth/MSF prefix implementation; first retained authored snapshot: login-msf-prefix-implementation/first-retained-source/primary_nt_wrapper_owner.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_login_host_init.py",
+      "source_sha256": "cfe26d15ae31a1cf8d7800e40c1419761419000245feff8ea67e95fb6fc3e10e",
+      "sha256": "cfe26d15ae31a1cf8d7800e40c1419761419000245feff8ea67e95fb6fc3e10e",
+      "classification": "project_source",
+      "origin": "MAT-SIGN-LOGIN-SOURCE-ORDER-REPAIR/a1; first retained authored snapshot: login-source-order-repair/first-retained-source/primary_login_host_init.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_login_model_attach.py",
+      "source_sha256": "cf93997cefb24f1ace21e70fa5c422142bc2cc8c693ed538457797229c77c3fa",
+      "sha256": "cf93997cefb24f1ace21e70fa5c422142bc2cc8c693ed538457797229c77c3fa",
+      "classification": "project_source",
+      "origin": "MAT-SIGN-LOGIN-SOURCE-ORDER-REPAIR/a1; first retained authored snapshot: login-source-order-repair/first-retained-source/primary_login_model_attach.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_native_logger.py",
+      "source_sha256": "29c2ec4a646d2bc4c8425565457d0784d4a3cecdefc549d19f2887c47786fe46",
+      "sha256": "29c2ec4a646d2bc4c8425565457d0784d4a3cecdefc549d19f2887c47786fe46",
+      "classification": "project_source",
+      "origin": "MAT-SIGN-LOGIN-SOURCE-ORDER-REPAIR/a1; first retained authored snapshot: login-source-order-repair/first-retained-source/primary_native_logger.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_mmkv_host_init.py",
+      "source_sha256": "9b30a78828aecf3995a8ec1eb5b4a10788802f5be2ad8598d5b8162e7b6fc6ed",
+      "sha256": "9b30a78828aecf3995a8ec1eb5b4a10788802f5be2ad8598d5b8162e7b6fc6ed",
+      "classification": "project_source",
+      "origin": "MAT-SIGN-LOGIN-SOURCE-ORDER-REPAIR/a1; first retained authored snapshot: login-source-order-repair/first-retained-source/primary_mmkv_host_init.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_windows_mmkv_host_init.py",
+      "source_sha256": "53dd6167ab027ea703b54d4a9c3480510de15b854c23ba348b81aad69afb4ad6",
+      "sha256": "53dd6167ab027ea703b54d4a9c3480510de15b854c23ba348b81aad69afb4ad6",
+      "classification": "project_source",
+      "origin": "MAT-SIGN-LOGIN-SOURCE-ORDER-REPAIR/a1; first retained authored snapshot: login-source-order-repair/first-retained-source/primary_windows_mmkv_host_init.py"
     }
   ],
   "excluded_pending_assets": [

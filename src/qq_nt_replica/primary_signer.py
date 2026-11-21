@@ -1636,6 +1636,10 @@ class PrimarySigner:
         from .primary_nt_wrapper_owner import install_fresh_image as install_nt_wrapper_owner
         install_msf_selection(self)
         install_nt_wrapper_owner(self)
+        from .primary_login_model_attach import install_fresh_image as install_login_image
+        install_login_image(self)
+        from .primary_mmkv_host_init import install_fresh_image as install_mmkv_image
+        install_mmkv_image(self)
 
 
     def _bind_runtime(self):
