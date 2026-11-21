@@ -1,0 +1,22 @@
+{
+  "source_wrapper_sha256": "63112ab9161e127f5f7e17998a7196e143808923fb54cbbf7b4e21426187a5f0",
+  "segments": [
+    {
+      "rva": 76123890,
+      "hex": "256c6c5800"
+    },
+    {
+      "rva": 76124471,
+      "hex": "255800"
+    },
+    {
+      "rva": 76311464,
+      "hex": "2d00"
+    }
+  ],
+  "imports": {
+    "GetSystemTimeAsFileTime": 76611512,
+    "MultiByteToWideChar": 76612080,
+    "WideCharToMultiByte": 76612704
+  }
+}

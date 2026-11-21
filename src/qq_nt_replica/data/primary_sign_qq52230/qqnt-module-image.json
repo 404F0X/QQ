@@ -1,0 +1,21 @@
+{
+  "source_sha256": "f6f35b8517da5c38ace8d4b6abad1abed42f61c8e706d23192a22d91c7620e59",
+  "name_hex": "51514e542e646c6c",
+  "scope": "Actual PE headers and .data only; other module sections unknown/unmapped. Data virtual tail uses declared normal OS zero-fill.",
+  "segments": [
+    {
+      "path": "qqnt-module-headers.bin",
+      "rva": 0,
+      "bytes": 1536,
+      "virtual_bytes": 1536,
+      "sha256": "2ec8f62f76677d629bfe4a20a1acb442713a58cc15056e570ea8847835a639e8"
+    },
+    {
+      "path": "qqnt-module-data.bin",
+      "rva": 207388672,
+      "bytes": 873472,
+      "virtual_bytes": 4954352,
+      "sha256": "d1077adbd5097a01cd6e086569ce8d7716680f74adb228cb5e7fbdfb22e9e784"
+    }
+  ]
+}
