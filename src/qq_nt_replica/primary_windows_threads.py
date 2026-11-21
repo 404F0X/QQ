@@ -651,22 +651,25 @@ class WindowsSDKThreadService(WorkerObservations):
             self._execution_tid = None
             self._execution.release()
             row['_checkpoint'].set()
-            row['_resume'].wait()
-            self._execution.acquire()
-            self._execution_tid = tid
-            current_owner = self._save_domain()
-            domain['owner_state'].clear()
-            domain['owner_state'].update(current_owner)
-            ticket = row.pop('_ticket', None)
-            self._restore_domain(domain['state'])
-            if (ticket is None or ticket[1] != tid or ticket[2] not in ('drain', 'close', 'request') or
-                    ticket[0] <= row.get('consumed_ticket', 0)):
-                raise InputError('resident continuation requires one fresh identity-bound service ticket')
-            row['consumed_ticket'], row['continuation_kind'] = ticket[0], ticket[2]
-            if ticket[2] == 'drain' and row['task'] == runtime.image_base + 0x6751C58:
-                from .primary_device_request import _activate_drain
-                _activate_drain(self, row, ticket)
-            row.pop('_park_witness', None)
+            try:
+                row['_resume'].wait()
+            finally:
+                self._execution.acquire()
+                self._execution_tid = tid
+        # TLS activation requires the original lease stack to be active again.
+        current_owner = self._save_domain()
+        domain['owner_state'].clear()
+        domain['owner_state'].update(current_owner)
+        ticket = row.pop('_ticket', None)
+        self._restore_domain(domain['state'])
+        if (ticket is None or ticket[1] != tid or ticket[2] not in ('drain', 'close', 'request') or
+                ticket[0] <= row.get('consumed_ticket', 0)):
+            raise InputError('resident continuation requires one fresh identity-bound service ticket')
+        row['consumed_ticket'], row['continuation_kind'] = ticket[0], ticket[2]
+        if ticket[2] == 'drain' and row['task'] == runtime.image_base + 0x6751C58:
+            from .primary_device_request import _activate_drain
+            _activate_drain(self, row, ticket)
+        row.pop('_park_witness', None)
         row['state'] = 'running'
         owner = domain['state'].get('_primary_secondary_postfetch_owner', _ABSENT)
         if owner is not _ABSENT and owner is not None:
