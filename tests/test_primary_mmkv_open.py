@@ -9,7 +9,7 @@ class OpenChecks(unittest.TestCase):
         from qq_nt_replica.primary_memory import UnknownMemory
         with connected() as (e,port):
             r=e['runtime'];m=r.memory;session=port._WindowsMMKVHost__open;p=session['parent']
-            self.assertEqual(session['global_lock'],'released');self.assertEqual(session['boundary'],0x29d9e)
+            self.assertEqual(session['global_lock'],'released');self.assertEqual(session['boundary'],0x72ec24)
             for off,size in ((0x8a,2),(0xc9,3),(0xd2,6)):
                 with self.assertRaises(UnknownMemory):m.read(p+off,size)
             self.assertEqual(m.load(p+0xd1,1),1)

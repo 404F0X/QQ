@@ -7,7 +7,7 @@ class Config(unittest.TestCase):
         from qq_nt_replica.primary_memory import UnknownMemory
         with connected() as (e,port):
             r=e['runtime'];m=r.memory;b=r.image_base
-            self.assertEqual(port._WindowsMMKVHost__open['boundary'],0x29d9e)
+            self.assertEqual(port._WindowsMMKVHost__open['boundary'],0x72ec24)
             self.assertEqual(m.load(b+0x674d420,1),0)
             self.assertNotEqual(m.load(b+0x674d424,4,signed=True),-1)
             self.assertNotEqual(m.load(b+0x674d2d0,4,signed=True),-1)
@@ -145,7 +145,7 @@ class Lookup(unittest.TestCase):
                     m.store(m.load(p+0x98,8)+4,1,4,source='controlled cached version')
                     m.store(s['files'][1].load(0x30)+4,1,4,source='controlled mapped version')
             with self.subTest(branch=branch),connected(transform=self.instrument(action)) as (e,port):
-                r=e['runtime'];self.assertEqual(port._WindowsMMKVHost__open['boundary'],0x29d9e)
+                r=e['runtime'];self.assertEqual(port._WindowsMMKVHost__open['boundary'],0x72ec24)
                 copies=[w for w in r.memory.writes if w[2]=='1BDA69F.actual_snapshot70_copy']
                 self.assertEqual(len(copies),1 if branch=='version1' else 0)
                 self.assertTrue([x for x in r.events if x[0]=='source.B98642.flag0'])
@@ -189,7 +189,7 @@ class Lookup(unittest.TestCase):
                     return result
                 m.store=actual;return functions
             with self.subTest(branch=branch),connected(transform=instrument) as (e,port):
-                r=e['runtime'];self.assertEqual(port._WindowsMMKVHost__open['boundary'],0x29d9e)
+                r=e['runtime'];self.assertEqual(port._WindowsMMKVHost__open['boundary'],0x72ec24)
                 logs=[x for x in r.events if x[0]=='source.D3A81F' and x[1]==4]
                 ident=b'nt_mmkv_msf_united_config' if branch=='null' else b'nt_mmkv_msf_united_confiz'
                 self.assertEqual(logs, [('source.D3A81F',4,b'nt_wrapper_engine.cc',0x767,b'',b'get misc mmkv failed,  id='+ident+b' key:107775_switch')])
@@ -290,6 +290,6 @@ class Lookup(unittest.TestCase):
             self.assertFalse([x for x in r.events if x[0]=='source.D3A81F' and x[1]==4])
             self.assertEqual([x[0] for x in r.events].count('source.62140.copy_dtor'),2)
             self.assertNotIn('log_array',p);self.assertTrue(p['pair_consumed']);self.assertTrue(p['caller_consumed'])
-            self.assertEqual(port._WindowsMMKVHost__open['boundary'],0x29d9e)
+            self.assertEqual(port._WindowsMMKVHost__open['boundary'],0x72ec24)
 
 if __name__=='__main__':unittest.main()

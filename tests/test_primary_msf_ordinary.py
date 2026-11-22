@@ -25,7 +25,7 @@ class Ordinary(unittest.TestCase):
             m.store=actual;m.unmap=retire;return functions
         with connected(transform=instrument) as (e,port):
             r=e['runtime'];m=r.memory;b=r.image_base;p,c=r._ordinary_msf_pair_moved
-            self.assertEqual(port._WindowsMMKVHost__open['boundary'],0x29d9e)
+            self.assertEqual(port._WindowsMMKVHost__open['boundary'],0x72ec24)
             self.assertEqual(r._custom_allocator_backend.records[p][1],0x380)
             self.assertEqual([m.load(p+i,8)-b for i in (0,8,0x10,0x18,0x20)],[0x3f6ded8,0x3f6dfd8,0x3f6e1c8,0x3f6e210,0x3f6e228])
             self.assertEqual([v-b for source,address,v in stages if address==p],[0x3f6ea78,0x3f6e668,0x3f6ded8])
@@ -51,7 +51,7 @@ class Ordinary(unittest.TestCase):
             self.assertEqual(m.load(m.load(p,8)+0x80,8),b+0x72ec24)
             for address in (b+0x3f6df57,b+0x3f6df60):
                 with self.assertRaises(PrimaryMemoryLimit):m.read(address,1)
-            self.assertEqual([x for x in r.events if x[0]=='source.unavailable'][-1][1],0x29d9e)
+            self.assertEqual([x for x in r.events if x[0]=='source.unavailable'][-1][1],0x72ec24)
             self.assertEqual(captures[0][1],len(e['stdio_calls']))
             self.assertTrue(r._selector_config_history[-1]['caller_consumed'])
             with patch.object(e['owner']._threads,'prepare_close',side_effect=AssertionError('dangerous retirement')):

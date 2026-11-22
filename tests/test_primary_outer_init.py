@@ -30,6 +30,7 @@ class Runtime:
         return r
     def invoke(self,vm,rva,cells):
         args=tuple(vm.cells.value(i) for i in cells);self.calls.append((rva,args))
+        if rva in (0x75cec0,0x75b810):return PrimaryRuntime.invoke(self,vm,rva,cells)
         if rva==0x6270:
             for offset in (0,8,16):self.memory.store(args[0]+offset,0,8,source='6270.three_QWORD_zero')
             return 3
@@ -111,7 +112,7 @@ class Prefix(unittest.TestCase):
         owner=WindowsSigner.__new__(WindowsSigner);owner._state='open';owner._busy=False
         owner._pid=os.getpid();owner._thread=threading.get_native_id();owner._signer=SimpleNamespace(runtime=Runtime())
         return owner
-    def config(self):return dict(commonPath='C:\\data',clientVer='v',machineId='machine',platVer='p',hostName='h')
+    def config(self):return dict(commonPath='C:\\data',clientVer='v',machineId='machine',platVer='p',hostName='h',externalVersion=False)
     def tls(self,runtime):
         # Explicit test-only TLS observation boundary, never a genuine receipt claim.
         return patch('qq_nt_replica.primary_shared_locale.resolve_current_module_tls',return_value=SimpleNamespace(epoch_address=runtime.tls_epoch_address,image_epoch=runtime._shared_locale_source_epoch))
@@ -141,7 +142,8 @@ class Prefix(unittest.TestCase):
         with self.assertRaisesRegex(PrimarySemanticUnavailable,'InitializeCriticalSectionEx'):self.run_config(owner,service,self.config())
         pointer=r.memory.load(r.image_base+0x6745268,8)
         events=r.memory.writes[start:]
-        addresses=[row[0] for row in events]
+        global_events=[row for row in events if row[2].startswith('5C6E10.')]
+        addresses=[row[0] for row in global_events]
         self.assertEqual(addresses[:6],[pointer+0x28,pointer+0x18,pointer+8,pointer+0x38,r.image_base+0x6745268,pointer+0x40])
         with self.assertRaises(UnknownMemory):r.memory.read(pointer+0x48,8)
         with self.assertRaises(UnknownMemory):r.memory.read(pointer,8)
@@ -163,7 +165,7 @@ class Prefix(unittest.TestCase):
         service.release_wrappers()
         owner=self.owner();r=owner.signer.runtime
         with self.tls(r):service=get_login_service(owner)
-        config=self.config();config['appid']='explicit-present'
+        config=self.config();config['appid']=7
         with self.assertRaisesRegex(PrimarySemanticUnavailable,'present appid'):self.run_config(owner,service,config)
         self.assertEqual(r.memory.load(r.image_base+0x6745268,8),0)
         self.assertEqual(service.state,'UNAVAILABLE');service.release_wrappers()

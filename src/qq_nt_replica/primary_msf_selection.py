@@ -190,7 +190,10 @@ def select(runtime):
     return bool(memory.load(base+0x674d420,1))
 
 
-def initialize_login_msf(runtime,login_object):
+def initialize_login_msf(runtime,login_object,record_input):
+    from .primary_login_msf_record import validate
+    receipt=validate(runtime,login_object,record_input)
+    if sys._getframe(1) is not receipt.call or receipt.phase!='persistent_copied':raise InputError('MSF record input requires actual persistent-copy caller handoff')
     if runtime.memory.load(login_object+0x90,8):return
     # 72DE38 factory must return before self90/98 or29D9E can be written.
     result=select(runtime)
@@ -208,7 +211,5 @@ def initialize_login_msf(runtime,login_object):
     memory.write(frame,bytes(16),source='6D4BBC.moved_empty_temporary')
     _release_owner(runtime,memory.load(frame+8,8))
     memory.unmap(frame);runtime._ordinary_msf_pair_moved=(obj,control)
-    runtime.events.append(('source.unavailable',0x29d9e,0x6d4bbc,login_object))
-    from .primary_windows_mmkv_host_init import for_runtime
-    for_runtime(runtime)._WindowsMMKVHost__open['boundary']=0x29d9e
-    raise PrimarySemanticUnavailable('29D9E record constructor unavailable; ordinary pair moved to Login')
+    from .primary_login_msf_record import prepare
+    return prepare(runtime,login_object,record_input)

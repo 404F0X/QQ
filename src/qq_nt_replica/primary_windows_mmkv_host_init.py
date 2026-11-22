@@ -442,6 +442,8 @@ def dispose_terminal(owner):
 
 
 def preflight_close(owner):
+    from .primary_login_msf_record import preflight_close as input_preflight
+    input_preflight(owner)
     if owner._signer is not None:
         port=_PORTS.get(owner._signer.runtime)
         if port is not None:port.preflight_close()

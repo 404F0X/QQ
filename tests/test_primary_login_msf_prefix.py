@@ -104,7 +104,7 @@ class SelectionChecks(unittest.TestCase):
             # CS operation has its own existing same-buffer ABI checks; no native here.
             with patch.object(WindowsOuterSync,'_api',side_effect=lambda name,*args:1 if name=='InitializeCriticalSectionEx' else None),patch.object(selection,'_callback_7510f1',observe):
                 with self.assertRaisesRegex(PrimarySemanticUnavailable,'C6 MODEL process-attach'):
-                    service.initConfig(dict(commonPath='C:\\data',clientVer='v',machineId='machine',platVer='p',hostName='h'))
+                    service.initConfig(dict(commonPath='C:\\data',clientVer='v',machineId='machine',platVer='p',hostName='h',externalVersion=False))
             obj=m.load(b+0x674c730,8)
             self.assertEqual(_String.read(r,obj+0x100).value(),b'C:\\data\\nt_data')
             self.assertEqual(m.read(obj+0x90,16),bytes(16))

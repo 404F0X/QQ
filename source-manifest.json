@@ -2499,7 +2499,7 @@
     {
       "path": "src/qq_nt_replica/primary_windows_signer.py",
       "source_sha256": "9bda5a58bbdde36c7cb526a64b572810f9a918fbbea72652d4df34d8253bdda0",
-      "sha256": "576ec78eeb343d39f6df888e7b9d57beb7f5f4b82701206a65607ca87389e19e",
+      "sha256": "0816cbc52959a0fb0909d16b108900aab225a668598aba5a94c6d5b9267b2ef7",
       "classification": "project_source"
     },
     {
@@ -2801,7 +2801,7 @@
     {
       "path": "src/qq_nt_replica/primary_outer_init.py",
       "source_sha256": "100f19fe66db1a89e7b601208880fc6b9eeb0d6fcb1a67c2d011368e5c017fa3",
-      "sha256": "847c8eddd674d730f10027cd574041fa001ff2829461e6a9bacfe066d9f6c776",
+      "sha256": "ed13e0dafd7206a55e5e2f5d575ca1415d8116951dd8e55b37993115663a6fdc",
       "classification": "project_source",
       "origin": "MAT-SIGN-OUTER-PREFIX-IMPLEMENT/a1 source-aligned bounded prefix; first authoring snapshot: outer-prefix-implementation/primary_outer_init.py"
     },
@@ -2829,7 +2829,7 @@
     {
       "path": "src/qq_nt_replica/primary_msf_selection.py",
       "source_sha256": "425378fcf8eea1792b6cd3b769ec65cd144cc01ee71d8d54a4d9ab43be926143",
-      "sha256": "499b53c2200d8147cab7e662b9395ec3d434b11573da4eab1014c69d44a40242",
+      "sha256": "e66818f941f70fa13e67b4bf014263ccb0ed88754d80176c8269f2ac3af142da",
       "classification": "project_source",
       "origin": "Joint MODEL loader-birth/MSF prefix implementation; first retained authored snapshot: login-msf-prefix-implementation/first-retained-source/primary_msf_selection.py"
     },
@@ -2871,7 +2871,7 @@
     {
       "path": "src/qq_nt_replica/primary_windows_mmkv_host_init.py",
       "source_sha256": "53dd6167ab027ea703b54d4a9c3480510de15b854c23ba348b81aad69afb4ad6",
-      "sha256": "82fe822817b34d672bd13626c96c007058b99c29bef07d368a05357868540ba3",
+      "sha256": "f3134a88bd1f28a63f74bcf0e28836ff337a330ba4adda4aad2ec35959776826",
       "classification": "project_source",
       "origin": "MAT-SIGN-LOGIN-SOURCE-ORDER-REPAIR/a1; first retained authored snapshot: login-source-order-repair/first-retained-source/primary_windows_mmkv_host_init.py"
     },
@@ -2951,6 +2951,13 @@
       "sha256": "79c319fff136b704842aed660f526bc31d9a003eaa930ac99af0785ed3e538e3",
       "classification": "project_source",
       "origin": "MAT-SIGN-NT-CONFIG-EMPTY-SELECTOR/a1 first retained authored snapshot: nt-config-empty-selector-a1/first-retained-source/primary_msf_ordinary.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_login_msf_record.py",
+      "source_sha256": "0dfe190a438f55bb79ad2df7cbd65e0296dcafe309e87b8507225cbc6824ff42",
+      "sha256": "eb9ef04c7c26712ab3ab698a901e23cf8516ea65f8b4d84b808ed408327d5de2",
+      "classification": "project_source",
+      "origin": "MAT-SIGN-LOGIN-MSF-RECORD-PREFIX/a1 first retained authored snapshot: login-msf-record-prefix-a1/first-retained-source/primary_login_msf_record.py"
     }
   ],
   "excluded_pending_assets": [

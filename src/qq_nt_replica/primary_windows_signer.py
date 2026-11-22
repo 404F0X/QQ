@@ -514,12 +514,11 @@ class WindowsSigner:
 
     def _release_resources(self):
         errors = []
-        if self._signer is not None:
-            from .primary_windows_mmkv_host_init import preflight_close
-            try:preflight_close(self)
-            except BaseException as error:
-                self._cleanup_outcomes.append(dict(_error_summary(error),stage='mmkv_early_debt',status='failed'))
-                return [error]
+        from .primary_windows_mmkv_host_init import preflight_close
+        try:preflight_close(self)
+        except BaseException as error:
+            self._cleanup_outcomes.append(dict(_error_summary(error),stage='mmkv_early_debt',status='failed'))
+            return [error]
         def attempt(stage, function):
             try:
                 function()

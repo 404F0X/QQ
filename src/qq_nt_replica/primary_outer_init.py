@@ -19,22 +19,8 @@ class _Config:
 def _convert(value):
     if type(value) is not dict:
         raise PrimarySemanticUnavailable('public initConfig non-object/coercion domain unavailable')
-    strings=[]
-    for key in _KEYS:
-        item=value.get(key)
-        if type(item) is not str:
-            raise PrimarySemanticUnavailable('public initConfig requires supported explicit String domain: '+key)
-        try:strings.append(item.encode('utf-8'))
-        except UnicodeEncodeError as error:raise PrimarySemanticUnavailable('unsupported NAPI UTF8 conversion') from error
-    if not strings[0] or not strings[2]:
-        raise PrimarySemanticUnavailable('empty commonPath/machineId source alternatives unavailable')
-    external=value.get('externalVersion',False)
-    if type(external) is not bool:
-        raise PrimarySemanticUnavailable('externalVersion coercion outside supported Boolean domain')
-    appid=value.get('appid')
-    if appid is not None:
-        raise PrimarySemanticUnavailable('present appid conversion not yet supported')
-    return _Config(tuple(strings),appid,external)
+    return value
+
 
 
 def login_nt_data_path(runtime,source):
@@ -222,15 +208,11 @@ class _LoginService:
                     memory.load(memory.load(self.__object,8)+0x20,8)!=self.__runtime.image_base+0x6d3dcc):
                 raise InputError('initConfig lost its source unwrap/virtual owner identity')
             config=_convert(args[0])
-            for value in config.strings:temporaries.append(_String.construct(self.__runtime,value))
             self.__active=True;self.__state='INITIALIZING'
+            from .primary_login_msf_record import produce,copy_to_login
+            record_input=produce(self,config)
             _global_sync(self.__runtime)
-            for offset,value in zip((0x100,0x118,0x130,0x148,0x160),temporaries):
-                target=self.__object+offset
-                cloned=value.clone();_String.read(self.__runtime,target).destroy();cloned.write_to(target)
-            if memory.load(self.__object+0x178,1) or memory.load(self.__object+0x190,1):
-                raise PrimarySemanticUnavailable('6C4A20 populated appid optional-copy/destruction domain unavailable')
-            memory.store(self.__object+0x1a0,int(config.external_version),1,source='D56F50.externalVersion')
+            copy_to_login(self.__runtime,self.__object,record_input)
             target=self.__object+0x100
             path=login_nt_data_path(self.__runtime,_String.read(self.__runtime,target))
             _String.read(self.__runtime,target).destroy();path.write_to(target)
@@ -250,16 +232,15 @@ class _LoginService:
             from .primary_mmkv_host_init import initialize_login_root
             initialize_login_root(self.__runtime,_String.read(self.__runtime,target))
             from .primary_msf_selection import initialize_login_msf
-            initialize_login_msf(self.__runtime,self.__object)
+            initialize_login_msf(self.__runtime,self.__object,record_input)
             raise PrimarySemanticUnavailable('6D4BBC continuation after existing MSF owner unavailable')
         except BaseException as error:
             if self.__state=='INITIALIZING':
                 self.__state='UNAVAILABLE';self.__failure=type(error).__name__
             raise
         finally:
-            try:
-                for value in reversed(temporaries):value.destroy()
-            finally:self.__active=False
+            # Host call bookkeeping only; source input/record cleanup follows normal VT return.
+            self.__active=False
 
     def require_ready(self):
         if self.__state!='READY':

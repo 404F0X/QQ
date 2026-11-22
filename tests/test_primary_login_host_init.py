@@ -243,7 +243,7 @@ class AttachPhase(unittest.TestCase):
             with patch.object(WindowsMMKVStdio,'_load',return_value=stdio_functions),patch.object(WindowsMMKVHost,'_api',api),patch('qq_nt_replica.primary_shared_locale.resolve_current_module_tls',return_value=receipt),owner._registrar.operation():
                 service=get_login_service(owner)
                 with patch('qq_nt_replica.primary_windows_outer_sync.WindowsOuterSync._api',side_effect=lambda name,*args:1 if name=='InitializeCriticalSectionEx' else None):
-                    expected_error='controlled MMKV native failure' if failure=='init_api' else ('controlled MMKV page failure' if failure=='page_api' else ('controlled stdio' if stdio_failure else ('29D9E' if connected else ('scope denied' if directory is not None else '1BD8F45'))))
+                    expected_error='controlled MMKV native failure' if failure=='init_api' else ('controlled MMKV page failure' if failure=='page_api' else ('controlled stdio' if stdio_failure else ('6D4CCA' if connected else ('scope denied' if directory is not None else '1BD8F45'))))
                     expected_type=RuntimeError if failure in ('init_api','page_api') or stdio_failure else PrimarySemanticUnavailable
                     if connected and directory.get('raise'):expected_type=RuntimeError;expected_error='controlled file API failure'
                     if connected and directory.get('initial_size'):expected_error='1BDA3CA'
@@ -252,7 +252,12 @@ class AttachPhase(unittest.TestCase):
                     if connected and directory.get('convert_false'):expected_type=UnknownMemory;expected_error='unknown bytes'
                     if connected and directory.get('deny'):expected_error='scope denied'
                     with self.assertRaisesRegex(expected_type,expected_error):
-                        service.initConfig(dict(commonPath='C:\\data',clientVer='v',machineId='machine',platVer='p',hostName='h'))
+                        service.initConfig(directory['config_input'] if connected and 'config_input' in directory else (dict(commonPath='C:\\data',clientVer='v',machineId='machine',platVer='p',hostName='h',externalVersion=False)|({} if not connected else directory.get('config_extra',{}))))
+                if connected and directory.get('early_input_failure'):
+                    self.assertEqual(calls,[])
+                    self.assertEqual(m.load(b+0x6745268,8),0)
+                    service.release_wrappers()
+                    return dict(runtime=r,stdio_calls=stdio_calls,owner=owner,mmkv_api=api,prefixes=prefixes,api_calls=calls,file_api=file_api)
                 expected=['InitializeCriticalSectionAndSpinCount'] if failure=='init_api' else (['InitializeCriticalSectionAndSpinCount','GetLastError','GetSystemInfo'] if failure=='init_false' else ['InitializeCriticalSectionAndSpinCount','GetSystemInfo'])
                 self.assertEqual(calls[:len(expected)],expected)
                 lock=m.load(b+0x6751390,8);cache=m.load(b+0x6751388,8)
@@ -395,7 +400,7 @@ class AttachPhase(unittest.TestCase):
                 service=get_login_service(owner)
                 with patch('qq_nt_replica.primary_windows_outer_sync.WindowsOuterSync._api',side_effect=lambda name,*args:1 if name=='InitializeCriticalSectionEx' else None):
                     with self.assertRaisesRegex(PrimarySemanticUnavailable,'MMKV scoped native host'):
-                        service.initConfig(dict(commonPath='C:\\data',clientVer='v',machineId='machine',platVer='p',hostName='h'))
+                        service.initConfig(dict(commonPath='C:\\data',clientVer='v',machineId='machine',platVer='p',hostName='h',externalVersion=False))
                 self.assertEqual(_String.read(r,attach.require_complete(r)).value(),b'C:\\data\\nt_data\\msf')
                 self.assertEqual(_String.read(r,r.image_base+0x674c6f0).value(),b'h')
                 self.assertEqual(r.memory.load(r.image_base+0x67535d0,4),2)

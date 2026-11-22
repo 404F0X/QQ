@@ -54,7 +54,7 @@ class NTMap(unittest.TestCase):
                 with self.assertRaises(PrimaryMemoryLimit):m.read(operation[5],8)
             self.assertNotEqual(m.load(r.image_base+0x674d424,4,signed=True),-1)
             obj=m.load(r.image_base+0x674c730,8);self.assertEqual((m.load(obj+0x90,8),m.load(obj+0x98,8)),r._ordinary_msf_pair_moved)
-            self.assertEqual(r.events[-1][1],0x29d9e)
+            self.assertEqual(r.events[-1][1],0x72ec24)
             events=[x[1] for x in r.events if x[0]=='source.NT_normal_dtor'];self.assertEqual(events,[0x64e2f,0x64e38,0x64e41,0x64e4a])
 
     def test_cas_full64_success_and_real_expected_failure(self):
@@ -157,7 +157,7 @@ class NTMap(unittest.TestCase):
         with connected(transform=instrument) as (e,port):
             r=e['runtime'];self.assertEqual(reads,[(r.image_base+0x3ec6530,r.image_base+0x65240)])
             self.assertTrue([x for x in r.events if x[0]=='source.65240.return']);self.assertTrue(r._selector_config_history[-1]['caller_consumed'])
-            self.assertEqual(r.events[-1][1],0x29d9e)
+            self.assertEqual(r.events[-1][1],0x72ec24)
 
     def test_once_tail_failures_preserve_consumed_callback_and_flag(self):
         for operation,flag in (('AcquireSRWLockExclusive',1),('ReleaseSRWLockExclusive',(1<<64)-1),('WakeAllConditionVariable',(1<<64)-1)):

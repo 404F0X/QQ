@@ -114,7 +114,7 @@ class FileChecks(unittest.TestCase):
     def test_false_file_lock_continues_and_unlock9e_is_accepted(self):
         for options in ({'lock_false':True},{'unlock_false':True,'last_error':0x9e}):
             with connected(options) as (e,port):
-                self.assertEqual(port._WindowsMMKVHost__open['boundary'],0x29d9e)
+                self.assertEqual(port._WindowsMMKVHost__open['boundary'],0x72ec24)
                 self.assertEqual(len(port._WindowsMMKVHost__open['files']),2)
 
     def test_normal_destructor_double_close_pathlast_no_outer_free(self):
@@ -190,7 +190,7 @@ class FileChecks(unittest.TestCase):
             self.assertEqual(len(opens),6) # original two each, then both real reload positions
             self.assertEqual([read_wide(args[0]).endswith('.crc') for args in opens],[False,False,True,True,True,False])
             self.assertEqual(port._WindowsMMKVHost__open['global_lock'],'released')
-            self.assertEqual(port._WindowsMMKVHost__open['boundary'],0x29d9e)
+            self.assertEqual(port._WindowsMMKVHost__open['boundary'],0x72ec24)
             narrow=[x for x in e['stdio_calls'] if x[0]=='format' and x[4].startswith(b'file [')]
             self.assertEqual(narrow[-1][4],b'file [C] not valid')
             self.assertFalse([x for x in e['file_api'].calls if x[0]=='LockFileEx'])
