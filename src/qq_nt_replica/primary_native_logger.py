@@ -126,6 +126,7 @@ def _format_fixed(runtime,template,arguments):
 
 
 _NT_FORMAT=b'init misc mmkv, id={}, path={} crypt_key={}'
+_NT_MISSING=b'get misc mmkv failed,  id={} key:{}'
 _NT_FILE=bytes.fromhex('2e2e5c777261707065725c7379735f656e765c656e67696e655c7372635c6e745f777261707065725f656e67696e652e636300')
 
 
@@ -143,10 +144,12 @@ def nt_file_basename(runtime):
 def _nt_format_records(runtime,view,array,count,output_address):
     # A fixed source-literal view and actual40B variants are the formatter inputs.
     memory=runtime.memory
-    if count!=3 or memory.load(view,8)!=runtime.image_base+0x45d2964 or memory.load(view+8,8)!=len(_NT_FORMAT):
-        raise InputError('NT formatter requires original fixed literal view/count3')
+    pointer=memory.load(view,8);length=memory.load(view+8,8)
+    choices={(runtime.image_base+0x45d2964,43,3):_NT_FORMAT,(runtime.image_base+0x4604ab6,35,2):_NT_MISSING}
+    template=choices.get((pointer,length,count))
+    if template is None:raise InputError('NT formatter requires exact fixed literal view/count')
     output=_String.construct(runtime,b'');output.write_to(output_address)
-    parts=_NT_FORMAT.split(b'{}')
+    parts=template.split(b'{}')
     for index,part in enumerate(parts):
         if part:_append(output,output_address,part,literal=True)
         if index==count:break
@@ -192,6 +195,31 @@ def nt_misc_mmkv(runtime,source_file,id_copy,path_copy,crypt_copy):
         _String.read(runtime,address).destroy()
 
 
+def nt_config_missing(runtime,source_file,id_copy,key_copy):
+    memory=runtime.memory;pending=runtime._selector_config_pending
+    runtime.events.append(('source.62140',4,source_file,0x767,b'',_NT_MISSING))
+    if enabled(runtime,4):
+        frame,unused=_frame(runtime,120,'450C native40 config argument array and format view')
+        view=frame;array=frame+16;output_address=frame+96
+        pending['log_frame']=frame;pending['log_array']=array
+        memory.store(view,runtime.image_base+0x4604ab6,8,source='62140.fixed_format_pointer')
+        memory.store(view+8,35,8,source='62140.fixed_format_length')
+        for index in range(2):
+            memory.store(array+40*index+8,0,1,source='450C.initial_BYTE8');memory.store(array+40*index+0x20,0,4,source='450C.initial_tag0')
+        for index,address in enumerate((id_copy,key_copy)):
+            source=_String.read(runtime,address);tag=source.get(0,1)
+            pointer=source.get(16,8) if tag&1 else address+1
+            length=source.get(8,8) if tag&1 else tag>>1
+            memory.store(array+40*index+0x20,0xffffffff,4,source='2896.tag0_RET')
+            memory.store(array+40*index+8,pointer,8,source='3028.borrowed_CString');memory.store(array+40*index+0x20,11,4,source='308A.variant11')
+        message=_nt_format_records(runtime,view,array,2,output_address)
+        for index in reversed(range(2)):memory.store(array+40*index+0x20,0xffffffff,4,source='2896.variant11_RET')
+        _emit_cold(runtime,message,4,0x767,source_file=source_file,function=b'')
+        message.destroy();memory.unmap(frame);pending['log_frame']=None
+    for address in (id_copy,key_copy):
+        runtime.events.append(('source.62140.copy_dtor',address));_String.read(runtime,address).destroy()
+
+
 def _emit_cold(runtime,message,level,line,*,source_file=b'login_service.cc',function=b'initConfig'):
     memory=runtime.memory;base=runtime.image_base
     runtime.events.append(('source.D3A81F',level,source_file,line,function,message.value()))
@@ -199,7 +227,7 @@ def _emit_cold(runtime,message,level,line,*,source_file=b'login_service.cc',func
         raise PrimarySemanticUnavailable('D3AB8F nonempty filter shared-pair predicate unavailable')
     if memory.load(base+0x6753530+0x78,8) or memory.load(base+0x6753530+0x28,8):
         raise PrimarySemanticUnavailable('D3A81F nonempty holder source terminal unavailable')
-    if (source_file,function)!=(b'login_service.cc',b'initConfig') and (level,line,source_file,function)!=(2,0x73c,b'nt_wrapper_engine.cc',b''):raise PrimarySemanticUnavailable('D3 source metadata outside finite supported calls')
+    if (source_file,function)!=(b'login_service.cc',b'initConfig') and (level,line,source_file,function) not in ((2,0x73c,b'nt_wrapper_engine.cc',b''),(4,0x767,b'nt_wrapper_engine.cc',b'')):raise PrimarySemanticUnavailable('D3 source metadata outside finite supported calls')
     output=_format_fixed(runtime,b'[{}] {}({})::{} {}',(('cstring',b'I' if level==2 else b'E'),('cstring',source_file),('integer',line),('cstring',function),('String',message)))
     if memory.load(base+0x6753530,8) or memory.load(base+0x6753530+0x50,8):
         raise PrimarySemanticUnavailable('D3A81F unbound actual output callback unavailable')

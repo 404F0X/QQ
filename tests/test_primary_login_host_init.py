@@ -243,7 +243,7 @@ class AttachPhase(unittest.TestCase):
             with patch.object(WindowsMMKVStdio,'_load',return_value=stdio_functions),patch.object(WindowsMMKVHost,'_api',api),patch('qq_nt_replica.primary_shared_locale.resolve_current_module_tls',return_value=receipt),owner._registrar.operation():
                 service=get_login_service(owner)
                 with patch('qq_nt_replica.primary_windows_outer_sync.WindowsOuterSync._api',side_effect=lambda name,*args:1 if name=='InitializeCriticalSectionEx' else None):
-                    expected_error='controlled MMKV native failure' if failure=='init_api' else ('controlled MMKV page failure' if failure=='page_api' else ('controlled stdio' if stdio_failure else ('750808' if connected else ('scope denied' if directory is not None else '1BD8F45'))))
+                    expected_error='controlled MMKV native failure' if failure=='init_api' else ('controlled MMKV page failure' if failure=='page_api' else ('controlled stdio' if stdio_failure else ('29D9E' if connected else ('scope denied' if directory is not None else '1BD8F45'))))
                     expected_type=RuntimeError if failure in ('init_api','page_api') or stdio_failure else PrimarySemanticUnavailable
                     if connected and directory.get('raise'):expected_type=RuntimeError;expected_error='controlled file API failure'
                     if connected and directory.get('initial_size'):expected_error='1BDA3CA'
@@ -259,7 +259,11 @@ class AttachPhase(unittest.TestCase):
                 self.assertEqual(m.read(lock,40),bytes(40) if failure=='init_api' else b'Z'*40)
                 with self.assertRaises(UnknownMemory):m.read(cache+36,4)
                 self.assertEqual(m.load(b+0x67513c8,4),1 if failure in ('init_api','page_api') or stdio_failure else 2)
-                obj=m.load(b+0x674c730,8);self.assertEqual(m.read(obj+0x90,16),bytes(16))
+                obj=m.load(b+0x674c730,8)
+                if getattr(r,'_ordinary_msf_pair_moved',None) is not None:
+                    self.assertEqual((m.load(obj+0x90,8),m.load(obj+0x98,8)),r._ordinary_msf_pair_moved)
+                    self.assertNotEqual(m.load(obj+0x90,8),0)
+                else:self.assertEqual(m.read(obj+0x90,16),bytes(16))
                 from qq_nt_replica.primary_memory import PrimaryMemoryLimit
                 with self.assertRaises(PrimaryMemoryLimit):m.unmap(lock)
                 service.release_wrappers()

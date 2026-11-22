@@ -22,7 +22,7 @@ def paused():
 class NTMap(unittest.TestCase):
     def test_continuous_factory_reaches_actual_config_caller(self):
         from qq_nt_replica.primary_logger import _String
-        transitions=[]
+        transitions=[];prepared=[]
         def instrument(functions,r,calls):
             class Events(list):
                 def append(self,item):
@@ -32,28 +32,29 @@ class NTMap(unittest.TestCase):
             r.events=Events(r.events);store=r.memory.store
             def actual(address,value,size,**kw):
                 if kw.get('source')=='7507C9.new_NT_object':transitions.append(('config',r.memory.load(r._selector_config_pending['nt_pair'][1]+8,4)))
+                if kw.get('source')=='65274.NT_guard_publish':
+                    p=r._selector_config_pending;m=r.memory;region,off=m._span(p['key'],24)
+                    prepared.append((m.read(p['output'],24),bytes(region.initialized[off:off+24]),_String.read(r,p['key']).value(),m.load(p['key'],1),_String.read(r,p['identifier']).get(0,8),_String.read(r,p['identifier']).value(),_String.read(r,p['identifier']).get(16,8)))
                 return store(address,value,size,**kw)
             r.memory.store=actual;return functions
         with connected(transform=instrument) as (e,port):
-            r=e['runtime'];m=r.memory;p=r._selector_config_pending;h=r._nt_callback_history[-1];b=r._nt_misc_record
+            r=e['runtime'];m=r.memory;p=r._selector_config_history[-1];h=r._nt_callback_history[-1];b=r._nt_misc_record
             self.assertEqual(transitions,[('callback',0),('config',1)])
             self.assertTrue(h['method_finished']);self.assertTrue(h['callback_finished']);self.assertTrue(h['once_finished'])
             self.assertIsNone(r._mmkv_caller_pending);self.assertEqual(m.load(r.image_base+0x674d418,8),(1<<64)-1)
-            self.assertEqual(m.read(p['output'],24),bytes(24));self.assertEqual(p['target'],r.image_base+0x65240)
+            self.assertIsNone(r._selector_config_pending);self.assertTrue(p['caller_consumed']);self.assertEqual(p['target'],r.image_base+0x65240)
+            self.assertEqual(prepared[0][:6],(bytes(24),bytes([1])*15+bytes(9),b'107775_switch',0x1a,0x21,b'nt_mmkv_msf_united_config'))
             self.assertEqual(p['nt_pair'],h['nt_pair']);self.assertEqual(m.load(h['lock'],8),0)
-            key_region,key_offset=m._span(p['key'],24)
-            self.assertEqual(bytes(key_region.initialized[key_offset:key_offset+24]),bytes([1])*15+bytes(9))
-            self.assertEqual(_String.read(r,p['key']).value(),b'107775_switch');self.assertEqual(m.load(p['key'],1),0x1a)
-            ident=_String.read(r,p['identifier']);self.assertEqual(ident.get(0,8),0x21);self.assertEqual(ident.value(),b'nt_mmkv_msf_united_config')
             node=m.load(b.tree+8,8);self.assertEqual(m.load(node+0x38,8),h['raw'])
-            self.assertNotEqual(ident.get(16,8),m.load(node+0x30,8));self.assertEqual(h['released_guard_value'],h['lock'])
+            self.assertNotEqual(prepared[0][6],m.load(node+0x30,8));self.assertEqual(h['released_guard_value'],h['lock'])
             self.assertEqual([(x[0],x[4]) for x in b.operations],[(2,True),(3,True)])
             self.assertEqual(b.expected,{})
             from qq_nt_replica.primary_memory import PrimaryMemoryLimit
             for operation in b.operations:
                 with self.assertRaises(PrimaryMemoryLimit):m.read(operation[5],8)
-            self.assertEqual(m.load(r.image_base+0x674d424,4,signed=True),-1)
-            obj=m.load(r.image_base+0x674c730,8);self.assertEqual(m.read(obj+0x90,16),bytes(16))
+            self.assertNotEqual(m.load(r.image_base+0x674d424,4,signed=True),-1)
+            obj=m.load(r.image_base+0x674c730,8);self.assertEqual((m.load(obj+0x90,8),m.load(obj+0x98,8)),r._ordinary_msf_pair_moved)
+            self.assertEqual(r.events[-1][1],0x29d9e)
             events=[x[1] for x in r.events if x[0]=='source.NT_normal_dtor'];self.assertEqual(events,[0x64e2f,0x64e38,0x64e41,0x64e4a])
 
     def test_cas_full64_success_and_real_expected_failure(self):
@@ -155,7 +156,8 @@ class NTMap(unittest.TestCase):
             r.memory.load=actual;return functions
         with connected(transform=instrument) as (e,port):
             r=e['runtime'];self.assertEqual(reads,[(r.image_base+0x3ec6530,r.image_base+0x65240)])
-            self.assertEqual(r.events[-1][1:3],(0x65240,0x750808))
+            self.assertTrue([x for x in r.events if x[0]=='source.65240.return']);self.assertTrue(r._selector_config_history[-1]['caller_consumed'])
+            self.assertEqual(r.events[-1][1],0x29d9e)
 
     def test_once_tail_failures_preserve_consumed_callback_and_flag(self):
         for operation,flag in (('AcquireSRWLockExclusive',1),('ReleaseSRWLockExclusive',(1<<64)-1),('WakeAllConditionVariable',(1<<64)-1)):

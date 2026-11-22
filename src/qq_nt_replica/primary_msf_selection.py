@@ -18,21 +18,38 @@ def install_fresh_image(signer):
         raise InputError('MSF selector cells require original model image installer')
     key=id(signer.memory)
     if key in _BIRTHS:raise InputError('MSF selector cannot adopt/reset existing image')
+    # Preflight both new exact intervals before publishing either birth region.
+    from .primary_memory import PrimaryMemoryLimit
+    for rva,size in ((0x674d2c0,16),(0x674d2d0,4),(0x3f6df58,8)):
+        address=signer.image_base+rva
+        for region in signer.memory._regions:
+            if address<region.address+len(region.data) and region.address<address+size:
+                raise PrimaryMemoryLimit('ordinary MSF birth overlaps existing mapping')
     rows=[]
-    for rva,size in ((0x674d420,1),(0x674d424,4)):
+    for rva,size in ((0x674d2c0,16),(0x674d2d0,4),(0x674d420,1),(0x674d424,4)):
         address=signer.image_base+rva
         signer.memory.map(address,bytearray(size),name='fixed PE virtual-tail MODEL selector birth',initialized=True)
         region,offset=signer.memory._span(address,size);rows.append((address,region,offset,size))
-    _BIRTHS[key]=(signer.memory,signer.image_base,tuple(rows))
+    address=signer.image_base+0x3f6df58
+    signer.memory.map(address,(signer.image_base+0x72ec24).to_bytes(8,'little'),name='fixed MSF VT80 identity only',initialized=True)
+    region,offset=signer.memory._span(address,8);rows.append((address,region,offset,8))
+    image=signer._shared_locale_image
+    _BIRTHS[key]=(signer.memory,signer.image_base,tuple(rows),image,image.epoch)
 
 
 def _validate(runtime):
     birth=_BIRTHS.get(id(runtime.memory))
     if birth is None or birth[0] is not runtime.memory or birth[1]!=runtime.image_base:
         raise InputError('MSF selector missing original model-loader birth')
+    from .primary_shared_locale import _SharedLocaleSource
+    image=birth[3]
+    if (type(image) is not _SharedLocaleSource or image.epoch is not birth[4] or
+            runtime._shared_locale_source is not image or runtime._shared_locale_source_epoch is not birth[4] or
+            image.signer._shared_locale_image is not image):raise InputError('MSF selector source image/epoch changed')
+    image.validate_image(runtime)
     for address,region,offset,size in birth[2]:
         actual,current=runtime.memory._span(address,size)
-        if actual is not region or current!=offset:raise InputError('MSF selector backing changed')
+        if actual is not region or current!=0 or region.address!=address or len(region.data)!=size:raise InputError('MSF selector backing changed')
 
 
 def _mmkv_open(runtime,identifier,mode,key,path,extra):
@@ -140,10 +157,26 @@ def _config_prepare(runtime):
         _String.construct(runtime,literal).write_to(address)
     alias=obj+8;target=memory.load(memory.load(alias,8)+0x38,8)
     pending.update(alias=alias,target=target)
-    runtime.events.append(('source.unavailable',target-runtime.image_base,0x750808,alias,frame+0x30,frame+0x18,frame))
-    from .primary_windows_mmkv_host_init import for_runtime
-    for_runtime(runtime)._WindowsMMKVHost__open['boundary']=target-runtime.image_base
-    raise PrimarySemanticUnavailable('750808 actual NT config target '+hex(target-runtime.image_base)+' unavailable')
+    if target!=runtime.image_base+0x65240:
+        runtime.events.append(('source.unavailable',target-runtime.image_base,0x750808,alias,frame+0x30,frame+0x18,frame))
+        raise PrimarySemanticUnavailable('750808 actual NT config target '+hex(target-runtime.image_base)+' unavailable')
+    from .primary_nt_config import lookup
+    lookup(runtime,alias,frame+0x30,frame+0x18,frame)
+    for site,address in ((0x75080f,frame+0x30),(0x750818,frame+0x18)):
+        runtime.events.append(('source.selector_normal_dtor',site,address));_String.read(runtime,address).destroy()
+    release_nt(runtime,obj,control);pending['pair_consumed']=True
+    out=_String.read(runtime,frame);tag=out.get(0,1);length=out.get(8,8) if tag&1 else tag>>1
+    if length==1:
+        runtime.events.append(('source.unavailable',0x75cbe0,0x1bdae9))
+        raise PrimarySemanticUnavailable('75CBE0 nonempty config comparison unavailable')
+    result=False # Actual strlen1 versus actual shortlen0; other lengths are unequal too.
+    runtime.events.append(('source.1BDAA1.length_compare',length,1,result))
+    out.destroy();memory.store(runtime.image_base+0x674d420,0,1,source='750843.selector_cache_false')
+    runtime._locale_thread_footer(runtime.image_base+0x674d424)
+    pending['caller_consumed']=True;memory.unmap(frame)
+    runtime._selector_config_history=getattr(runtime,'_selector_config_history',[])+[pending]
+    runtime._selector_config_pending=None
+    return bool(memory.load(runtime.image_base+0x674d420,1))
 
 
 def select(runtime):
@@ -153,12 +186,29 @@ def select(runtime):
         runtime._locale_thread_header(guard)
         if memory.load(guard,4,signed=True)==-1:
             _preinitialize(runtime)
-            _config_prepare(runtime)
+            return _config_prepare(runtime)
     return bool(memory.load(base+0x674d420,1))
 
 
 def initialize_login_msf(runtime,login_object):
     if runtime.memory.load(login_object+0x90,8):return
     # 72DE38 factory must return before self90/98 or29D9E can be written.
-    select(runtime)
-    raise PrimarySemanticUnavailable('72DE38 selected MSF factory construction unavailable')
+    result=select(runtime)
+    if result:
+        runtime.events.append(('source.unavailable',0x74203c,0x72de5f))
+        raise PrimarySemanticUnavailable('74203C selected alternate factory unavailable')
+    from .primary_msf_ordinary import get_pair
+    from .primary_sdk import _release_owner
+    memory=runtime.memory;frame,unused=_frame(runtime,16,'6D4BBC factory returned pair')
+    runtime._ordinary_msf_return_pair=frame
+    get_pair(runtime,frame)
+    obj=memory.load(frame,8);control=memory.load(frame+8,8)
+    memory.store(login_object+0x90,obj,8,source='6D4BBC.Login_object_move')
+    memory.store(login_object+0x98,control,8,source='6D4BBC.Login_control_move')
+    memory.write(frame,bytes(16),source='6D4BBC.moved_empty_temporary')
+    _release_owner(runtime,memory.load(frame+8,8))
+    memory.unmap(frame);runtime._ordinary_msf_pair_moved=(obj,control)
+    runtime.events.append(('source.unavailable',0x29d9e,0x6d4bbc,login_object))
+    from .primary_windows_mmkv_host_init import for_runtime
+    for_runtime(runtime)._WindowsMMKVHost__open['boundary']=0x29d9e
+    raise PrimarySemanticUnavailable('29D9E record constructor unavailable; ordinary pair moved to Login')

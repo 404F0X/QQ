@@ -8,25 +8,25 @@ _RECORDS=weakref.WeakKeyDictionary()
 _MASK=(1<<64)-1
 
 
-class _Bound:
-    def __init__(self,r,pending):
+class _Domain:
+    def __init__(self,r,pair):
         from .primary_windows_mmkv_host_init import for_runtime
         from .primary_module_sync import _resource
-        self.r=r;self.pending=pending;self.port=for_runtime(r);self.port._check(None)
+        self.r=r;self.port=for_runtime(r);self.port._check(None)
         self.owner=self.port._WindowsMMKVHost__owner;self.memory=r.memory;self.base=r.image_base
         self.image=r._shared_locale_source;self.image_epoch=r._shared_locale_source_epoch
         self.module=_resource(r);self.module_epoch=self.module.epoch
         self.allocator=r._custom_allocator_backend;self.epoch=self.allocator.source.epoch
-        self.obj,self.control=pending['nt_pair'];self.cell=self.obj+0x3b8;self.tree=self.obj+0x3c0
+        self.obj,self.control=pair;self.cell=self.obj+0x3b8;self.tree=self.obj+0x3c0
         self.obj_record=self.allocator.records.get(self.obj);self.control_record=self.allocator.records.get(self.control)
         if self.obj_record is None or self.control_record is None:raise InputError('NT original allocation missing')
         self.obj_backing=self.obj_record[0].data;self.control_backing=self.control_record[0].data
-        self.pid=os.getpid();self.thread=threading.get_native_id();self.mutex=threading.Lock();self.expected={};self.operations=[]
+        self.pid=os.getpid();self.thread=threading.get_native_id();self.mutex=threading.Lock()
         self.check()
 
     def check(self):
         r=self.r;m=self.memory
-        if (r._mmkv_caller_pending is not self.pending or self.port._WindowsMMKVHost__owner is not self.owner or
+        if (self.port._WindowsMMKVHost__owner is not self.owner or
                 self.owner._signer.runtime is not r or r.memory is not m or r.image_base!=self.base or
                 r._shared_locale_source is not self.image or r._shared_locale_source_epoch is not self.image_epoch or
                 self.image.epoch is not self.image_epoch or self.owner._signer._shared_locale_image is not self.image or
@@ -41,9 +41,26 @@ class _Bound:
                 obj_region is not self.obj_record[0] or obj_offset or obj_region.data is not self.obj_backing or
                 control_region is not self.control_record[0] or control_offset or control_region.data is not self.control_backing or
                 self.obj_record[2] is not self.epoch or self.control_record[2] is not self.epoch or
-                m.load(self.base+0x6745648,8)!=self.obj or m.load(self.base+0x6745650,8)!=self.control or
-                self.pending['interface']!=self.obj+8 or m.load(self.pending['guard'],8)!=self.cell):
+                m.load(self.base+0x6745648,8)!=self.obj or m.load(self.base+0x6745650,8)!=self.control):
             raise InputError('NT original owner/control/cell/backing changed')
+
+class _Bound:
+    def __init__(self,domain,pending,role):
+        self.domain=domain;self.pending=pending;self.role=role;self.expected={};self.operations=[]
+        self.guard_region,self.guard_offset=domain.memory._span(pending['guard'],8);self.guard_backing=self.guard_region.data
+        self.check()
+
+    def __getattr__(self,name):return getattr(self.domain,name)
+
+    def check(self):
+        self.domain.check();r=self.r;m=self.memory
+        current=r._mmkv_caller_pending if self.role=='callback' else r._selector_config_pending
+        if current is not self.pending or self.pending.get('nt_context_finished',False):raise InputError('NT operation context is foreign or retired')
+        region,offset=m._span(self.pending['guard'],8)
+        if (
+                self.pending['nt_pair']!=(self.obj,self.control) or self.pending['interface']!=self.obj+8 or
+                region is not self.guard_region or offset!=self.guard_offset or region.data is not self.guard_backing or
+                m.load(self.pending['guard'],8)!=self.cell):raise InputError('NT operation context is foreign or retired')
 
     def read(self):
         self.check()
@@ -101,6 +118,34 @@ class _Bound:
         m.store(guard,0,8,source='6F45E.guard_clear');m.store(guard,0,8,source='53334.NULL_cleanup')
         m.unmap(guard);return node+0x38
 
+    def less(self,left,right):
+        from .primary_logger import _String
+        m=self.memory;a=_String.read(self.r,left);b=_String.read(self.r,right)
+        at=a.get(0,1);bt=b.get(0,1);an=a.get(8,8) if at&1 else at>>1;bn=b.get(8,8) if bt&1 else bt>>1
+        ap=a.get(16,8) if at&1 else left+1;bp=b.get(16,8) if bt&1 else right+1;n=min(an,bn)
+        if n>31:self.stop(0x4145,0x3eb1ee0,'long NT comparison primitive unavailable')
+        self.r.events.append(('source.NT_compare',0x3eb1ee0,ap,bp,n))
+        index=0;result=0
+        while index<n:
+            width=1 if (ap+index)&7 or n-index<8 else 8
+            x=m.read(ap+index,width);y=m.read(bp+index,width)
+            if x!=y:
+                result=-1 if x<y else 1;break
+            index+=width
+        return result<0 if result else an<bn
+
+    def find(self,key,output):
+        self.check();m=self.memory;end=self.tree+8;candidate=end;node=m.load(end,8)
+        visited=set()
+        while node:
+            if node in visited:raise PrimarySemanticUnavailable('cyclic NT tree outside finite domain')
+            visited.add(node)
+            if self.less(node+0x20,key):node=m.load(node+8,8)
+            else:candidate=node;node=m.load(node,8)
+        if candidate!=end and self.less(key,candidate+0x20):candidate=end
+        m.store(output,candidate,8,source='400D.actual_NT_iterator')
+        return output
+
     def publish(self,key,raw):
         slot=self.slot(key)
         self.memory.store(slot,raw,8,source='64E1F.raw_MMkv_publish')
@@ -114,8 +159,11 @@ class _Bound:
         self.memory.unmap(expected);del self.expected[expected]
 
 
-def bind(r,pending):
-    record=_RECORDS.get(r)
-    if record is None:record=_Bound(r,pending);_RECORDS[r]=record
-    elif record.pending is not pending:raise InputError('NT MODEL cannot adopt another pending owner')
-    record.check();return record
+def bind(r,pending,role='callback'):
+    if role not in ('callback','config'):raise InputError('unsupported NT caller role')
+    current=r._mmkv_caller_pending if role=='callback' else r._selector_config_pending
+    if current is not pending:raise InputError('NT caller must own its current source context')
+    domain=_RECORDS.get(r)
+    if domain is None:domain=_Domain(r,pending['nt_pair']);_RECORDS[r]=domain
+    domain.check()
+    return _Bound(domain,pending,role)

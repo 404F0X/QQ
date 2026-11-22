@@ -184,7 +184,7 @@ class WindowsMMKVHost:
         from .primary_mmkv_file import File40,FileLock
         from .primary_mmkv_open import _converted,_parent
         f=sys._getframe(1);caller=f.f_locals.get('self')
-        internal=f.f_code in (WindowsMMKVHost._enter_global.__code__,WindowsMMKVHost._leave_global.__code__,WindowsMMKVHost._map_view.__code__,WindowsMMKVHost._unmap_view.__code__) and caller is self
+        internal=f.f_code in (WindowsMMKVHost._parent_cs.__code__,WindowsMMKVHost._enter_global.__code__,WindowsMMKVHost._leave_global.__code__,WindowsMMKVHost._map_view.__code__,WindowsMMKVHost._unmap_view.__code__) and caller is self
         source=(type(caller) is File40 and caller in self.__open['files'] or type(caller) is FileLock and caller in self.__open['locks']) if self.__open else False
         adapter=f.f_code in (_converted.__code__,_parent.__code__) and f.f_locals.get('r') is self.__runtime
         allowed=('EnterCriticalSection','LeaveCriticalSection','CreateFileW','MultiByteToWideChar','LockFileEx','UnlockFileEx','GetFileSizeEx','SetFilePointerEx','SetEndOfFile','WriteFile','CreateFileMappingW','MapViewOfFile','UnmapViewOfFile','CloseHandle','InitializeCriticalSectionAndSpinCount')
@@ -195,8 +195,8 @@ class WindowsMMKVHost:
         record=dict(operation=operation,state='unknown',result=None,error=None,owner=caller)
         self.__file_ops.append(record);self.__active=True
         try:
-            if operation=='EnterCriticalSection':self.__open['global_lock']='enter_unknown'
-            if operation=='LeaveCriticalSection':self.__open['global_lock']='leave_unknown'
+            if operation=='EnterCriticalSection' and f.f_code is WindowsMMKVHost._enter_global.__code__:self.__open['global_lock']='enter_unknown'
+            if operation=='LeaveCriticalSection' and f.f_code is WindowsMMKVHost._leave_global.__code__:self.__open['global_lock']='leave_unknown'
             value=self._api(operation,result,types,*args)
             record['result']=value
             if publish is not None:publish(value)
@@ -235,6 +235,21 @@ class WindowsMMKVHost:
         self.__memory._validate_native_pin(record.token,self)
         self._file_call('LeaveCriticalSection',None,(C.c_void_p,),(C.addressof(record.native),))
         self.__open['global_lock']='released'
+
+    def _parent_cs(self,parent,acquire):
+        import ctypes as C
+        from .primary_nt_config import get_string
+        if sys._getframe(1).f_code is not get_string.__code__ or self.__open['parent']!=parent:raise InputError('private CS requires actual getter parent')
+        self._check(None);pointer=self.__memory.load(parent+0xa8,8);record=self.__allocator.records.get(pointer)
+        matches=[x for x in self.__open['buffers'] if isinstance(x,tuple) and len(x)==4 and x[3]==pointer]
+        if len(matches)!=1 or record is None or record[1]!=40 or record[2] is not self.__epoch:raise InputError('private CS original constructor pin missing')
+        pin,view,native,address=matches[0];region,offset=self.__memory._span(pointer,40)
+        if region is not record[0] or offset:raise InputError('private CS original backing replaced')
+        self.__memory._validate_native_pin(pin,self)
+        name='EnterCriticalSection' if acquire else 'LeaveCriticalSection'
+        self.__open['private_cs']='enter_unknown' if acquire else 'leave_unknown'
+        self._file_call(name,None,(C.c_void_p,),(C.addressof(native),))
+        self.__open['private_cs']='held' if acquire else 'released'
 
     def _capture_view_identity(self,memory,address,length,token):
         from .primary_memory import PrimaryMemory

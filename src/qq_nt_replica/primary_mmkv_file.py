@@ -116,6 +116,7 @@ class FileLock:
         if address is None:self.address,_=_frame(r,0x38,'878A source file lock state')
         r.memory.store(self.address,handle,8,source='B98DA0.saved_HANDLE')
         r.memory.write(self.address+8,bytes(0x30),source='B98DA0.fresh_lock_counters_OVERLAPPED')
+        self.state_region,self.state_offset=r.memory._span(self.address,0x38);self.state_backing=self.state_region.data
         self.token,self.view=r.memory._pin_native_span(self.address+0x18,32,port)
         self.native=(C.c_ubyte*32).from_buffer(self.view);self.guard='published';self.root=self;self.pinned=True
         port._WindowsMMKVHost__open['locks'].append(self)
@@ -131,6 +132,22 @@ class FileLock:
         other.kind=1;other.guard='published'
         self.port._WindowsMMKVHost__open['locks'].append(other)
         return other
+
+    def borrow_shared(self,wrapper):
+        from .primary_nt_config import get_string,loadcheck
+        if sys._getframe(1).f_code not in (get_string.__code__,loadcheck.__code__):raise InputError('shared reborrow requires actual config source')
+        root=self.root;r=self.r;m=r.memory;self.port._check(None)
+        region,offset=m._span(root.address,0x38)
+        if (region is not root.state_region or offset!=root.state_offset or region.data is not root.state_backing or
+                m.load(wrapper,8)!=root.address or m.load(wrapper+8,4)!=0 or m.load(wrapper+0xc,1)!=1):raise InputError('config B8 original state/wrapper changed')
+        if not root.pinned:
+            root.token,root.view=m._pin_native_span(root.address+0x18,32,self.port)
+            root.native=(C.c_ubyte*32).from_buffer(root.view);root.pinned=True
+        else:m._validate_native_pin(root.token,self.port)
+        other=object.__new__(FileLock)
+        for name in ('r','port','address','token','view','native','root','state_region','state_offset','state_backing'):setattr(other,name,getattr(root,name))
+        other.handle=m.load(root.address,8);other.kind=0;other.guard='published'
+        self.port._WindowsMMKVHost__open['locks'].append(other);return other
 
     def _lock(self,flags):
         result,error=self.port._file_call('LockFileEx',C.c_int32,(C.c_void_p,C.c_uint32,C.c_uint32,C.c_uint32,C.c_uint32,C.c_void_p),(self.handle,flags,0,1,0,C.addressof(self.native)),error=True)
