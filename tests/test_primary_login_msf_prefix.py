@@ -46,7 +46,7 @@ class SelectionChecks(unittest.TestCase):
         signer=self.fixture();r=signer.runtime;m=r.memory;b=r.image_base
         receipt=SimpleNamespace(epoch_address=r.tls_epoch_address,image_epoch=object())
         with patch('qq_nt_replica.primary_shared_locale.resolve_current_module_tls',return_value=receipt),patch.object(selection,'resolve_current_module_tls',return_value=receipt),patch('qq_nt_replica.primary_nt_wrapper_owner.resolve_current_module_tls',return_value=receipt):
-            with self.assertRaisesRegex(PrimarySemanticUnavailable,'B99200'):selection.select(r)
+            with self.assertRaisesRegex(PrimarySemanticUnavailable,'scoped native host'):selection.select(r)
         self.assertEqual(m.load(b+0x674d418,8),1)
         obj=m.load(b+0x6745648,8);control=m.load(b+0x6745650,8)
         self.assertEqual(m.load(control+8,4),0)
@@ -56,7 +56,7 @@ class SelectionChecks(unittest.TestCase):
         for offset in (0xc,0x14):
             with self.assertRaises(UnknownMemory):m.read(control+offset,4)
         self.assertEqual([e[1] for e in r.events if e[0]=='source.callback'],[0x7510f1])
-        boundary=[e for e in r.events if e[0]=='source.unavailable']
+        boundary=[e for e in r.events if e[0]=='source.mmkv_open']
         self.assertEqual(len(boundary),1);self.assertEqual(boundary[0][1],0xb99200)
         self.assertEqual(boundary[0][3:],(2,0,0,0))
         self.assertFalse(signer._module_sync_image.held)

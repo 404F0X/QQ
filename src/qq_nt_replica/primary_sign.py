@@ -3286,7 +3286,7 @@ class PrimaryRuntime:
             if count and 0xFFFFFFFFFFFFFFE0 // count < size:
                 raise PrimaryProgramLimit("calloc overflow/CRT failure path outside normal runtime domain")
             return self._allocate(max((count * size) & _MASK64, 1), True, nullable=True)
-        if rva in (0xB75000, 0xB75029, 0xB7593F, 0xB758ED):
+        if rva in (0xB75000, 0xB75029, 0xB7593F, 0xB758C4, 0xB758ED):
             from .primary_custom_allocator import _CustomBackend
             backend = getattr(self, '_custom_allocator_backend', None)
             if type(backend) is not _CustomBackend:

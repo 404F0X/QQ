@@ -30,7 +30,9 @@ class Runtime:
         return r
     def invoke(self,vm,rva,cells):
         args=tuple(vm.cells.value(i) for i in cells);self.calls.append((rva,args))
-        if rva==0x6270:self.memory.store(args[0],0,2,source='6270.emptyString');return args[0]
+        if rva==0x6270:
+            for offset in (0,8,16):self.memory.store(args[0]+offset,0,8,source='6270.three_QWORD_zero')
+            return 3
         if rva==0xB75029:
             pointer=args[0];record=self._custom_allocator_backend.records[pointer]
             self.memory._assert_no_native_pin(pointer,record[1]);self.memory.unmap(pointer)

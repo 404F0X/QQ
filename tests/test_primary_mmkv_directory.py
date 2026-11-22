@@ -51,8 +51,11 @@ class Directory(unittest.TestCase):
             r=e['runtime'];m=r.memory;b=r.image_base
             self.assertEqual(e['prefixes'],['C:','C:\\data','C:\\data\\nt_data','C:\\data\\nt_data\\mmkv'])
             self.assertEqual(m.load(b+0x67513c8,4),2)
-            stopped=[x for x in r.events if x[0]=='source.unavailable'][-1]
+            stopped=[x for x in r.events if x[0]=='source.mmkv_open'][-1]
             self.assertEqual((stopped[1],stopped[3:]),(0xb99200,(2,0,0,0)))
+            self.assertEqual(host._WindowsMMKVHost__open['global_lock'],'not_entered')
+            self.assertNotIn('EnterCriticalSection',e['api_calls'])
+            self.assertNotIn('CreateFileW',e['api_calls'])
             obj=m.load(b+0x674c730,8);self.assertEqual(m.read(obj+0x90,16),bytes(16))
             self.assertIsNone(host._WindowsMMKVHost__directory)
             writes=[x for x in m.writes if x[2]=='1BD8FE3.write_backslash_even_final_NUL']

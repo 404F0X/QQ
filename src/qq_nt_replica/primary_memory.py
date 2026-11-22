@@ -34,6 +34,7 @@ class PrimaryMemory:
     def __init__(self):
         self._regions = []
         self.__native_pins = {}
+        self.__view_aliases = {}
         self.writes = []
         self._write_extents = {}
 
@@ -73,6 +74,41 @@ class PrimaryMemory:
         self._regions.append(_Region(address, data, bytearray([int(initialized)]) * len(data), name))
         self._regions.sort(key=lambda region: region.address)
 
+    def _issue_native_view(self,issuer,address,buffer):
+        from .primary_windows_mmkv_host_init import WindowsMMKVHost
+        import sys
+        if type(issuer) is not WindowsMMKVHost or sys._getframe(1).f_code is not WindowsMMKVHost._map_view.__code__:
+            raise InputError('native view requires actual MMKV mapping issuer')
+        issuer._check(None)
+        token=object();identity=issuer._capture_view_identity(self,address,len(buffer),token)
+        self.map(address,memoryview(buffer).cast('B'),name='owned MMKV native mapping alias',initialized=True)
+        region,offset=self._span(address,len(buffer))
+        self.__view_aliases[token]=[issuer,region,'live',address,len(buffer),region.data,identity]
+        return token
+
+    def _revoke_native_view(self,issuer,token,*,begin=False,success=False):
+        from .primary_windows_mmkv_host_init import WindowsMMKVHost
+        import sys
+        if type(issuer) is not WindowsMMKVHost or sys._getframe(1).f_code is not WindowsMMKVHost._unmap_view.__code__:
+            raise InputError('native view revocation requires original issuer')
+        record=self.__view_aliases.get(token)
+        if record is None or record[0] is not issuer:raise InputError('foreign view revocation')
+        issuer._validate_view_identity(record[6],self)
+        region=record[1]
+        if region.address!=record[3] or len(region.data)!=record[4] or region.data is not record[5]:
+            raise PrimaryMemoryLimit('native view backing/extent identity changed')
+        if begin:
+            if record[2]!='live':raise PrimaryMemoryLimit('native view already revoking/unknown')
+            self._assert_no_native_pin(region.address,len(region.data));record[2]='revoking'
+        elif success:
+            if record[2]!='revoking':raise InputError('view was not preflighted')
+            for index,current in enumerate(self._regions):
+                if current is region:
+                    del self._regions[index];break
+            else:raise PrimaryMemoryLimit('native view region was replaced')
+            region.data.release();del self.__view_aliases[token]
+        else:record[2]='unknown'
+
     def _pin_native_span(self, address, size, issuer):
         region,offset=self._span(address,size)
         if region.data.readonly:raise PrimaryMemoryLimit('native span requires writable backing')
@@ -109,6 +145,8 @@ class PrimaryMemory:
             raise InputError("memory unmap address must be unsigned64")
         for index, region in enumerate(self._regions):
             if region.address == address:
+                if any(record[1] is region for record in self.__view_aliases.values()):
+                    raise PrimaryMemoryLimit('native mapping can only be revoked by its issuer')
                 self._assert_no_native_pin(address,len(region.data))
                 del self._regions[index]
                 return
@@ -123,6 +161,11 @@ class PrimaryMemory:
         for region in self._regions:
             offset = address - region.address
             if 0 <= offset and offset + size <= len(region.data):
+                for issuer,alias,state,start,length,backing,identity in self.__view_aliases.values():
+                    if alias is region or address<start+length and start<address+size:
+                        issuer._validate_view_identity(identity,self)
+                        if alias is not region or state!='live' or region.data is not backing or region.address!=start or len(region.data)!=length:
+                            raise PrimaryMemoryLimit('native view replaced/revoking/unknown; guest access denied')
                 return region, offset
         raise PrimaryMemoryLimit(f"unmapped primary memory access at 0x{address:x}, width {size}")
 

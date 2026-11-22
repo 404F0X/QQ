@@ -172,15 +172,15 @@ class _CustomBackend:
 
     def _dispatch(self,rva,values):
         if self.closed:raise InputError('upper allocator backend is retired')
-        if rva not in (0xB75000,0xB75029,0xB7593F,0xB758ED) or len(values)!=1:
+        if rva not in (0xB75000,0xB75029,0xB7593F,0xB758C4,0xB758ED) or len(values)!=1:
             raise InputError('unsupported whole upper allocator entry/ABI')
         issuer=getattr(self.runtime,'_primary_allocator_issuer',None)
         from .primary_windows_allocator_issuer import WindowsAllocatorIssuer
         if type(issuer) not in (ModelAllocatorIssuer, WindowsAllocatorIssuer):raise CustomDomainUnsupported('missing explicit allocator selector issuer')
         crt=issuer.choose(self.runtime)
         from .primary_worker_consumer import _invoke
-        if rva in (0xB75000,0xB7593F):
-            size=values[0];mode=0 if rva==0xB75000 else 1
+        if rva in (0xB75000,0xB758C4,0xB7593F):
+            size=values[0];mode=1 if rva==0xB7593F else 0
             pointer=_invoke(self.runtime,0x3E97020,size) if crt else self.storage.allocate(size,mode,rva)
             if pointer in self.records:raise InputError('upper allocation repeats a live pointer')
             region,offset=self.runtime.memory._span(pointer,size)

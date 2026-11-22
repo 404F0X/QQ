@@ -109,7 +109,7 @@ class AttachPhase(unittest.TestCase):
             with self.assertRaises(UnknownMemory):r.memory.read(record['pointer'],24)
             with self.assertRaises(PrimarySemanticUnavailable):attach.require_complete(r)
 
-    def _scoped_native_port_case(self,failure=None,stdio_transform=None,stdio_failure=False,stage_failure=None,defer_terminal=False,directory=None,page_size=8192):
+    def _scoped_native_port_case(self,failure=None,stdio_transform=None,stdio_failure=False,stage_failure=None,defer_terminal=False,directory=None,page_size=8192,connected=False):
         from unittest.mock import patch
         from contextlib import ExitStack
         from pathlib import Path
@@ -126,6 +126,9 @@ class AttachPhase(unittest.TestCase):
             r=owner._signer.runtime
             issuer=WindowsAllocatorIssuer.__new__(WindowsAllocatorIssuer)
             issuer.owner=owner;issuer.epoch=r._custom_allocator_backend.source.epoch;issuer.source=SimpleNamespace(_borrow=None)
+            if connected:
+                issuer.runtime=r;issuer.signer=owner._signer;issuer.source=r._primary_allocator_selector;issuer.epoch=issuer.source.epoch
+                issuer.origin='windows';issuer.closed=False;issuer.owners={};issuer.calls=0;issuer.registrar=owner._registrar;issuer.threads=owner._threads;issuer.bound_seen=False
             r._primary_allocator_issuer=issuer
         def crt_thread(r):
             r.crt_thread_address=0x7980000000
@@ -140,6 +143,9 @@ class AttachPhase(unittest.TestCase):
             return r.crt_thread_address
         def invoke(r,rva,*args):
             observed.append((rva,args))
+            if connected:
+                from qq_nt_replica.primary_worker_consumer import _invoke
+                return _invoke(r,rva,*args)
             if rva==0xb75000:
                 pointer=0x7990000000;r.memory.map(pointer,bytearray(24),name='controlled C6 allocation',initialized=False)
                 region,offset=r.memory._span(pointer,24)
@@ -147,7 +153,8 @@ class AttachPhase(unittest.TestCase):
                 return pointer
             self.assertEqual(rva,0x6270)
             self.assertEqual(r.memory.load(r.image_base+0x6752b68,8),0)
-            r.memory.store(args[0],0,2,source='controlled6270')
+            from qq_nt_replica.primary_worker_consumer import _invoke
+            return _invoke(r,0x6270,args[0])
         with ExitStack() as stack:
             stack.enter_context(patch.object(windows,'_validated_paths',return_value=(Path('controlled.dll'),Path('controlled'))))
             for name in constructors:stack.enter_context(patch.object(windows,name))
@@ -160,6 +167,8 @@ class AttachPhase(unittest.TestCase):
             stack.enter_context(patch.object(windows.WindowsSigner,'_initialize_notification_statics'))
             stack.enter_context(patch('qq_nt_replica.primary_windows_allocator_issuer.install_early_allocator',side_effect=allocator))
             stack.enter_context(patch.object(WindowsAllocatorIssuer,'validate'))
+            if connected:
+                stack.enter_context(patch('qq_nt_replica.primary_windows_command_line.capture_early_allocator',side_effect=lambda *args:(0x7f00001000,bytearray(b'model-program\0'),14,lambda:None)))
             stack.enter_context(patch.object(PrimaryRuntime,'_crt_call',return_value=1))
             stack.enter_context(patch.object(PrimaryRuntime,'_crt_thread',crt_thread))
             stack.enter_context(patch.object(attach,'_invoke',side_effect=invoke))
@@ -182,7 +191,7 @@ class AttachPhase(unittest.TestCase):
             upper=Runtime.invoke.__get__(r,type(r))
             lower=PrimaryRuntime.invoke.__get__(r,type(r))
             def source_invoke(vm,rva,cells):
-                if rva in (0x3e97020,0x3e94f90):return lower(vm,rva,cells)
+                if rva in (0x3e97020,0x3e94f90) or connected and rva in (0xB75000,0xB75029,0xB7593F,0xB758C4,0xB758ED,0x8ed82,0x3c77e,0x6270):return lower(vm,rva,cells)
                 return upper(vm,rva,cells)
             r.invoke=source_invoke
             from qq_nt_replica.primary_windows_mmkv_host_init import WindowsMMKVHost,for_runtime
@@ -194,7 +203,7 @@ class AttachPhase(unittest.TestCase):
                 if directory is not None:directory.setdefault('trace',[]).append(('api',name))
                 if name=='InitializeCriticalSectionAndSpinCount':
                     if failure=='init_api':raise RuntimeError('controlled MMKV native failure')
-                    self.assertEqual(arguments[1],400);C.memset(arguments[0],0x5a,40);return 0 if failure=='init_false' else 1
+                    self.assertIn(arguments[1],(400,0x400) if connected else (400,));C.memset(arguments[0],0x5a,40);return 0 if failure=='init_false' else 1
                 if name=='GetLastError':return (directory or {}).get('error',5)
                 if name=='GetSystemInfo':
                     if failure=='page_api':raise RuntimeError('controlled MMKV page failure')
@@ -208,16 +217,25 @@ class AttachPhase(unittest.TestCase):
                 if name=='CreateDirectoryW':
                     self.assertEqual(arguments[1],0);return directory.get('create',1)
                 if name=='DeleteCriticalSection':return
+                if connected:return file_api(name,*arguments)
                 raise AssertionError(name)
+            if connected:
+                from test_primary_mmkv_file import PhysicalFiles
+                file_api=PhysicalFiles(directory or {})
             if directory is not None:
                 directory_host=for_runtime(r)
                 def directory_permit(unused,operation):
-                    directory.setdefault('trace',[]).append(('permit',operation));return True
+                    directory.setdefault('trace',[]).append(('permit',operation))
+                    if directory.get('deny')==operation:return False
+                    return connected or operation!='EnterCriticalSection'
                 directory_host._WindowsMMKVHost__permit=directory_permit
             receipt=SimpleNamespace(epoch_address=r.tls_epoch_address,image_epoch=r._shared_locale_source_epoch)
             from qq_nt_replica.primary_windows_mmkv_stdio import WindowsMMKVStdio
             from test_primary_mmkv_stdio import fake_ucrt
             stdio_calls=[];stdio_functions=fake_ucrt(stdio_calls)
+            if connected:
+                from test_primary_mmkv_file import file_ucrt
+                stdio_functions=file_ucrt(stdio_calls)
             if stdio_transform is not None:stdio_functions=stdio_transform(stdio_functions,r,stdio_calls)
             stack.enter_context(patch('qq_nt_replica.primary_msf_selection.resolve_current_module_tls',return_value=receipt))
             stack.enter_context(patch('qq_nt_replica.primary_nt_wrapper_owner.resolve_current_module_tls',return_value=receipt))
@@ -225,8 +243,12 @@ class AttachPhase(unittest.TestCase):
             with patch.object(WindowsMMKVStdio,'_load',return_value=stdio_functions),patch.object(WindowsMMKVHost,'_api',api),patch('qq_nt_replica.primary_shared_locale.resolve_current_module_tls',return_value=receipt),owner._registrar.operation():
                 service=get_login_service(owner)
                 with patch('qq_nt_replica.primary_windows_outer_sync.WindowsOuterSync._api',side_effect=lambda name,*args:1 if name=='InitializeCriticalSectionEx' else None):
-                    expected_error='controlled MMKV native failure' if failure=='init_api' else ('controlled MMKV page failure' if failure=='page_api' else ('controlled stdio' if stdio_failure else ('B99200' if directory is not None else '1BD8F45')))
-                    with self.assertRaisesRegex(RuntimeError if failure in ('init_api','page_api') or stdio_failure else PrimarySemanticUnavailable,expected_error):
+                    expected_error='controlled MMKV native failure' if failure=='init_api' else ('controlled MMKV page failure' if failure=='page_api' else ('controlled stdio' if stdio_failure else ('1BD99A0' if connected else ('scope denied' if directory is not None else '1BD8F45'))))
+                    expected_type=RuntimeError if failure in ('init_api','page_api') or stdio_failure else PrimarySemanticUnavailable
+                    if connected and directory.get('raise'):expected_type=RuntimeError;expected_error='controlled file API failure'
+                    if connected and directory.get('convert_false'):expected_type=UnknownMemory;expected_error='unknown bytes'
+                    if connected and directory.get('deny'):expected_error='scope denied'
+                    with self.assertRaisesRegex(expected_type,expected_error):
                         service.initConfig(dict(commonPath='C:\\data',clientVer='v',machineId='machine',platVer='p',hostName='h'))
                 expected=['InitializeCriticalSectionAndSpinCount'] if failure=='init_api' else (['InitializeCriticalSectionAndSpinCount','GetLastError','GetSystemInfo'] if failure=='init_false' else ['InitializeCriticalSectionAndSpinCount','GetSystemInfo'])
                 self.assertEqual(calls[:len(expected)],expected)
@@ -247,7 +269,7 @@ class AttachPhase(unittest.TestCase):
             if defer_terminal:
                 # Keep the synthetic physical CS boundary valid for the caller's real close.
                 r._outer_sync_port._api=lambda *args:None
-                return dict(runtime=r,stdio_calls=stdio_calls,owner=owner,mmkv_api=api,prefixes=prefixes,api_calls=calls)
+                return dict(runtime=r,stdio_calls=stdio_calls,owner=owner,mmkv_api=api,prefixes=prefixes,api_calls=calls,file_api=file_api if connected else None)
             owner._state='closing'
             with patch('qq_nt_replica.primary_windows_outer_sync.WindowsOuterSync._api',return_value=None):
                 r._outer_sync_port.dispose_terminal()
@@ -329,7 +351,8 @@ class AttachPhase(unittest.TestCase):
                 return pointer
             self.assertEqual(rva,0x6270)
             self.assertEqual(r.memory.load(r.image_base+0x6752b68,8),0)
-            r.memory.store(args[0],0,2,source='controlled6270')
+            from qq_nt_replica.primary_worker_consumer import _invoke
+            return _invoke(r,0x6270,args[0])
         with ExitStack() as stack:
             stack.enter_context(patch.object(windows,'_validated_paths',return_value=(Path('controlled.dll'),Path('controlled'))))
             for name in constructors:stack.enter_context(patch.object(windows,name))
@@ -349,7 +372,7 @@ class AttachPhase(unittest.TestCase):
             r=owner.signer.runtime
             self.assertEqual(observed,[(0xb75000,(24,)),(0x6270,(0x7990000000,))])
             self.assertEqual(attach.require_complete(r),0x7990000000)
-            with self.assertRaises(UnknownMemory):r.memory.read(0x7990000002,22)
+            self.assertEqual(r.memory.read(0x7990000000,24),bytes(24))
             from qq_nt_replica.errors import InputError
             with self.assertRaises(InputError):attach._run_login_model_attach(owner)
             # Extend through the real public prefix with explicit model source inputs.
@@ -388,7 +411,9 @@ class WideRoot(unittest.TestCase):
         pointer=m.load(frame+40,8);size=len(raw);capacity=(max(size,20)|7)+1
         self.assertEqual(m.load(frame+24,8),capacity|1)
         self.assertEqual(m.read(pointer,2*(size+1)),raw.decode('ascii').encode('utf-16-le')+bytes(2))
-        writes=[row[0] for row in m.writes[start:] if len(row[1])==8]
+        zeroes=[row for row in m.writes[start:] if row[2]=='6270.three_QWORD_zero']
+        self.assertEqual([(row[0],row[1]) for row in zeroes],[(frame+offset,bytes(8)) for offset in (24,32,40)])
+        writes=[row[0] for row in m.writes[start:] if row[2] in ('75D3B0.publish_buffer','75D3B0.publish_capacity','D4511C.length')]
         self.assertLess(writes.index(frame+40),writes.index(frame+24))
         self.assertEqual(writes[-1],frame+32)
         r.memory.store(frame+48,0,2,source='controlled fresh global wide')

@@ -86,8 +86,10 @@ class Page(unittest.TestCase):
             writes=[row for row in r.memory.writes if row[2]=='B994E8.publish_page_size']
             self.assertEqual(writes,[(p,page.to_bytes(8,'little'),'B994E8.publish_page_size')])
             self.assertEqual(r.memory.load(r.image_base+0x67513c8,4),2)
-            stop=[x for x in r.events if x[0]=='source.unavailable'][-1]
+            stop=[x for x in r.events if x[0]=='source.mmkv_open'][-1]
             self.assertEqual((stop[1],stop[3:]),(0xb99200,(2,0,0,0)))
+            from qq_nt_replica.primary_windows_mmkv_host_init import for_runtime
+            self.assertEqual(for_runtime(r)._WindowsMMKVHost__open['global_lock'],'not_entered')
             obj=r.memory.load(r.image_base+0x674c730,8)
             self.assertEqual(r.memory.read(obj+0x90,16),bytes(16))
 

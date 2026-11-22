@@ -61,7 +61,10 @@ class WindowsMMKVStdio:
         if f.f_code is not log.__code__ or f.f_locals.get('runtime') is not self.__runtime:raise InputError('stdio arguments require actual source log producer')
         self._check()
         from .primary_mmkv_host_init import _WideArgument
+        from .primary_mmkv_file import WidePath,Pointer64,Unsigned64,LOGS
         wide={b'%ls attribute:%d not a directry':(_WideArgument,int),b'fail to create dir:%ls, %d':(_WideArgument,int),b'root dir: %ls':(_WideArgument,)}
+        kinds={'wide':WidePath,'ptr':Pointer64,'size':Unsigned64,'int':int}
+        wide.update({entry[4]:tuple(kinds[k] for k in entry[5]) for entry in LOGS.values()})
         if template not in (*wide,b'version %s, page size %d, arch %s',b'fail to init critical section:%d'):raise PrimarySemanticUnavailable('other MMKV printf template unavailable')
         expected=wide.get(template,(bytes,int,bytes) if template.startswith(b'version') else (int,))
         if len(arguments)!=len(expected) or any(type(value) is not kind for value,kind in zip(arguments,expected)):
@@ -71,8 +74,9 @@ class WindowsMMKVStdio:
         token=object();owned=[];slots=[];widepins=[]
         self.__widepins[token]=widepins
         for arg in arguments:
-            if type(arg) is _WideArgument:
-                arg.validate(self.__runtime)
+            if type(arg) in (_WideArgument,WidePath):
+                if type(arg) is WidePath:arg.validate_log(self.__runtime)
+                else:arg.validate(self.__runtime)
                 pin,view=self.__memory._pin_native_span(arg.pointer,len(arg.raw),self)
                 try:native=(C.c_uint16*(len(arg.raw)//2)).from_buffer(view)
                 except BaseException as error:
@@ -81,6 +85,7 @@ class WindowsMMKVStdio:
             elif type(arg) is bytes:
                 if any(x>=128 for x in arg):raise PrimarySemanticUnavailable('non-ASCII MMKV CString provider unavailable')
                 item=C.create_string_buffer(arg+b'\0');owned.append(item);slots.append(C.addressof(item))
+            elif type(arg) in (Pointer64,Unsigned64):slots.append(arg.value&0xffffffffffffffff)
             elif type(arg) is int:slots.append(arg&0xffffffff)
             else:raise InputError('unsupported finite va_list argument')
         vector=(C.c_uint64*len(slots))(*slots);fmt=C.create_string_buffer(template+b'\0')
@@ -90,7 +95,10 @@ class WindowsMMKVStdio:
 
     def _validate_wide(self,token):
         for arg,pin,view,native in self.__widepins.get(token,()):
-            arg.validate(self.__runtime);self.__memory._validate_native_pin(pin,self)
+            arg.validate(self.__runtime)
+            from .primary_mmkv_file import WidePath
+            if type(arg) is WidePath:arg.validate_log(self.__runtime)
+            self.__memory._validate_native_pin(pin,self)
 
     def _format(self,token,buffer,capacity,options):
         from .primary_mmkv_log import _format
@@ -167,7 +175,12 @@ class WindowsMMKVStdio:
             self.__memory._unpin_native_span(pin,self);view.release()
         del self.__records[token]
 
+    def preflight_close(self):
+        if self.__records or self.__pins or self.__widepins or self.__failures:
+            raise PrimarySemanticUnavailable('stdio live/failed call or borrowed buffer remains')
+
     def dispose_terminal(self):
+        self.preflight_close()
         self._check(terminal=True)
         if self.__records or self.__pins or self.__widepins:raise PrimarySemanticUnavailable('stdio live call/buffer remains')
         self.__terminal=True;self.__stdout=None;self.__functions=None;self.__library=None

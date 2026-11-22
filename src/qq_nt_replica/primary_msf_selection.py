@@ -37,8 +37,9 @@ def _validate(runtime):
 def _mmkv_open(runtime,identifier,mode,key,path,extra):
     if (mode,key,path,extra)!=(2,0,0,0) or _String.read(runtime,identifier).value()!=b'nt_mmkv_msf_united_config':
         raise InputError('64C9E MMKV source argument mismatch')
-    runtime.events.append(('source.unavailable',0xB99200,identifier,mode,key,path,extra))
-    raise PrimarySemanticUnavailable('B99200 MMKV open/init(id String,2,NULL,NULL,0) unavailable')
+    runtime.events.append(('source.mmkv_open',0xB99200,identifier,mode,key,path,extra))
+    from .primary_mmkv_open import open_mmkv
+    return open_mmkv(runtime,identifier,mode,key,path,extra)
 
 
 def _callback_7510f1(runtime,closure,frame):

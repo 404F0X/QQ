@@ -20,6 +20,37 @@ class _Backing:
     last_error:object=None
 
 
+@dataclass(frozen=True)
+class _ViewIdentity:
+    owner:object
+    signer:object
+    runtime:object
+    memory:object
+    base:int
+    allocator:object
+    source:object
+    allocator_epoch:object
+    allocator_issuer:object
+    receipt:object
+    module:object
+    module_record:object
+    module_epoch:object
+    image:object
+    image_epoch:object
+    view:object
+    view_owner:object
+    guest:int
+    length:int
+    file_address:int
+    file_allocation:object
+    raw:int
+    native:object
+    mapping:int
+    token:object
+    pid:int
+    thread:int
+
+
 class WindowsMMKVHost:
     def __init__(self,owner,permit):
         if sys._getframe(1).f_code is not bind_windows_mmkv_host.__code__:
@@ -28,7 +59,7 @@ class WindowsMMKVHost:
         self.__allocator=self.__runtime._custom_allocator_backend
         self.__epoch=self.__allocator.source.epoch;self.__memory=self.__runtime.memory
         self.__base=self.__runtime.image_base;self.__pid=os.getpid();self.__thread=threading.get_native_id()
-        self.__directory=None;self.__origin=None;self.__lock=None;self.__infos={};self.__failures=[]
+        self.__open=None;self.__file_ops=[];self.__file_handles=[];self.__views={};self.__directory=None;self.__origin=None;self.__lock=None;self.__infos={};self.__failures=[]
         self.__active=False;self.__checking=False;self.__terminal=False;self.__kernel=None
 
     def _check(self,operation,*,terminal=False):
@@ -137,6 +168,153 @@ class WindowsMMKVHost:
             return result
         finally:self.__active=False
 
+    def _begin_open(self,session):
+        from .primary_mmkv_open import open_mmkv
+        f=sys._getframe(1)
+        if f.f_code is not open_mmkv.__code__ or f.f_locals.get('runtime') is not self.__runtime or self.__open is not None:
+            raise InputError('MMKV open requires unique real source entry')
+        self._check(None);self.__open=session
+
+    def preflight_close(self):
+        # Deliberately side-effect-free, including when an earlier operation is unknown.
+        if self.__directory is not None or self.__infos or self.__failures or (self.__open is not None and (self.__open['global_lock']!='not_entered' or self.__open['parent'] is not None or self.__open['files'] or self.__open['buffers'])) or self.__views or self.__file_ops:
+            raise PrimarySemanticUnavailable('MMKV connected open has unresolved lock/parent/file/view debt')
+
+    def _file_call(self,operation,result,types,args,*,publish=None,error=False):
+        from .primary_mmkv_file import File40,FileLock
+        from .primary_mmkv_open import _converted,_parent
+        f=sys._getframe(1);caller=f.f_locals.get('self')
+        internal=f.f_code in (WindowsMMKVHost._enter_global.__code__,WindowsMMKVHost._map_view.__code__,WindowsMMKVHost._unmap_view.__code__) and caller is self
+        source=(type(caller) is File40 and caller in self.__open['files'] or type(caller) is FileLock and caller in self.__open['locks']) if self.__open else False
+        adapter=f.f_code in (_converted.__code__,_parent.__code__) and f.f_locals.get('r') is self.__runtime
+        allowed=('EnterCriticalSection','CreateFileW','MultiByteToWideChar','LockFileEx','UnlockFileEx','GetFileSizeEx','SetFilePointerEx','SetEndOfFile','WriteFile','CreateFileMappingW','MapViewOfFile','UnmapViewOfFile','CloseHandle','InitializeCriticalSectionAndSpinCount')
+        if not (internal or source or adapter) or operation not in allowed:raise InputError('file API requires its actual connected source caller')
+        self._check(operation)
+        self.__allocator.source.validate(self.__runtime)
+        if self.__open is None:raise InputError('file API lacks connected source session')
+        record=dict(operation=operation,state='unknown',result=None,error=None,owner=caller)
+        self.__file_ops.append(record);self.__active=True
+        try:
+            if operation=='EnterCriticalSection':self.__open['global_lock']='enter_unknown'
+            value=self._api(operation,result,types,*args)
+            record['result']=value
+            if publish is not None:publish(value)
+            failed=error(value) if callable(error) else error and not value
+            last=self._api('GetLastError',__import__('ctypes').c_uint32,()) if failed else None
+            record.update(state='returned',result=value,error=last)
+            if operation in ('CreateFileW','CreateFileMappingW'):
+                handle=value or 0;kind='file' if operation=='CreateFileW' else 'mapping'
+                if handle!=(1<<64)-1 and handle!=-1 and (kind=='file' or handle):
+                    self.__file_handles.append(dict(handle=handle,kind=kind,owner=caller,state='live'))
+            if operation=='CloseHandle':
+                for entry in self.__file_handles:
+                    if entry['owner'] is caller and entry['handle']==args[0] and entry['state'] in ('live','unreleased'):
+                        entry['state']='closed' if value else 'unreleased';break
+            return value,last
+        except BaseException as failure:self.__failures.append(failure);raise
+        finally:self.__active=False
+
+    def _enter_global(self):
+        import ctypes as C
+        record=self.__lock
+        if record is None or not record.initialized:raise PrimarySemanticUnavailable('MMKV global CS not initialized')
+        pointer=self.__memory.load(self.__open['global_guard'],8)
+        if pointer!=record.address or self.__memory.load(self.__base+0x6751390,8)!=pointer or self.__allocator.records.get(pointer) is not record.allocation:
+            raise InputError('global CS guard lost actual initialized backing')
+        self.__memory._validate_native_pin(record.token,self)
+        self._file_call('EnterCriticalSection',None,(C.c_void_p,),(C.addressof(record.native),))
+        self.__open['global_lock']='held'
+
+    def _capture_view_identity(self,memory,address,length,token):
+        from .primary_memory import PrimaryMemory
+        from .primary_module_sync import _resource,_RESOURCES
+        if sys._getframe(1).f_code is not PrimaryMemory._issue_native_view.__code__:
+            raise InputError('view identity requires original memory issuance')
+        r=self.__runtime;view=self.__views.get(address)
+        if memory is not self.__memory or view is None or view['state']!='unissued' or view['size']!=length:
+            raise InputError('view identity lacks original pending mapping')
+        module=_resource(r);source=self.__allocator.source;image=r._shared_locale_source
+        identity=_ViewIdentity(self.__owner,self.__owner._signer,r,memory,self.__base,self.__allocator,
+            source,self.__epoch,r._primary_allocator_issuer,source._completed_receipt,module,
+            _RESOURCES.get(r),module.epoch,image,r._shared_locale_source_epoch,view,view['owner'],
+            address,length,view['owner'].address,view['owner'].allocation,view['raw'],view['native'],view['mapping'],token,self.__pid,self.__thread)
+        view['identity']=identity
+        return identity
+
+    def _validate_view_identity(self,identity,memory):
+        # Guest access checks ownership only: no permit, execution lease or poisoned-state writes.
+        from .primary_module_sync import _RESOURCES
+        if type(identity) is not _ViewIdentity:raise InputError('foreign native view identity')
+        issued=self.__views.get(identity.guest)
+        if issued is None or issued.get('identity') is not identity:raise InputError('unissued native view identity')
+        i=identity;r=i.runtime;o=i.owner
+        if (self.__terminal or self.__owner is not o or self.__runtime is not r or
+                self.__memory is not memory or memory is not i.memory or self.__base!=i.base or
+                self.__allocator is not i.allocator or self.__epoch is not i.allocator_epoch or
+                self.__pid!=i.pid or os.getpid()!=i.pid or self.__thread!=i.thread or
+                o._pid!=i.pid or o._thread!=i.thread or o._signer is not i.signer or
+                o._state not in ('open','closing','cleanup_failed') or i.signer.runtime is not r or
+                r.memory is not memory or r.image_base!=i.base):
+            raise InputError('native view owner/runtime/memory identity changed')
+        if (r._custom_allocator_backend is not i.allocator or i.allocator.closed or
+                i.allocator.runtime is not r or i.allocator.signer is not i.signer or
+                i.allocator.source is not i.source or i.source.epoch is not i.allocator_epoch or
+                r._primary_allocator_selector is not i.source or r._primary_allocator_selector_epoch is not i.allocator_epoch or
+                r._primary_allocator_issuer is not i.allocator_issuer or i.allocator_issuer.closed or
+                i.allocator_issuer.epoch is not i.allocator_epoch or i.source.phase!='complete' or
+                i.source._completed_receipt is not i.receipt):
+            raise InputError('native view allocator identity/epoch changed')
+        if (r._shared_locale_source is not i.image or r._shared_locale_source_epoch is not i.image_epoch or
+                i.image.epoch is not i.image_epoch or i.signer._shared_locale_image is not i.image or
+                _RESOURCES.get(r) is not i.module_record or i.module.epoch is not i.module_epoch or
+                i.module.owner is not o or i.module.locale is not i.image or i.module.locale_epoch is not i.image_epoch):
+            raise InputError('native view module/image identity/epoch changed')
+        i.module.validate(r)
+        view=self.__views.get(i.guest)
+        if (view is not i.view or view['owner'] is not i.view_owner or view['guest']!=i.guest or view['size']!=i.length or view['raw']!=i.raw or
+                view['native'] is not i.native or view['mapping']!=i.mapping or view['token'] is not i.token or
+                i.view_owner.r is not r or i.view_owner.port is not self or
+                i.view_owner.address!=i.file_address or i.view_owner.allocation is not i.file_allocation or
+                r._custom_allocator_backend.records.get(i.file_address) is not i.file_allocation):
+            raise InputError('native view original mapping/file ownership changed')
+        region,offset=memory._span(i.file_address,0x40)
+        if region is not i.file_allocation[0] or offset:
+            raise InputError('native view original File40 backing changed')
+
+    def _map_view(self,mapping,size):
+        import ctypes as C
+        from .primary_mmkv_file import File40
+        owner=sys._getframe(1).f_locals.get('self')
+        if self.__open is None or type(owner) is not File40 or owner not in self.__open['files'] or owner.load(0x28)!=mapping or owner.native_extent!=size:raise InputError('mapping requires actual File40 producer')
+        if size is not None and not 0<=size<=0x1000000:raise PrimarySemanticUnavailable('finite native mapping size unavailable')
+        raw,error=self._file_call('MapViewOfFile',C.c_void_p,(C.c_void_p,C.c_uint32,C.c_uint32,C.c_uint32,C.c_size_t),(mapping,0xf001f,0,0,0),publish=lambda raw:owner.store(0x30,0) if not raw else None,error=True)
+        if not raw:return 0,error
+        if size is None or size==0:
+            raise PrimarySemanticUnavailable('successful native mapping extent is unproved; raw view debt retained')
+        native=(C.c_ubyte*size).from_address(raw)
+        address=self.__allocator.storage.supplier.take(self.__runtime,size)
+        # Register host debt before issuing guest access; failed issuance retains native ownership.
+        record=dict(raw=raw,native=native,size=size,guest=address,token=None,state='unissued',owner=owner,mapping=mapping)
+        self.__views[address]=record
+        record['token']=self.__memory._issue_native_view(self,address,native);record['state']='live'
+        return address,None
+
+    def _unmap_view(self,address):
+        import ctypes as C
+        record=self.__views.get(address)
+        from .primary_mmkv_file import File40
+        owner=sys._getframe(1).f_locals.get('self')
+        if record is None or record['state']!='live' or type(owner) is not File40 or record['owner'] is not owner:raise InputError('view lacks live native origin')
+        self.__memory._revoke_native_view(self,record['token'],begin=True);record['state']='revoking'
+        try:
+            result,error=self._file_call('UnmapViewOfFile',C.c_int32,(C.c_void_p,),(record['raw'],),error=True)
+            if result:
+                self.__memory._revoke_native_view(self,record['token'],success=True);del self.__views[address]
+            else:self.__memory._revoke_native_view(self,record['token']);record['state']='unreleased'
+            return result,error
+        except BaseException:
+            record['state']='unknown';raise
+
     def _prepare_directory(self,root):
         from .primary_mmkv_host_init import _directory
         f=sys._getframe(1)
@@ -196,6 +374,7 @@ class WindowsMMKVHost:
 
     def dispose_terminal(self):
         import ctypes as C
+        self.preflight_close()
         self._check(None,terminal=True)
         if self.__directory is not None:raise PrimarySemanticUnavailable('MMKV directory workbuffer remains unresolved')
         if self.__infos:raise PrimarySemanticUnavailable('MMKV SystemInfo borrow remains unresolved')
@@ -234,3 +413,12 @@ def for_runtime(runtime):
 def dispose_terminal(owner):
     port=_PORTS.get(owner.signer.runtime)
     if port is not None:port.dispose_terminal()
+
+
+def preflight_close(owner):
+    if owner._signer is not None:
+        port=_PORTS.get(owner._signer.runtime)
+        if port is not None:port.preflight_close()
+        from .primary_windows_mmkv_stdio import _PORTS as stdio_ports
+        stdio=stdio_ports.get(owner._signer.runtime)
+        if stdio is not None:stdio.preflight_close()

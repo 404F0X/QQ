@@ -837,7 +837,7 @@
     {
       "path": "src/qq_nt_replica/primary_custom_allocator.py",
       "source_sha256": "8697c9f10af1f0708a6d5dc88e35237cda33feb5d7153e6ff30acddd0e83e408",
-      "sha256": "723d773bb0672de904ce592fc2a30017bf6033fc6e80c0b6248e117c701f8511",
+      "sha256": "134a5a2fb48bccad41f3be7ca36f6768ceed1d2739f7775c619b08573b2ee82f",
       "classification": "project_source"
     },
     {
@@ -1389,7 +1389,7 @@
     {
       "path": "src/qq_nt_replica/primary_memory.py",
       "source_sha256": "59d9f68d880e0d32324015e0164114c4cd959486c03f6db4879ca8525a0b4fd0",
-      "sha256": "3a14929f3480f3d6ec482adb70c2958289bb798c72a6910a3951f0a743806271",
+      "sha256": "6989e724696fd3fa1384909887ecaa0baa7c310a0f0c64f401cf5397e43b8532",
       "classification": "project_source"
     },
     {
@@ -2037,7 +2037,7 @@
     {
       "path": "src/qq_nt_replica/primary_sign.py",
       "source_sha256": "afbfcb10eca02fcdc2442bdbac3f5a9e3f132cd022fc60a3e3c10b9dbe010a4f",
-      "sha256": "59552663a511f74daca4e1f873e593dd3e917d881367bffcc39de3a64b0f899e",
+      "sha256": "db69e341296c864fe1ace9a842b6f65035e3d31eb3885966c1eb5e0d7cc87394",
       "classification": "project_source"
     },
     {
@@ -2499,7 +2499,7 @@
     {
       "path": "src/qq_nt_replica/primary_windows_signer.py",
       "source_sha256": "9bda5a58bbdde36c7cb526a64b572810f9a918fbbea72652d4df34d8253bdda0",
-      "sha256": "9e52d8c399ef930646aac21ef22166db98b8e14d61fe5eba6a50dd76fba69f6e",
+      "sha256": "576ec78eeb343d39f6df888e7b9d57beb7f5f4b82701206a65607ca87389e19e",
       "classification": "project_source"
     },
     {
@@ -2829,7 +2829,7 @@
     {
       "path": "src/qq_nt_replica/primary_msf_selection.py",
       "source_sha256": "425378fcf8eea1792b6cd3b769ec65cd144cc01ee71d8d54a4d9ab43be926143",
-      "sha256": "425378fcf8eea1792b6cd3b769ec65cd144cc01ee71d8d54a4d9ab43be926143",
+      "sha256": "0fb190db0a3efe93eff526bf9d0c9c87619bae6c077253602b816ae8aa6b259b",
       "classification": "project_source",
       "origin": "Joint MODEL loader-birth/MSF prefix implementation; first retained authored snapshot: login-msf-prefix-implementation/first-retained-source/primary_msf_selection.py"
     },
@@ -2871,7 +2871,7 @@
     {
       "path": "src/qq_nt_replica/primary_windows_mmkv_host_init.py",
       "source_sha256": "53dd6167ab027ea703b54d4a9c3480510de15b854c23ba348b81aad69afb4ad6",
-      "sha256": "bc404d33e280412ce41f588c1ed9b6cc5a66f8027563e26b858291326cbe2a8e",
+      "sha256": "384abbb8c3bc8b933837160d9bc829d06cda518ac64946b7a3395161f4c77ce1",
       "classification": "project_source",
       "origin": "MAT-SIGN-LOGIN-SOURCE-ORDER-REPAIR/a1; first retained authored snapshot: login-source-order-repair/first-retained-source/primary_windows_mmkv_host_init.py"
     },
@@ -2892,7 +2892,7 @@
     {
       "path": "src/qq_nt_replica/primary_windows_mmkv_stdio.py",
       "source_sha256": "90798522f0c6e07587aaf184c0459ba44fd0ca3e5b0647a6cc37214ac8e999a2",
-      "sha256": "4927137bbf3b7361898312726705b5c68ce804e5374c4cf6a0c8ed7e3955c5f4",
+      "sha256": "33428b7ecd21603443d2dab69e7814af4332c023805eba74048ec65cccb42183",
       "classification": "project_source",
       "origin": "MAT-SIGN-MMKV-STDIO-SUBUNIT/a1 first retained authored snapshot: mmkv-stdio-subunit-a1/first-retained-source/primary_windows_mmkv_stdio.py"
     },
@@ -2902,6 +2902,20 @@
       "sha256": "45104107165948b2129482381154f5a1ef71454544eebe1e3151a28846ca7c17",
       "classification": "project_source",
       "origin": "MAT-SIGN-CREATOR-DOMAIN-REPAIR/a1 limited MODEL creator qualification/PTD journal; first retained authored snapshot: creator-domain-repair-a1/first-retained-source/primary_creator_domain.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_mmkv_open.py",
+      "source_sha256": "9e0fa0917041a405cd20428d5a95892fc31225a52e910a0f3d4101ed0070957c",
+      "sha256": "9e0fa0917041a405cd20428d5a95892fc31225a52e910a0f3d4101ed0070957c",
+      "classification": "project_source",
+      "origin": "MAT-SIGN-MMKV-OPEN-CONNECTED-IMPLEMENTATION/a1 first retained authored snapshot: mmkv-open-connected-implementation-a1/first-retained-source/primary_mmkv_open.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_mmkv_file.py",
+      "source_sha256": "97c80a33fcdf795fd73c0616571ceb0ad900d63d9b464bdba19e0aa1f58a1575",
+      "sha256": "97c80a33fcdf795fd73c0616571ceb0ad900d63d9b464bdba19e0aa1f58a1575",
+      "classification": "project_source",
+      "origin": "MAT-SIGN-MMKV-OPEN-CONNECTED-IMPLEMENTATION/a1 first retained authored snapshot: mmkv-open-connected-implementation-a1/first-retained-source/primary_mmkv_file.py"
     }
   ],
   "excluded_pending_assets": [
