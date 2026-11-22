@@ -81,16 +81,29 @@ def install_fresh_image(signer):
             signer.memory.map(address,bytearray(size),name='source MMKV MODEL image cell',initialized=known)
             region,offset=signer.memory._span(address,size)
         records.append((address,region,offset,size))
-    _BIRTHS[id(signer.memory)]=(signer.memory,signer.image_base,tuple(records))
+    address=signer.image_base+0x67513b0
+    signer.memory.map(address,bytearray(8),name='fixed PE virtual-tail MODEL MMKV page birth',initialized=True)
+    region,offset=signer.memory._span(address,8);records.append((address,region,offset,8))
+    image=signer._shared_locale_image
+    _BIRTHS[id(signer.memory)]=(signer.memory,signer.image_base,tuple(records),image,image.epoch)
 
 
 def _validate(runtime):
     record=_BIRTHS.get(id(runtime.memory))
     if record is None or record[0] is not runtime.memory or record[1]!=runtime.image_base:
         raise InputError('MMKV birth identity missing')
+    image,epoch=record[3:]
+    if (getattr(runtime,'_shared_locale_source',None) is not image or
+            getattr(runtime,'_shared_locale_source_epoch',None) is not epoch or image.epoch is not epoch or
+            image.signer._shared_locale_image is not image):
+        raise InputError('MMKV fixed image source/epoch changed')
+    image.validate_image(runtime)
     for address,region,offset,size in record[2]:
         actual,current=runtime.memory._span(address,size)
         if actual is not region or current!=offset:raise InputError('MMKV image cell backing changed')
+    address,region,offset,size=record[2][-1]
+    if region.address!=address or offset or len(region.data)!=8:
+        raise InputError('MMKV page birth exact region changed')
 
 
 def _log(runtime,level,file,function,line,template,arguments):
@@ -103,6 +116,7 @@ def _version_log(runtime,page_size):
 
 
 def _initialize_cache(runtime):
+    _validate(runtime)
     import struct
     from .primary_windows_mmkv_host_init import for_runtime
     memory=runtime.memory;base=runtime.image_base
@@ -118,6 +132,9 @@ def _initialize_cache(runtime):
     if not result:
         _log(runtime,3,b'ThreadLock_Win32.cpp',b'initialize',0x29,b'fail to init critical section:%d',(error&0xffffffff,))
     page=port.page_size()
+    _validate(runtime)
+    page=page&0xffffffff
+    memory.store(base+0x67513b0,page,8,source='B994E8.publish_page_size')
     _version_log(runtime,page)
 
 

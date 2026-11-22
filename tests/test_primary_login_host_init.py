@@ -109,7 +109,7 @@ class AttachPhase(unittest.TestCase):
             with self.assertRaises(UnknownMemory):r.memory.read(record['pointer'],24)
             with self.assertRaises(PrimarySemanticUnavailable):attach.require_complete(r)
 
-    def _scoped_native_port_case(self,failure=None,stdio_transform=None,stdio_failure=False,stage_failure=None,defer_terminal=False,directory=None):
+    def _scoped_native_port_case(self,failure=None,stdio_transform=None,stdio_failure=False,stage_failure=None,defer_terminal=False,directory=None,page_size=8192):
         from unittest.mock import patch
         from contextlib import ExitStack
         from pathlib import Path
@@ -197,7 +197,8 @@ class AttachPhase(unittest.TestCase):
                     self.assertEqual(arguments[1],400);C.memset(arguments[0],0x5a,40);return 0 if failure=='init_false' else 1
                 if name=='GetLastError':return (directory or {}).get('error',5)
                 if name=='GetSystemInfo':
-                    C.memset(arguments[0],0,48);C.c_uint32.from_address(arguments[0]+4).value=8192;return
+                    if failure=='page_api':raise RuntimeError('controlled MMKV page failure')
+                    C.memset(arguments[0],0,48);C.c_uint32.from_address(arguments[0]+4).value=page_size;return
                 if name=='GetFileAttributesW':
                     if directory is None:raise PrimarySemanticUnavailable('1BD8F45 controlled directory boundary')
                     from test_primary_mmkv_directory import read_wide
@@ -224,14 +225,15 @@ class AttachPhase(unittest.TestCase):
             with patch.object(WindowsMMKVStdio,'_load',return_value=stdio_functions),patch.object(WindowsMMKVHost,'_api',api),patch('qq_nt_replica.primary_shared_locale.resolve_current_module_tls',return_value=receipt),owner._registrar.operation():
                 service=get_login_service(owner)
                 with patch('qq_nt_replica.primary_windows_outer_sync.WindowsOuterSync._api',side_effect=lambda name,*args:1 if name=='InitializeCriticalSectionEx' else None):
-                    with self.assertRaisesRegex(RuntimeError if failure=='init_api' or stdio_failure else PrimarySemanticUnavailable,'controlled MMKV native failure' if failure=='init_api' else ('controlled stdio' if stdio_failure else ('B99200' if directory is not None else '1BD8F45'))):
+                    expected_error='controlled MMKV native failure' if failure=='init_api' else ('controlled MMKV page failure' if failure=='page_api' else ('controlled stdio' if stdio_failure else ('B99200' if directory is not None else '1BD8F45')))
+                    with self.assertRaisesRegex(RuntimeError if failure in ('init_api','page_api') or stdio_failure else PrimarySemanticUnavailable,expected_error):
                         service.initConfig(dict(commonPath='C:\\data',clientVer='v',machineId='machine',platVer='p',hostName='h'))
                 expected=['InitializeCriticalSectionAndSpinCount'] if failure=='init_api' else (['InitializeCriticalSectionAndSpinCount','GetLastError','GetSystemInfo'] if failure=='init_false' else ['InitializeCriticalSectionAndSpinCount','GetSystemInfo'])
                 self.assertEqual(calls[:len(expected)],expected)
                 lock=m.load(b+0x6751390,8);cache=m.load(b+0x6751388,8)
                 self.assertEqual(m.read(lock,40),bytes(40) if failure=='init_api' else b'Z'*40)
                 with self.assertRaises(UnknownMemory):m.read(cache+36,4)
-                self.assertEqual(m.load(b+0x67513c8,4),1 if failure=='init_api' or stdio_failure else 2)
+                self.assertEqual(m.load(b+0x67513c8,4),1 if failure in ('init_api','page_api') or stdio_failure else 2)
                 obj=m.load(b+0x674c730,8);self.assertEqual(m.read(obj+0x90,16),bytes(16))
                 from qq_nt_replica.primary_memory import PrimaryMemoryLimit
                 with self.assertRaises(PrimaryMemoryLimit):m.unmap(lock)
@@ -263,7 +265,7 @@ class AttachPhase(unittest.TestCase):
                 m._unpin_native_span(lock_backing.token,port);lock_backing.view.release()
                 return dict(runtime=r,stdio_calls=stdio_calls,owner=owner)
             with patch.object(WindowsMMKVHost,'_api',api):
-                if failure=='init_api':
+                if failure in ('init_api','page_api'):
                     with self.assertRaises(PrimarySemanticUnavailable):port.dispose_terminal()
                 elif failure=='delete_record':
                     with patch.object(m,'_record_native_write',side_effect=RuntimeError('controlled MMKV write failure')):
@@ -277,11 +279,13 @@ class AttachPhase(unittest.TestCase):
                         log=[event for event in r.events if event[0]=='1BDF22C.arguments' and event[1]==3][-1]
                         self.assertEqual(log[1:],(3,b'ThreadLock_Win32.cpp',b'initialize',0x29,b'fail to init critical section:%d',(5,)))
                     else:self.assertEqual(calls[-1],'DeleteCriticalSection')
-            if failure in ('init_api','delete_record'):
+            if failure in ('init_api','page_api','delete_record'):
                 with self.assertRaises(PrimaryMemoryLimit):m.unmap(lock)
                 # Only controlled private API ran; release test-owned view, never a production recovery.
                 backing=port._WindowsMMKVHost__lock
                 m._unpin_native_span(backing.token,port);backing.view.release()
+                for info in port._WindowsMMKVHost__infos.values():
+                    m._unpin_native_span(info.token,port);info.view.release();m.unmap(info.address)
             m._assert_no_native_pin(lock,40)
             from qq_nt_replica.primary_windows_mmkv_stdio import for_runtime as stdio_for_runtime
             stdio_for_runtime(r).dispose_terminal()

@@ -2864,7 +2864,7 @@
     {
       "path": "src/qq_nt_replica/primary_mmkv_host_init.py",
       "source_sha256": "9b30a78828aecf3995a8ec1eb5b4a10788802f5be2ad8598d5b8162e7b6fc6ed",
-      "sha256": "61efdbdd763924f75cbf3b0aa31a4880f5ceaa929204c837fe7f084adfe38cd1",
+      "sha256": "c4d96bb97867158cc966af364ddcdbf6dbab3831f4d08d93a4f3c564cf8bb368",
       "classification": "project_source",
       "origin": "MAT-SIGN-LOGIN-SOURCE-ORDER-REPAIR/a1; first retained authored snapshot: login-source-order-repair/first-retained-source/primary_mmkv_host_init.py"
     },
