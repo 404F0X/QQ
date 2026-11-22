@@ -16,7 +16,7 @@ def install_fresh_image(signer):
     memory=signer.memory;key=id(memory)
     if key in _BIRTHS:raise InputError('Login image cannot be adopted/reset')
     records=[]
-    for rva,size in ((0x6752b68,8),(0x674c6f0,24),(0x674c708,4),(0x674c748,24),(0x674c760,4),(0x6753528,8),(0x6753530,0xa8),(0x67535d8,4)):
+    for rva,size in ((0x674c730,8),(0x674c738,8),(0x674c740,4),(0x6752b68,8),(0x674c6f0,24),(0x674c708,4),(0x674c748,24),(0x674c760,4),(0x6753528,8),(0x6753530,0xa8),(0x67535d8,4)):
         address=signer.image_base+rva
         memory.map(address,bytearray(size),name='fixed virtual-tail MODEL Login birth',initialized=True)
         region,offset=memory._span(address,size);records.append((address,region,offset,size))

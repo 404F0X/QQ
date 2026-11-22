@@ -180,7 +180,7 @@ class AttachPhase(unittest.TestCase):
             r=owner.signer.runtime;m=r.memory;b=r.image_base
             r.next=0x7b00000000;r.calls=[];r.fail_size=None;r.epoch=r._custom_allocator_backend.source.epoch
             r.invoke=Runtime.invoke.__get__(r,type(r))
-            for rva,size in ((0x674c730,0x14),(0x6745268,8),(0x6745280,8),(0x67451d4,1)):
+            for rva,size in ((0x6745268,8),(0x6745280,8),(0x67451d4,1)):
                 m.map(b+rva,bytearray(size),name='controlled prior Login birth',initialized=True)
             from qq_nt_replica.primary_windows_mmkv_host_init import WindowsMMKVHost,for_runtime
             from qq_nt_replica.primary_outer_init import get_login_service
@@ -322,7 +322,7 @@ class AttachPhase(unittest.TestCase):
             from types import SimpleNamespace
             r.next=0x7b00000000;r.calls=[];r.fail_size=None;r.epoch=r._primary_allocator_issuer.epoch
             r.invoke=Runtime.invoke.__get__(r,type(r))
-            for rva,size in ((0x674c730,0x14),(0x6745268,8),(0x6745280,8),(0x67451d4,1)):
+            for rva,size in ((0x6745268,8),(0x6745280,8),(0x67451d4,1)):
                 r.memory.map(r.image_base+rva,bytearray(size),name='controlled prior Login birth',initialized=True)
             receipt=SimpleNamespace(epoch_address=r.tls_epoch_address,image_epoch=object())
             with patch('qq_nt_replica.primary_shared_locale.resolve_current_module_tls',return_value=receipt):

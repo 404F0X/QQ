@@ -2850,7 +2850,7 @@
     {
       "path": "src/qq_nt_replica/primary_login_model_attach.py",
       "source_sha256": "cf93997cefb24f1ace21e70fa5c422142bc2cc8c693ed538457797229c77c3fa",
-      "sha256": "cf93997cefb24f1ace21e70fa5c422142bc2cc8c693ed538457797229c77c3fa",
+      "sha256": "3b82fd79754d5e7442bc06546097dd4d90bdf57b1be7c9e877e89b1d2eb3a2c8",
       "classification": "project_source",
       "origin": "MAT-SIGN-LOGIN-SOURCE-ORDER-REPAIR/a1; first retained authored snapshot: login-source-order-repair/first-retained-source/primary_login_model_attach.py"
     },

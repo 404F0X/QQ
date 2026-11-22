@@ -307,4 +307,37 @@ class CreatorDomain(unittest.TestCase):
             self.assertIn(record.ptd['pointer'],r.allocations)
             self.assertFalse(any(name=='FlsFree' for name,args in kernel.calls))
 
+    def test_cold_login_singleton_real_factory_publication_and_failure(self):
+        from qq_nt_replica.primary_outer_init import get_login_service
+        from qq_nt_replica.primary_memory import UnknownMemory
+        from test_primary_outer_init import Runtime
+        for fail in (False,True):
+            with factory() as (owner,kernel):
+                r=owner.signer.runtime;m=r.memory;b=r.image_base;service=owner._threads
+                for rva,size in ((0x674c730,8),(0x674c738,8),(0x674c740,4)):
+                    self.assertEqual(m.read(b+rva,size),bytes(size))
+                    with self.assertRaises(Exception):m.map(b+rva,bytearray(size),name='duplicate',initialized=True)
+                with self.assertRaises(Exception):m.map(b+0x674c737,bytearray(2),name='partial overlap',initialized=True)
+                from qq_nt_replica.primary_login_model_attach import install_fresh_image,validate_birth
+                validate_birth(r)
+                with self.assertRaises(Exception):install_fresh_image(owner.signer)
+                r.next=0x7d00000000;r.calls=[];r.fail_size=0x320 if fail else None;r.epoch=r._custom_allocator_backend.source.epoch
+                r.invoke=Runtime.invoke.__get__(r,type(r))
+                service.before_public_operation()
+                try:
+                    with owner._registrar.operation(),service._native_crt_context():
+                        if fail:
+                            with self.assertRaises(Exception):get_login_service(owner)
+                            self.assertEqual(m.load(b+0x674c730,8),0);self.assertEqual(m.load(b+0x674c738,8),0)
+                            self.assertEqual(m.load(b+0x674c740,4,signed=True),-1)
+                        else:
+                            wrapper=get_login_service(owner);other=get_login_service(owner)
+                            control=m.load(b+0x674c738,8);obj=m.load(b+0x674c730,8)
+                            self.assertEqual(obj,control+24);self.assertEqual(m.load(control+8,4),2)
+                            for offset in (12,20):
+                                with self.assertRaises(UnknownMemory):m.read(control+offset,4)
+                            wrapper.release_wrappers();other.release_wrappers();self.assertEqual(m.load(control+8,4),0)
+                            self.assertNotEqual(m.load(b+0x674c740,4,signed=True),-1)
+                finally:service.after_public_operation()
+
 if __name__=='__main__':unittest.main()
