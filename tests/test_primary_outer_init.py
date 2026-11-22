@@ -17,17 +17,17 @@ class Runtime:
     image_base=0x180000000
     _thread_header=PrimaryRuntime._thread_header
     _thread_footer=PrimaryRuntime._thread_footer
-    def __init__(self):
-        self.memory=PrimaryMemory();self.calls=[];self.events=[];self.next=0x7100000000;self.fail_size=None
+    def __new__(cls):
+        # Use the original cold installer and its bound fixed-image epoch.
+        from qq_nt_replica.primary_signer import PrimarySigner,SigningEnvironment
+        signer=PrimarySigner(SigningEnvironment(cursor=None,process_path=b'C:/explicit/p.exe',module_path=b'C:/explicit/m.dll',stack_modules=()),initial_stack=None,primary_backend='direct')
+        r=signer.runtime;r.calls=[];r.events=[];r.next=0x7100000000;r.fail_size=None
         from qq_nt_replica.primary_custom_allocator import _CustomBackend
-        self.epoch=object();self._custom_allocator_backend=_CustomBackend.__new__(_CustomBackend)
-        self._custom_allocator_backend.records={};self._custom_allocator_backend.closed=False
-        self._custom_allocator_backend.source=SimpleNamespace(epoch=self.epoch,validate=lambda runtime:None)
-        self.tls_epoch_address=0x72000000
-        for address,size in ((self.image_base+0x674c730,0x20),(self.image_base+0x6745268,0x20),(self.image_base+0x67451d4,1),(self.image_base+0x5ea1c80,4),(self.tls_epoch_address,4)):
-            self.memory.map(address,bytearray(size),name='controlled fixed-source state',initialized=True)
-        self.memory.store(self.tls_epoch_address,0x80000000,4,source='controlled TLS epoch')
-        self.memory.store(self.image_base+0x5ea1c80,0x80000000,4,source='controlled CRT epoch')
+        r.epoch=object();r._custom_allocator_backend=_CustomBackend.__new__(_CustomBackend)
+        r._custom_allocator_backend.records={};r._custom_allocator_backend.closed=False
+        r._custom_allocator_backend.source=SimpleNamespace(epoch=r.epoch,validate=lambda runtime:None)
+        r.invoke=cls.invoke.__get__(r,type(r))
+        return r
     def invoke(self,vm,rva,cells):
         args=tuple(vm.cells.value(i) for i in cells);self.calls.append((rva,args))
         if rva==0x6270:self.memory.store(args[0],0,2,source='6270.emptyString');return args[0]
@@ -44,6 +44,66 @@ class Runtime:
         self._custom_allocator_backend.records[pointer]=(region,size,self.epoch,threading.get_ident(),'CUSTOM')
         return pointer
 
+class Birth(unittest.TestCase):
+    cells=((0x6745268,8),(0x6745280,8),(0x67451d4,1))
+
+    def test_original_cold_exact_regions_gaps_and_no_adoption_reset(self):
+        from qq_nt_replica.primary_login_model_attach import validate_birth,install_fresh_image
+        r=Runtime();m=r.memory;b=r.image_base
+        validate_birth(r)
+        for rva,size in self.cells:
+            region,offset=m._span(b+rva,size)
+            self.assertEqual((region.address,offset,len(region.data)),(b+rva,0,size))
+            self.assertEqual(m.read(b+rva,size),bytes(size))
+            self.assertIn('raw-backed 00' if size==1 else 'virtual-tail',region.name)
+            for address,length in ((b+rva,size),(b+rva-1,2),(b+rva+size-1,2)):
+                with self.assertRaises(PrimaryMemoryLimit):m.map(address,bytearray(length),name='conflict',initialized=True)
+            for address in (b+rva-1,b+rva+size):
+                with self.assertRaises(PrimaryMemoryLimit):m.read(address,1)
+        m.store(b+0x6745268,0x1234,8,source='controlled warm publication')
+        with self.assertRaises(InputError):install_fresh_image(r._primary_entry_owner)
+        with self.assertRaises(PrimaryMemoryLimit):r._primary_entry_owner._initialize_image()
+        self.assertEqual(_global_sync(r),0x1234)
+        self.assertEqual(m.load(b+0x6745280,8),0)
+        # An independently assembled memory cannot adopt mapped warm/cold cells.
+        other=SimpleNamespace(memory=PrimaryMemory(),image_base=b)
+        for rva,size in self.cells:other.memory.map(b+rva,bytearray(size),name='adopted',initialized=True)
+        with self.assertRaises(InputError):_global_sync(other)
+
+    def test_consumer_rejects_replaced_region_memory_base_or_fixed_image_epoch(self):
+        from qq_nt_replica.primary_login_model_attach import validate_birth
+        for rva,size in self.cells:
+            r=Runtime();m=r.memory;address=r.image_base+rva
+            m.unmap(address);m.map(address,bytearray(size),name='replacement',initialized=True)
+            before=(list(r.calls),list(m.writes))
+            with self.assertRaisesRegex(InputError,'backing changed'):_global_sync(r)
+            self.assertEqual((r.calls,m.writes),before)
+        for field,value in (('memory',PrimaryMemory()),('image_base',0x190000000),('_shared_locale_source_epoch',object()),('_shared_locale_source',object())):
+            r=Runtime();old=getattr(r,field);allocator_epoch=r._custom_allocator_backend.source.epoch
+            setattr(r,field,value)
+            with self.assertRaises(InputError):_global_sync(r)
+            self.assertEqual(r.calls,[])
+            self.assertIs(r._custom_allocator_backend.source.epoch,allocator_epoch)
+            setattr(r,field,old);validate_birth(r)
+        r=Runtime();r._shared_locale_source.epoch=object()
+        with self.assertRaisesRegex(InputError,'fixed image epoch'):_global_sync(r)
+
+    def test_original_installer_rejects_preexisting_full_and_partial_subject_overlap(self):
+        from qq_nt_replica.primary_signer import PrimarySigner,SigningEnvironment
+        original=PrimaryMemory.map
+        for rva,size in self.cells:
+            for shift,length in ((0,size),(-1,2),(size-1,2)):
+                inserted=[]
+                def mapped(m,address,buffer,**kwargs):
+                    if address==0x180000000+rva and not inserted:
+                        original(m,address+shift,bytearray(length),name='preexisting owned cell',initialized=True)
+                        inserted.append(m)
+                    return original(m,address,buffer,**kwargs)
+                with patch.object(PrimaryMemory,'map',mapped):
+                    with self.assertRaisesRegex(PrimaryMemoryLimit,'overlapping'):
+                        PrimarySigner(SigningEnvironment(cursor=None,process_path=b'C:/explicit/p.exe',module_path=b'C:/explicit/m.dll',stack_modules=()),initial_stack=None,primary_backend='direct')
+                self.assertEqual(len(inserted),1)
+
 class Prefix(unittest.TestCase):
     def owner(self):
         owner=WindowsSigner.__new__(WindowsSigner);owner._state='open';owner._busy=False
@@ -52,7 +112,7 @@ class Prefix(unittest.TestCase):
     def config(self):return dict(commonPath='C:\\data',clientVer='v',machineId='machine',platVer='p',hostName='h')
     def tls(self,runtime):
         # Explicit test-only TLS observation boundary, never a genuine receipt claim.
-        return patch('qq_nt_replica.primary_shared_locale.resolve_current_module_tls',return_value=SimpleNamespace(epoch_address=runtime.tls_epoch_address,image_epoch=runtime.epoch))
+        return patch('qq_nt_replica.primary_shared_locale.resolve_current_module_tls',return_value=SimpleNamespace(epoch_address=runtime.tls_epoch_address,image_epoch=runtime._shared_locale_source_epoch))
     def run_config(self,owner,service,value):
         # Keep these existing CS/setup checks at their controlled next-port boundary.
         with self.tls(owner.signer.runtime),patch('qq_nt_replica.primary_login_host_init.publish_hostname',side_effect=PrimarySemanticUnavailable('controlled hostname publication boundary')):
@@ -111,12 +171,17 @@ class Prefix(unittest.TestCase):
         self.assertEqual(r.calls,[(0xB75000,(0x10,))])
         with self.assertRaises(PrimarySemanticUnavailable):owner.sign(b'a',b'b')
     def test_native_cs_same_backing_hresult_cleanup_and_new_frontier(self):
-        for result,error in ((1,0),(0,5),(0,0)):
+        for result,error in ((1,0),(0,5),(0,0),(0,0x80000002),(0,0xffffffff)):
             owner=self.owner();r=owner.signer.runtime;calls=[]
             port=bind_outer_sync(owner,permit=lambda *args:True)
             def api(unused,name,restype,types,*args):
                 calls.append(name)
                 if name=='InitializeCriticalSectionEx':
+                    pointer=r.memory.load(r.image_base+0x6745268,8)
+                    self.assertNotEqual(pointer,0)
+                    self.assertEqual(r.memory.load(r.image_base+0x6745280,8),0)
+                    self.assertEqual(r.memory.load(pointer+0x40,8),0)
+                    with self.assertRaises(UnknownMemory):r.memory.read(pointer,8)
                     C.memset(args[0],0x5a,40);return result
                 if name=='GetLastError':return error
                 return None
@@ -126,7 +191,13 @@ class Prefix(unittest.TestCase):
                 pointer=r.memory.load(r.image_base+0x6745268,8)
                 self.assertEqual(r.memory.read(pointer+0x18,40),b'Z'*40)
                 self.assertEqual(r.memory.load(pointer+8,4),0 if not result and error else 0x38)
-                self.assertEqual(r.memory.load(r.image_base+0x67451d4,1),int(not result and error>0))
+                self.assertEqual(r.memory.load(r.image_base+0x67451d4,1),int(not result and error!=0))
+                self.assertEqual(r.memory.load(r.image_base+0x6745280,8),pointer)
+                self.assertEqual(r.memory.load(pointer,8),r.image_base+0x3f466f8)
+                with self.assertRaises(UnknownMemory):r.memory.read(pointer+0x48,8)
+                before=(list(r.calls),list(calls),list(r.memory.writes))
+                self.assertEqual(_global_sync(r),pointer)
+                self.assertEqual((r.calls,calls,r.memory.writes),before)
                 with self.assertRaises(PrimaryMemoryLimit):r.memory.unmap(pointer)
                 with self.assertRaises(PrimaryMemoryLimit):r.memory.forget(pointer,0x50,source='controlled free')
                 owner._state='closing';port.dispose_terminal()
@@ -134,6 +205,42 @@ class Prefix(unittest.TestCase):
             self.assertEqual(calls.count('DeleteCriticalSection'),int(bool(result)))
             r.memory._assert_no_native_pin(pointer,0x50)
             service.release_wrappers()
+    def test_success_does_not_clear_existing_sticky_byte(self):
+        owner=self.owner();r=owner.signer.runtime;m=r.memory;b=r.image_base
+        m.store(b+0x67451d4,1,1,source='controlled prior failure byte')
+        port=bind_outer_sync(owner,permit=lambda *args:True)
+        with patch.object(WindowsOuterSync,'_api',side_effect=lambda name,*args:1 if name=='InitializeCriticalSectionEx' else None):
+            pointer=_global_sync(r)
+            self.assertEqual(m.load(pointer+8,4),0x38)
+            self.assertEqual(m.load(b+0x67451d4,1),1)
+            owner._state='closing';port.dispose_terminal()
+        m._assert_no_native_pin(pointer,0x50)
+
+    def test_unsupported_cs_retains_api_effects_early_publish_and_nonretry(self):
+        owner=self.owner();r=owner.signer.runtime;m=r.memory;b=r.image_base
+        port=bind_outer_sync(owner,permit=lambda *args:True);calls=[]
+        def api(unused,name,*args):
+            calls.append(name)
+            if name=='InitializeCriticalSectionEx':
+                C.memset(args[2],0x5b,40)
+                raise PrimarySemanticUnavailable('controlled unsupported host')
+            raise AssertionError(name)
+        with patch.object(WindowsOuterSync,'_api',api):
+            with self.assertRaisesRegex(PrimarySemanticUnavailable,'unsupported host'):_global_sync(r)
+            pointer=m.load(b+0x6745268,8)
+            self.assertEqual(m.read(pointer+0x18,40),b'['*40)
+            self.assertEqual(m.load(b+0x6745280,8),0);self.assertEqual(m.load(b+0x67451d4,1),0)
+            for offset,size in ((0,8),(0x48,8)):
+                with self.assertRaises(UnknownMemory):m.read(pointer+offset,size)
+            before=(list(r.calls),list(m.writes));self.assertEqual(_global_sync(r),pointer)
+            self.assertEqual((r.calls,m.writes),before);self.assertEqual(calls,['InitializeCriticalSectionEx'])
+            owner._state='closing'
+            with self.assertRaises(PrimarySemanticUnavailable):port.dispose_terminal()
+        # Only synthetic API backing exists; release test-owned pins after retention assertions.
+        for record in port._WindowsOuterSync__records.values():
+            m._unpin_native_span(record.token,port);record.view.release()
+        m._assert_no_native_pin(pointer,0x50)
+
     def test_allocator_free_and_all_teardown_preflight(self):
         from qq_nt_replica.primary_custom_allocator import _OwnedStorage,_CustomBackend,ModelAllocatorIssuer,dispose_model_allocator
         r=Runtime();epoch=object();hook=[]
@@ -176,6 +283,9 @@ class Prefix(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'delete unavailable'):port.dispose_terminal()
         with self.assertRaises(PrimaryMemoryLimit):r.memory.unmap(pointer)
         service.release_wrappers()
+        for record in port._WindowsOuterSync__records.values():
+            r.memory._unpin_native_span(record.token,port);record.view.release()
+        r.memory._assert_no_native_pin(pointer,0x50)
 
     def test_selectable_setup_enters_existing_scope_before_owner_and_never_inner(self):
         from contextlib import contextmanager
@@ -192,7 +302,7 @@ class Prefix(unittest.TestCase):
             with self.tls(r):
                 try:yield
                 finally:events.append('native_context_exit')
-        owner._threads=SimpleNamespace(before_public_operation=lambda:events.append('before'),after_public_operation=lambda:events.append('after'),_native_crt_context=native_context)
+        owner._threads=SimpleNamespace(before_public_operation=lambda:events.append('before'),after_public_operation=lambda:events.append('after'),_creator_crt_context=native_context)
         owner._registrar=SimpleNamespace(operation=lease)
         setup=IndependentWindowsSetup(owner)
         port=bind_outer_sync(owner,permit=lambda *args:True)

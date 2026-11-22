@@ -180,8 +180,6 @@ class AttachPhase(unittest.TestCase):
             r=owner.signer.runtime;m=r.memory;b=r.image_base
             r.next=0x7b00000000;r.calls=[];r.fail_size=None;r.epoch=r._custom_allocator_backend.source.epoch
             r.invoke=Runtime.invoke.__get__(r,type(r))
-            for rva,size in ((0x6745268,8),(0x6745280,8),(0x67451d4,1)):
-                m.map(b+rva,bytearray(size),name='controlled prior Login birth',initialized=True)
             from qq_nt_replica.primary_windows_mmkv_host_init import WindowsMMKVHost,for_runtime
             from qq_nt_replica.primary_outer_init import get_login_service
             import ctypes as C
@@ -196,14 +194,14 @@ class AttachPhase(unittest.TestCase):
                     C.memset(arguments[0],0,48);C.c_uint32.from_address(arguments[0]+4).value=8192;return
                 if name=='DeleteCriticalSection':return
                 raise AssertionError(name)
-            receipt=SimpleNamespace(epoch_address=r.tls_epoch_address,image_epoch=object())
+            receipt=SimpleNamespace(epoch_address=r.tls_epoch_address,image_epoch=r._shared_locale_source_epoch)
             from qq_nt_replica.primary_windows_mmkv_stdio import WindowsMMKVStdio
             from test_primary_mmkv_stdio import fake_ucrt
             stdio_calls=[];stdio_functions=fake_ucrt(stdio_calls)
             if stdio_transform is not None:stdio_functions=stdio_transform(stdio_functions,r,stdio_calls)
             with patch.object(WindowsMMKVStdio,'_load',return_value=stdio_functions),patch.object(WindowsMMKVHost,'_api',api),patch('qq_nt_replica.primary_shared_locale.resolve_current_module_tls',return_value=receipt),owner._registrar.operation():
                 service=get_login_service(owner)
-                with patch('qq_nt_replica.primary_outer_init._global_sync',return_value=1):
+                with patch('qq_nt_replica.primary_windows_outer_sync.WindowsOuterSync._api',side_effect=lambda name,*args:1 if name=='InitializeCriticalSectionEx' else None):
                     with self.assertRaisesRegex(RuntimeError if failure=='init_api' or stdio_failure else PrimarySemanticUnavailable,'controlled MMKV native failure' if failure=='init_api' else ('controlled stdio' if stdio_failure else '1BD8F45')):
                         service.initConfig(dict(commonPath='C:\\data',clientVer='v',machineId='machine',platVer='p',hostName='h'))
                 self.assertEqual(calls,['InitializeCriticalSectionAndSpinCount'] if failure=='init_api' else (['InitializeCriticalSectionAndSpinCount','GetLastError','GetSystemInfo'] if failure=='init_false' else ['InitializeCriticalSectionAndSpinCount','GetSystemInfo']))
@@ -215,8 +213,13 @@ class AttachPhase(unittest.TestCase):
                 from qq_nt_replica.primary_memory import PrimaryMemoryLimit
                 with self.assertRaises(PrimaryMemoryLimit):m.unmap(lock)
                 service.release_wrappers()
-            if defer_terminal:return dict(runtime=r,stdio_calls=stdio_calls,owner=owner,mmkv_api=api)
+            if defer_terminal:
+                # Keep the synthetic physical CS boundary valid for the caller's real close.
+                r._outer_sync_port._api=lambda *args:None
+                return dict(runtime=r,stdio_calls=stdio_calls,owner=owner,mmkv_api=api)
             owner._state='closing'
+            with patch('qq_nt_replica.primary_windows_outer_sync.WindowsOuterSync._api',return_value=None):
+                r._outer_sync_port.dispose_terminal()
             port=for_runtime(r)
             if stdio_failure:
                 from qq_nt_replica.primary_windows_mmkv_stdio import for_runtime as stdio_for_runtime
@@ -279,7 +282,7 @@ class AttachPhase(unittest.TestCase):
         def allocator(owner):
             r=owner._signer.runtime
             issuer=WindowsAllocatorIssuer.__new__(WindowsAllocatorIssuer)
-            issuer.owner=owner;issuer.epoch=object();issuer.source=SimpleNamespace(_borrow=None)
+            issuer.owner=owner;issuer.epoch=r._custom_allocator_backend.source.epoch;issuer.source=SimpleNamespace(_borrow=None)
             r._primary_allocator_issuer=issuer
         def crt_thread(r):
             r.crt_thread_address=0x7980000000
@@ -322,12 +325,12 @@ class AttachPhase(unittest.TestCase):
             from types import SimpleNamespace
             r.next=0x7b00000000;r.calls=[];r.fail_size=None;r.epoch=r._primary_allocator_issuer.epoch
             r.invoke=Runtime.invoke.__get__(r,type(r))
-            for rva,size in ((0x6745268,8),(0x6745280,8),(0x67451d4,1)):
-                r.memory.map(r.image_base+rva,bytearray(size),name='controlled prior Login birth',initialized=True)
-            receipt=SimpleNamespace(epoch_address=r.tls_epoch_address,image_epoch=object())
+            from qq_nt_replica.primary_windows_outer_sync import bind_outer_sync
+            bind_outer_sync(owner,permit=lambda *args:True)
+            receipt=SimpleNamespace(epoch_address=r.tls_epoch_address,image_epoch=r._shared_locale_source_epoch)
             with patch('qq_nt_replica.primary_shared_locale.resolve_current_module_tls',return_value=receipt):
                 service=get_login_service(owner)
-                with patch('qq_nt_replica.primary_outer_init._global_sync',return_value=1):
+                with patch('qq_nt_replica.primary_windows_outer_sync.WindowsOuterSync._api',side_effect=lambda name,*args:1 if name=='InitializeCriticalSectionEx' else None):
                     with self.assertRaisesRegex(PrimarySemanticUnavailable,'MMKV scoped native host'):
                         service.initConfig(dict(commonPath='C:\\data',clientVer='v',machineId='machine',platVer='p',hostName='h'))
                 self.assertEqual(_String.read(r,attach.require_complete(r)).value(),b'C:\\data\\nt_data\\msf')
@@ -336,6 +339,9 @@ class AttachPhase(unittest.TestCase):
                 obj=r.memory.load(r.image_base+0x674c730,8)
                 self.assertEqual(r.memory.read(obj+0x90,16),bytes(16))
                 self.assertEqual(service.state,'UNAVAILABLE');service.release_wrappers()
+            owner._state='closing'
+            with patch('qq_nt_replica.primary_windows_outer_sync.WindowsOuterSync._api',return_value=None):
+                r._outer_sync_port.dispose_terminal()
 
 
 class WideRoot(unittest.TestCase):

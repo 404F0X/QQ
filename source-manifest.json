@@ -2801,7 +2801,7 @@
     {
       "path": "src/qq_nt_replica/primary_outer_init.py",
       "source_sha256": "100f19fe66db1a89e7b601208880fc6b9eeb0d6fcb1a67c2d011368e5c017fa3",
-      "sha256": "4f1170f7e07bb35eed6171c72a789e7e81ce74baaddb21b0f57a72b8f2be5895",
+      "sha256": "847c8eddd674d730f10027cd574041fa001ff2829461e6a9bacfe066d9f6c776",
       "classification": "project_source",
       "origin": "MAT-SIGN-OUTER-PREFIX-IMPLEMENT/a1 source-aligned bounded prefix; first authoring snapshot: outer-prefix-implementation/primary_outer_init.py"
     },
@@ -2850,7 +2850,7 @@
     {
       "path": "src/qq_nt_replica/primary_login_model_attach.py",
       "source_sha256": "cf93997cefb24f1ace21e70fa5c422142bc2cc8c693ed538457797229c77c3fa",
-      "sha256": "3b82fd79754d5e7442bc06546097dd4d90bdf57b1be7c9e877e89b1d2eb3a2c8",
+      "sha256": "aa1b91d34e393f60a50dc9dbe45b90b448403652c02a6cddecde3e70a0a852eb",
       "classification": "project_source",
       "origin": "MAT-SIGN-LOGIN-SOURCE-ORDER-REPAIR/a1; first retained authored snapshot: login-source-order-repair/first-retained-source/primary_login_model_attach.py"
     },

@@ -48,6 +48,8 @@ def login_nt_data_path(runtime,source):
 
 
 def _global_sync(runtime):
+    from .primary_login_model_attach import validate_birth
+    validate_birth(runtime)
     memory,base=runtime.memory,runtime.image_base
     current=memory.load(base+0x6745268,8)
     if current:return current

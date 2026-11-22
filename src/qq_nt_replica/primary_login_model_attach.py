@@ -15,21 +15,31 @@ def install_fresh_image(signer):
         raise InputError('Login birth requires original image installer')
     memory=signer.memory;key=id(memory)
     if key in _BIRTHS:raise InputError('Login image cannot be adopted/reset')
+    source=signer._shared_locale_image
     records=[]
     for rva,size in ((0x674c730,8),(0x674c738,8),(0x674c740,4),(0x6752b68,8),(0x674c6f0,24),(0x674c708,4),(0x674c748,24),(0x674c760,4),(0x6753528,8),(0x6753530,0xa8),(0x67535d8,4)):
         address=signer.image_base+rva
         memory.map(address,bytearray(size),name='fixed virtual-tail MODEL Login birth',initialized=True)
         region,offset=memory._span(address,size);records.append((address,region,offset,size))
-    _BIRTHS[key]=(memory,signer.image_base,tuple(records))
+    # Two PE virtual-tail QWORDs and one fixed raw-backed 00 byte; no gap mapping.
+    for rva,size,origin in ((0x6745268,8,'virtual-tail'),(0x6745280,8,'virtual-tail'),(0x67451d4,1,'raw-backed 00')):
+        address=signer.image_base+rva
+        memory.map(address,bytearray(size),name='fixed PE '+origin+' MODEL global sync birth',initialized=True)
+        region,offset=memory._span(address,size);records.append((address,region,offset,size))
+    _BIRTHS[key]=(memory,signer.image_base,tuple(records),source,source.epoch)
 
 
 def validate_birth(runtime):
     record=_BIRTHS.get(id(runtime.memory))
     if record is None or record[0] is not runtime.memory or record[1]!=runtime.image_base:
         raise InputError('Login MODEL birth missing')
+    if (getattr(runtime,'_shared_locale_source',None) is not record[3] or
+            getattr(runtime,'_shared_locale_source_epoch',None) is not record[4] or record[3].epoch is not record[4]):
+        raise InputError('Login fixed image epoch changed')
+    record[3].validate_image(runtime)
     for address,region,offset,size in record[2]:
         actual,current=runtime.memory._span(address,size)
-        if actual is not region or current!=offset:raise InputError('Login birth backing changed')
+        if actual is not region or current!=offset or region.address!=address or len(region.data)!=size:raise InputError('Login birth backing changed')
 
 
 def _run_login_model_attach(owner):

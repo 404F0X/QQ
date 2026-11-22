@@ -80,10 +80,9 @@ class SelectionChecks(unittest.TestCase):
         # Controlled public-wrapper fixture; no actual Windows factory/native origin.
         owner=WindowsSigner.__new__(WindowsSigner);owner._state='open';owner._busy=False
         owner._pid=os.getpid();owner._thread=threading.get_native_id();owner._signer=signer
-        # Earlier LoginService globals are explicit controlled source-birth inputs.
-        for rva,size in ((0x674c730,0x14),(0x6745268,8),(0x6745280,8),(0x67451d4,1)):
-            m.map(b+rva,bytearray(size),name='controlled LoginService birth input',initialized=True)
-        receipt=SimpleNamespace(epoch_address=r.tls_epoch_address,image_epoch=object())
+        receipt=SimpleNamespace(epoch_address=r.tls_epoch_address,image_epoch=r._shared_locale_source_epoch)
+        from qq_nt_replica.primary_windows_outer_sync import bind_outer_sync,WindowsOuterSync
+        port=bind_outer_sync(owner,permit=lambda *args:True)
         original=selection._callback_7510f1
         def observe(runtime,closure,frame):
             with self.assertRaises(UnknownMemory):m.read(frame+0x2f,1)
@@ -91,7 +90,7 @@ class SelectionChecks(unittest.TestCase):
         with patch('qq_nt_replica.primary_shared_locale.resolve_current_module_tls',return_value=receipt),patch.object(selection,'resolve_current_module_tls',return_value=receipt),patch('qq_nt_replica.primary_nt_wrapper_owner.resolve_current_module_tls',return_value=receipt):
             service=get_login_service(owner)
             # CS operation has its own existing same-buffer ABI checks; no native here.
-            with patch('qq_nt_replica.primary_outer_init._global_sync',return_value=1),patch.object(selection,'_callback_7510f1',observe):
+            with patch.object(WindowsOuterSync,'_api',side_effect=lambda name,*args:1 if name=='InitializeCriticalSectionEx' else None),patch.object(selection,'_callback_7510f1',observe):
                 with self.assertRaisesRegex(PrimarySemanticUnavailable,'C6 MODEL process-attach'):
                     service.initConfig(dict(commonPath='C:\\data',clientVer='v',machineId='machine',platVer='p',hostName='h'))
             obj=m.load(b+0x674c730,8)
@@ -102,6 +101,8 @@ class SelectionChecks(unittest.TestCase):
             with self.assertRaises(PrimarySemanticUnavailable):service.initConfig({})
             self.assertEqual(len(r.events),before)
             service.release_wrappers()
+        owner._state='closing'
+        with patch.object(WindowsOuterSync,'_api',return_value=None):port.dispose_terminal()
 
 if __name__=='__main__':unittest.main()
 
