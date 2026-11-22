@@ -36,6 +36,31 @@ def construct_wide_root(runtime, output, source):
     return output
 
 
+
+def construct_nt_empty_byte_path(runtime,output,span):
+    """D34792/75BBF0 selected N0; unrelated Login root eligibility stays unchanged."""
+    memory=runtime.memory
+    pointer=memory.load(span,8);length=memory.load(span+8,8)
+    if length!=0:raise PrimarySemanticUnavailable('NT D34792 nonempty path producer unavailable')
+    memory.store(output,0,1,source='75BC11.empty_BYTE0')
+    memory.store(output+1,0,1,source='75BC4D.empty_NUL')
+    runtime.events.append(('source.75C480',output,0,0,(1<<64)-1))
+    return output
+
+
+def construct_nt_empty_wide_path(runtime,output,source):
+    """D36138/D4511C N0: unselected long candidates may remain unknown."""
+    from .primary_memory import UnknownMemory
+    memory=runtime.memory
+    _invoke(runtime,0x6270,output)
+    if memory.load(source,1)!=0:raise PrimarySemanticUnavailable('NT D36138 nonempty conversion unavailable')
+    # The source loads both long words then CMOV discards them for the known short tag.
+    try:memory.read(source+8,16)
+    except UnknownMemory:runtime.events.append(('source.discarded_unknown_long_candidate',source+8,16))
+    memory.store(output+2,0,2,source='D45210.empty_wide_WORD2')
+    memory.store(output,0,1,source='D4521C.empty_wide_BYTE0')
+    return output
+
 def copy_wide_root_fresh(runtime, destination, source):
     """75DF80 fresh short-empty -> long owning copy, separate allocation."""
     memory=runtime.memory

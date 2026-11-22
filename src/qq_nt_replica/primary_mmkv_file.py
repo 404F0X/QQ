@@ -23,6 +23,9 @@ LOGS={
  'zero_seek_error':(3,b'MemoryFile_Win32.cpp',b'zeroFillFile',0x138,b'fail to lseek fd[%p], error:%d',('ptr','int')),
  'write_error':(3,b'MemoryFile_Win32.cpp',b'zeroFillFile',0x140,b'fail to write fd[%p], error:%d',('ptr','int')),
  'tail_error':(3,b'MemoryFile_Win32.cpp',b'zeroFillFile',0x148,b'fail to write fd[%p], error:%d',('ptr','int')),
+ 'upgrade_unlock_error':(3,b'InterProcessLock_Win32.cpp',b'platformLock',0x37,b'fail to try unlock first fd=%p, error:%d',('ptr','int')),
+ 'recover_lock_error':(3,b'InterProcessLock_Win32.cpp',b'platformLock',0x49,b'fail to recover shared-lock fd=%p, error:%d',('ptr','int')),
+ 'downgrade_error':(3,b'InterProcessLock_Win32.cpp',b'platformUnLock',0x5c,b'fail to roll back to shared-lock, error:%d',('int',)),
  'lock_error':(3,b'InterProcessLock_Win32.cpp',b'platformLock',0x42,b'fail to lock fd=%p, error:%d',('ptr','int')),
  'unlock_error':(3,b'InterProcessLock_Win32.cpp',b'platformUnLock',0x63,b'fail to unlock fd=%p, error:%d',('ptr','int')),
  'cs_error':(3,b'ThreadLock_Win32.cpp',b'initialize',0x29,b'fail to init critical section:%d',('int',)),
@@ -114,18 +117,47 @@ class FileLock:
         r.memory.store(self.address,handle,8,source='B98DA0.saved_HANDLE')
         r.memory.write(self.address+8,bytes(0x30),source='B98DA0.fresh_lock_counters_OVERLAPPED')
         self.token,self.view=r.memory._pin_native_span(self.address+0x18,32,port)
-        self.native=(C.c_ubyte*32).from_buffer(self.view);self.guard='published'
+        self.native=(C.c_ubyte*32).from_buffer(self.view);self.guard='published';self.root=self;self.pinned=True
         port._WindowsMMKVHost__open['locks'].append(self)
+
+    def shared_guard(self,wrapper):
+        from .primary_mmkv_load import load
+        if sys._getframe(1).f_code is not load.__code__:raise InputError('shared guard requires actual loader')
+        m=self.r.memory
+        if m.load(wrapper,8)!=self.address or m.load(wrapper+8,4)!=1 or m.load(wrapper+0xc,1)!=1:raise InputError('shared guard wrapper identity changed')
+        self.r.memory._validate_native_pin(self.token,self.port)
+        other=object.__new__(FileLock)
+        for name in ('r','port','handle','address','token','view','native','root'):setattr(other,name,getattr(self,name))
+        other.kind=1;other.guard='published'
+        self.port._WindowsMMKVHost__open['locks'].append(other)
+        return other
+
+    def _lock(self,flags):
+        result,error=self.port._file_call('LockFileEx',C.c_int32,(C.c_void_p,C.c_uint32,C.c_uint32,C.c_uint32,C.c_uint32,C.c_void_p),(self.handle,flags,0,1,0,C.addressof(self.native)),error=True)
+        self.r.memory._record_native_write(self.token,self.port,source='LockFileEx.actual_OVERLAPPED')
+        return result,error
+
+    def _unlock(self):
+        result,error=self.port._file_call('UnlockFileEx',C.c_int32,(C.c_void_p,C.c_uint32,C.c_uint32,C.c_uint32,C.c_void_p),(self.handle,0,1,0,C.addressof(self.native)),error=True)
+        self.r.memory._record_native_write(self.token,self.port,source='UnlockFileEx.actual_OVERLAPPED')
+        return result,error
 
     def acquire(self):
         self.port._check(None);self.r.memory._validate_native_pin(self.token,self.port)
         if self.handle==_MASK:return False
         off=8 if self.kind==0 else 0x10;m=self.r.memory
-        if m.load(self.address+off,8):m.store(self.address+off,m.load(self.address+off,8)+1,8,source='1BE1FBC.recursive');return True
-        result,error=self.port._file_call('LockFileEx',C.c_int32,(C.c_void_p,C.c_uint32,C.c_uint32,C.c_uint32,C.c_uint32,C.c_void_p),(self.handle,0 if self.kind==0 else 2,0,1,0,C.addressof(self.native)),error=True)
-        self.r.memory._record_native_write(self.token,self.port,source='LockFileEx.actual_OVERLAPPED')
+        if m.load(self.address+off,8):m.store(self.address+off,(m.load(self.address+off,8)+1)&_MASK,8,source='1BE1FBC.recursive');return True
+        shared=self.kind==1 and bool(m.load(self.address+8,8))
+        if shared:
+            result,error=self._unlock()
+            if not result and error!=0x9e:emit(self.r,'upgrade_unlock_error',Pointer64(self.handle),error)
+        result,error=self._lock(0 if self.kind==0 else 2)
         if result:m.store(self.address+off,1,8,source='1BE1FBC.lock_count')
-        else:emit(self.r,'lock_error',Pointer64(self.handle),error)
+        else:
+            emit(self.r,'lock_error',Pointer64(self.handle),error)
+            if shared:
+                recovered,last=self._lock(0)
+                if not recovered:emit(self.r,'recover_lock_error',Pointer64(self.handle),last)
         return bool(result)
 
     def release(self):
@@ -133,14 +165,18 @@ class FileLock:
         m=self.r.memory;off=8 if self.kind==0 else 0x10;n=m.load(self.address+off,8)
         if n:
             if n>1:m.store(self.address+off,n-1,8,source='1BE203E.recursive_release')
+            elif self.kind==0 and m.load(self.address+0x10,8):m.store(self.address+8,0,8,source='1BE203E.shared_decrement_while_exclusive')
             else:
-                result,error=self.port._file_call('UnlockFileEx',C.c_int32,(C.c_void_p,C.c_uint32,C.c_uint32,C.c_uint32,C.c_void_p),(self.handle,0,1,0,C.addressof(self.native)),error=True)
-                self.r.memory._record_native_write(self.token,self.port,source='UnlockFileEx.actual_OVERLAPPED')
+                if self.kind==1 and m.load(self.address+8,8):
+                    result,error=self._lock(0)
+                    if not result:emit(self.r,'downgrade_error',error)
+                result,error=self._unlock()
                 if result or error==0x9e:m.store(self.address+off,0,8,source='1BE203E.unlock_count')
                 else:emit(self.r,'unlock_error',Pointer64(self.handle),error)
         self.guard=None
-        if not m.load(self.address+8,8) and not m.load(self.address+0x10,8):
-            self.r.memory._unpin_native_span(self.token,self.port);self.view.release()
+        others=self.port._WindowsMMKVHost__open['locks']
+        if not m.load(self.address+8,8) and not m.load(self.address+0x10,8) and not any(x.root is self.root and x.guard is not None for x in others):
+            self.r.memory._unpin_native_span(self.token,self.port);self.view.release();self.root.pinned=False
 
 
 class File40:

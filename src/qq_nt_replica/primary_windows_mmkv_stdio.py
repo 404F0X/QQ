@@ -63,7 +63,9 @@ class WindowsMMKVStdio:
         from .primary_mmkv_host_init import _WideArgument
         from .primary_mmkv_file import WidePath,Pointer64,Unsigned64,LOGS
         wide={b'%ls attribute:%d not a directry':(_WideArgument,int),b'fail to create dir:%ls, %d':(_WideArgument,int),b'root dir: %ls':(_WideArgument,)}
-        kinds={'wide':WidePath,'ptr':Pointer64,'size':Unsigned64,'int':int}
+        from .primary_mmkv_load import Identifier,PathCString,Unsigned32,LOGS as LOAD_LOGS
+        kinds={'wide':WidePath,'ptr':Pointer64,'size':Unsigned64,'int':int,'identifier':Identifier,'path_bytes':PathCString,'uint':Unsigned32}
+        wide.update({entry[4]:tuple(kinds[k] for k in entry[5]) for entry in LOAD_LOGS.values()})
         wide.update({entry[4]:tuple(kinds[k] for k in entry[5]) for entry in LOGS.values()})
         if template not in (*wide,b'version %s, page size %d, arch %s',b'fail to init critical section:%d'):raise PrimarySemanticUnavailable('other MMKV printf template unavailable')
         expected=wide.get(template,(bytes,int,bytes) if template.startswith(b'version') else (int,))
@@ -74,11 +76,11 @@ class WindowsMMKVStdio:
         token=object();owned=[];slots=[];widepins=[]
         self.__widepins[token]=widepins
         for arg in arguments:
-            if type(arg) in (_WideArgument,WidePath):
+            if type(arg) in (_WideArgument,WidePath,Identifier,PathCString):
                 if type(arg) is WidePath:arg.validate_log(self.__runtime)
                 else:arg.validate(self.__runtime)
                 pin,view=self.__memory._pin_native_span(arg.pointer,len(arg.raw),self)
-                try:native=(C.c_uint16*(len(arg.raw)//2)).from_buffer(view)
+                try:native=(C.c_ubyte*len(arg.raw)).from_buffer(view) if type(arg) in (Identifier,PathCString) else (C.c_uint16*(len(arg.raw)//2)).from_buffer(view)
                 except BaseException as error:
                     self.__memory._unpin_native_span(pin,self);view.release();self.__failures.append(error);raise
                 widepins.append((arg,pin,view,native));slots.append(C.addressof(native))
@@ -86,6 +88,7 @@ class WindowsMMKVStdio:
                 if any(x>=128 for x in arg):raise PrimarySemanticUnavailable('non-ASCII MMKV CString provider unavailable')
                 item=C.create_string_buffer(arg+b'\0');owned.append(item);slots.append(C.addressof(item))
             elif type(arg) in (Pointer64,Unsigned64):slots.append(arg.value&0xffffffffffffffff)
+            elif type(arg) is Unsigned32:slots.append(arg.value&0xffffffff)
             elif type(arg) is int:slots.append(arg&0xffffffff)
             else:raise InputError('unsupported finite va_list argument')
         vector=(C.c_uint64*len(slots))(*slots);fmt=C.create_string_buffer(template+b'\0')
@@ -144,7 +147,7 @@ class WindowsMMKVStdio:
         if token not in self.__records:raise InputError('foreign stdio output token')
         self._validate_wide(token)
         import ctypes as C
-        leveltext={1:b'I',3:b'E'}.get(level)
+        leveltext={1:b'I',2:b'W',3:b'E'}.get(level)
         if leveltext is None:raise PrimarySemanticUnavailable('MMKV level text outside finite domain')
         values=(leveltext,file,line,function,message.value().split(b'\0',1)[0]);owned=[];slots=[]
         for arg in values:

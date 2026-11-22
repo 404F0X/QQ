@@ -177,17 +177,17 @@ class WindowsMMKVHost:
 
     def preflight_close(self):
         # Deliberately side-effect-free, including when an earlier operation is unknown.
-        if self.__directory is not None or self.__infos or self.__failures or (self.__open is not None and (self.__open['global_lock']!='not_entered' or self.__open['parent'] is not None or self.__open['files'] or self.__open['buffers'])) or self.__views or self.__file_ops:
+        if getattr(self.__runtime,'_mmkv_caller_pending',None) is not None or self.__directory is not None or self.__infos or self.__failures or (self.__open is not None and (self.__open['global_lock']!='not_entered' or self.__open['parent'] is not None or self.__open['files'] or self.__open['buffers'])) or self.__views or self.__file_ops:
             raise PrimarySemanticUnavailable('MMKV connected open has unresolved lock/parent/file/view debt')
 
     def _file_call(self,operation,result,types,args,*,publish=None,error=False):
         from .primary_mmkv_file import File40,FileLock
         from .primary_mmkv_open import _converted,_parent
         f=sys._getframe(1);caller=f.f_locals.get('self')
-        internal=f.f_code in (WindowsMMKVHost._enter_global.__code__,WindowsMMKVHost._map_view.__code__,WindowsMMKVHost._unmap_view.__code__) and caller is self
+        internal=f.f_code in (WindowsMMKVHost._enter_global.__code__,WindowsMMKVHost._leave_global.__code__,WindowsMMKVHost._map_view.__code__,WindowsMMKVHost._unmap_view.__code__) and caller is self
         source=(type(caller) is File40 and caller in self.__open['files'] or type(caller) is FileLock and caller in self.__open['locks']) if self.__open else False
         adapter=f.f_code in (_converted.__code__,_parent.__code__) and f.f_locals.get('r') is self.__runtime
-        allowed=('EnterCriticalSection','CreateFileW','MultiByteToWideChar','LockFileEx','UnlockFileEx','GetFileSizeEx','SetFilePointerEx','SetEndOfFile','WriteFile','CreateFileMappingW','MapViewOfFile','UnmapViewOfFile','CloseHandle','InitializeCriticalSectionAndSpinCount')
+        allowed=('EnterCriticalSection','LeaveCriticalSection','CreateFileW','MultiByteToWideChar','LockFileEx','UnlockFileEx','GetFileSizeEx','SetFilePointerEx','SetEndOfFile','WriteFile','CreateFileMappingW','MapViewOfFile','UnmapViewOfFile','CloseHandle','InitializeCriticalSectionAndSpinCount')
         if not (internal or source or adapter) or operation not in allowed:raise InputError('file API requires its actual connected source caller')
         self._check(operation)
         self.__allocator.source.validate(self.__runtime)
@@ -196,6 +196,7 @@ class WindowsMMKVHost:
         self.__file_ops.append(record);self.__active=True
         try:
             if operation=='EnterCriticalSection':self.__open['global_lock']='enter_unknown'
+            if operation=='LeaveCriticalSection':self.__open['global_lock']='leave_unknown'
             value=self._api(operation,result,types,*args)
             record['result']=value
             if publish is not None:publish(value)
@@ -224,6 +225,16 @@ class WindowsMMKVHost:
         self.__memory._validate_native_pin(record.token,self)
         self._file_call('EnterCriticalSection',None,(C.c_void_p,),(C.addressof(record.native),))
         self.__open['global_lock']='held'
+
+    def _leave_global(self):
+        from .primary_mmkv_open import open_mmkv
+        if sys._getframe(1).f_code is not open_mmkv.__code__ or self.__open['global_lock']!='held':raise InputError('MMKV global Leave requires source normal open suffix')
+        import ctypes as C
+        record=self.__lock
+        if self.__memory.load(self.__open['global_guard'],8)!=record.address or self.__memory.load(self.__base+0x6751390,8)!=record.address:raise InputError('global Leave guard identity changed')
+        self.__memory._validate_native_pin(record.token,self)
+        self._file_call('LeaveCriticalSection',None,(C.c_void_p,),(C.addressof(record.native),))
+        self.__open['global_lock']='released'
 
     def _capture_view_identity(self,memory,address,length,token):
         from .primary_memory import PrimaryMemory

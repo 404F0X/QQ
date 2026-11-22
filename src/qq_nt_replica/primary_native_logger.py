@@ -124,13 +124,83 @@ def _format_fixed(runtime,template,arguments):
     return output
 
 
-def _emit_cold(runtime,message,level,line):
+
+_NT_FORMAT=b'init misc mmkv, id={}, path={} crypt_key={}'
+_NT_FILE=bytes.fromhex('2e2e5c777261707065725c7379735f656e765c656e67696e655c7372635c6e745f777261707065725f656e67696e652e636300')
+
+
+def nt_file_basename(runtime):
+    # Both fixed source search implementations return the last matching byte before NUL.
+    last=None
+    for index,byte in enumerate(_NT_FILE):
+        if not byte:break
+        if byte==0x5c:last=index
+    result=runtime.image_base+0x486b891+last if last is not None else 0
+    runtime.events.append(('source.3E6D680',runtime.image_base+0x486b891,0x5c,result))
+    return _NT_FILE[(last+1) if last is not None else 0:-1]
+
+
+def _nt_format_records(runtime,view,array,count,output_address):
+    # A fixed source-literal view and actual40B variants are the formatter inputs.
+    memory=runtime.memory
+    if count!=3 or memory.load(view,8)!=runtime.image_base+0x45d2964 or memory.load(view+8,8)!=len(_NT_FORMAT):
+        raise InputError('NT formatter requires original fixed literal view/count3')
+    output=_String.construct(runtime,b'');output.write_to(output_address)
+    parts=_NT_FORMAT.split(b'{}')
+    for index,part in enumerate(parts):
+        if part:_append(output,output_address,part,literal=True)
+        if index==count:break
+        slot=array+40*index
+        if memory.load(slot+0x20,4)!=11:raise InputError('NT formatter requires actual CString variant11')
+        pointer=memory.load(slot+8,8);data=bytearray()
+        while memory.load(pointer+len(data),1):data.append(memory.load(pointer+len(data),1))
+        _append(output,output_address,bytes(data),literal=False)
+    return output
+
+
+def nt_misc_mmkv(runtime,source_file,id_copy,path_copy,crypt_copy):
+    memory=runtime.memory;pending=runtime._mmkv_caller_pending
+    runtime.events.append(('source.64FBA',2,source_file,0x73c,b'',_NT_FORMAT))
+    if enabled(runtime,2):
+        frame,unused=_frame(runtime,160,'6E282 native40 argument array and format view')
+        view=frame;array=frame+16;output_address=frame+136
+        pending['log_frame']=frame;pending['log_array']=array;pending['log_output']=output_address
+        memory.store(view,runtime.image_base+0x45d2964,8,source='64FBA.fixed_format_pointer')
+        memory.store(view+8,len(_NT_FORMAT),8,source='64FBA.fixed_format_length')
+        for index in range(3):
+            memory.store(array+40*index+8,0,1,source='6E282.initial_BYTE8')
+            memory.store(array+40*index+0x20,0,4,source='6E282.initial_tag0')
+        for index,address in enumerate((id_copy,path_copy,crypt_copy)):
+            source=_String.read(runtime,address);tag=source.get(0,1)
+            pointer=source.get(16,8) if tag&1 else address+1
+            length=source.get(8,8) if tag&1 else tag>>1 # 2FEB discards the actual span length.
+            slot=array+40*index
+            if memory.load(slot+0x20,4)!=0:raise InputError('NT variant initialization changed')
+            memory.store(slot+0x20,0xffffffff,4,source='2896.tag0_RET')
+            memory.store(slot+8,pointer,8,source='3028.borrowed_CString')
+            memory.store(slot+0x20,11,4,source='308A.variant11')
+        message=_nt_format_records(runtime,view,array,3,output_address)
+        for index in reversed(range(3)):
+            if memory.load(array+40*index+0x20,4)!=11:raise InputError('NT CString variant lifetime changed')
+            memory.store(array+40*index+0x20,0xffffffff,4,source='2896.variant11_RET')
+        _emit_cold(runtime,message,2,0x73c,source_file=source_file,function=b'')
+        runtime.events.append(('source.64FBA.message_dtor',output_address))
+        message.destroy();memory.unmap(frame);pending['log_frame']=None
+    # These are source normal call positions, never exception cleanup.
+    for address in (id_copy,path_copy,crypt_copy):
+        runtime.events.append(('source.64FBA.copy_dtor',address))
+        _String.read(runtime,address).destroy()
+
+
+def _emit_cold(runtime,message,level,line,*,source_file=b'login_service.cc',function=b'initConfig'):
     memory=runtime.memory;base=runtime.image_base
+    runtime.events.append(('source.D3A81F',level,source_file,line,function,message.value()))
     if memory.load(base+0x6753528,8):
         raise PrimarySemanticUnavailable('D3AB8F nonempty filter shared-pair predicate unavailable')
     if memory.load(base+0x6753530+0x78,8) or memory.load(base+0x6753530+0x28,8):
         raise PrimarySemanticUnavailable('D3A81F nonempty holder source terminal unavailable')
-    output=_format_fixed(runtime,b'[{}] {}({})::{} {}',(('cstring',b'I' if level==2 else b'E'),('cstring',b'login_service.cc'),('integer',line),('cstring',b'initConfig'),('String',message)))
+    if (source_file,function)!=(b'login_service.cc',b'initConfig') and (level,line,source_file,function)!=(2,0x73c,b'nt_wrapper_engine.cc',b''):raise PrimarySemanticUnavailable('D3 source metadata outside finite supported calls')
+    output=_format_fixed(runtime,b'[{}] {}({})::{} {}',(('cstring',b'I' if level==2 else b'E'),('cstring',source_file),('integer',line),('cstring',function),('String',message)))
     if memory.load(base+0x6753530,8) or memory.load(base+0x6753530+0x50,8):
         raise PrimarySemanticUnavailable('D3A81F unbound actual output callback unavailable')
     output.destroy()

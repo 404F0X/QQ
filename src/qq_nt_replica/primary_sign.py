@@ -2243,6 +2243,9 @@ class PrimaryRuntime:
                    0x35FB2C0, 0x35FB3C0, 0x35F7BE0, 0x35F7FE0, 0x35F1EB0):
             from .primary_device_identifiers import invoke
             return invoke(self, rva, tuple(arg(n) for n in range(len(cells))))
+        if rva == 0x1BDF3E0 and len(cells)==3:
+            from .primary_mmkv_load import crc_zero
+            return crc_zero(self, arg(0), arg(1), arg(2))
         if rva in (0x2E12310, 0x2E25B70, 0x1D3CF00, 0x75CEC0, 0x35F4E50, 0x2E09670, 0x2E09690):
             from .primary_device_collector import invoke
             return invoke(self, rva, tuple(arg(n) for n in range(len(cells))))

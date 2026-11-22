@@ -11,18 +11,19 @@ from test_primary_mmkv_directory import read_wide
 
 def file_ucrt(calls):
     def render(fmt,args):
-        pattern=rb'%(ls|zu|[psd])';parts=[];start=0
+        pattern=rb'%(ls|zu|[psdu])';parts=[];start=0
         for i,match in enumerate(re.finditer(pattern,fmt)):
             parts.append(fmt[start:match.start()]);kind=match[1];v=args[i]
             if kind==b'ls':parts.append(read_wide(v).encode())
             elif kind==b's':parts.append(C.string_at(v))
             elif kind==b'p':parts.append(('%016X'%v).encode())
             elif kind==b'zu':parts.append(str(v).encode())
+            elif kind==b'u':parts.append(str(v&0xffffffff).encode())
             else:parts.append(str(C.c_int32(v&0xffffffff).value).encode())
             start=match.end()
         parts.append(fmt[start:]);return b''.join(parts)
     def format(options,buffer,capacity,fmt,locale,args):
-        template=C.string_at(fmt);n=len(re.findall(rb'%(?:ls|zu|[psd])',template));values=(C.c_uint64*n).from_address(args)
+        template=C.string_at(fmt);n=len(re.findall(rb'%(?:ls|zu|[psdu])',template));values=(C.c_uint64*n).from_address(args)
         text=render(template,values);calls.append(('format',options,capacity,args,text,tuple(values)))
         part=text[:capacity-1];C.memmove(buffer,part,len(part));C.c_ubyte.from_address(buffer+len(part)).value=0;return len(text)
     def output(options,file,fmt,locale,args):
@@ -31,7 +32,7 @@ def file_ucrt(calls):
 
 
 class PhysicalFiles:
-    def __init__(self,options):self.options=options;self.calls=[];self.buffers=[];self.handles={};self.next=options.get('handle_start',100);self.last=5;self.position={};self.sizes={};self.map_sizes={};self.map_files={};self.data={};self.write_calls=0
+    def __init__(self,options):self.options=options;self.calls=[];self.buffers=[];self.handles={};self.next=options.get('handle_start',100);self.last=5;self.position={};self.sizes={};self.map_sizes={};self.map_files={};self.data={};self.write_calls=0;self.lock_calls=0;self.unlock_calls=0
     def __call__(self,name,*args):
         self.calls.append((name,args))
         if self.options.get('raise')==name:raise RuntimeError('controlled file API failure '+name)
@@ -44,13 +45,19 @@ class PhysicalFiles:
         if name in ('EnterCriticalSection','LeaveCriticalSection'):return
         if name=='CreateFileW':
             assert args[1:]==(0xc0000000,7,0,4,0x80,0)
-            if self.options.get('open_false'):return (1<<64)-1
-            self.next+=1;self.handles[self.next]=read_wide(args[0]);self.sizes[self.next]=self.options.get('initial_size',0);self.data[self.next]=bytearray(b'\xcc'*self.sizes[self.next]);return self.next
-        if name=='GetLastError':return self.options.get('last_error',self.last)
+            if self.options.get('open_false') or self.options.get('open_false_crc') and read_wide(args[0]).endswith('.crc'):return (1<<64)-1
+            self.next+=1;self.handles[self.next]=read_wide(args[0])
+            initial=self.options.get('file_data')
+            raw=initial[len(self.handles)-1] if initial is not None else b'\xcc'*self.options.get('initial_size',0)
+            self.sizes[self.next]=len(raw);self.data[self.next]=bytearray(raw);return self.next
+        if name=='GetLastError':return self.last if self.options.get('lock_script') or self.options.get('unlock_script') else self.options.get('last_error',self.last)
         if name=='LockFileEx':
             assert args[1:5] in ((2,0,1,0),(0,0,1,0));C.c_uint32.from_address(args[5]).value=0x1234
-            return 0 if self.options.get('lock_false') else 1
-        if name=='UnlockFileEx':return 0 if self.options.get('unlock_false') else 1
+            self.lock_calls+=1
+            if self.options.get('lock_raise_at')==self.lock_calls:raise RuntimeError('controlled file API failure LockFileEx')
+            result,error=self.options.get('lock_script',{}).get(self.lock_calls,(0 if self.options.get('lock_false') else 1,self.options.get('last_error',5)));self.last=error;return result
+        if name=='UnlockFileEx':
+            self.unlock_calls+=1;result,error=self.options.get('unlock_script',{}).get(self.unlock_calls,(0 if self.options.get('unlock_false') else 1,self.options.get('last_error',5)));self.last=error;return result
         if name=='GetFileSizeEx':
             if self.options.get('size_false'):return 0
             C.c_uint64.from_address(args[1]).value=self.sizes[args[0]];return 1
@@ -101,13 +108,13 @@ class FileChecks(unittest.TestCase):
             calls=e['file_api'].calls
             self.assertEqual(len([x for x in calls if x[0]=='CreateFileW']),2)
             lock=[x[1] for x in calls if x[0]=='LockFileEx'];unlock=[x[1] for x in calls if x[0]=='UnlockFileEx']
-            self.assertEqual([x[5] for x in lock[:2]],[x[4] for x in unlock])
+            self.assertEqual([x[5] for x in lock[:2]],[x[4] for x in unlock[:2]])
             self.assertEqual(lock[-1][1],0)
 
     def test_false_file_lock_continues_and_unlock9e_is_accepted(self):
         for options in ({'lock_false':True},{'unlock_false':True,'last_error':0x9e}):
             with connected(options) as (e,port):
-                self.assertEqual(port._WindowsMMKVHost__open['boundary'],0x1bd99a0)
+                self.assertEqual(port._WindowsMMKVHost__open['boundary'],0xd3de50)
                 self.assertEqual(len(port._WindowsMMKVHost__open['files']),2)
 
     def test_normal_destructor_double_close_pathlast_no_outer_free(self):
@@ -179,8 +186,13 @@ class FileChecks(unittest.TestCase):
 
     def test_ordinary_open_failure_has_two_source_calls_per_file_and_continues(self):
         with connected({'open_false':True}) as (e,port):
-            self.assertEqual(len([x for x in e['file_api'].calls if x[0]=='CreateFileW']),4)
-            self.assertEqual(port._WindowsMMKVHost__open['boundary'],0x1bd99a0)
+            opens=[args for name,args in e['file_api'].calls if name=='CreateFileW']
+            self.assertEqual(len(opens),6) # original two each, then both real reload positions
+            self.assertEqual([read_wide(args[0]).endswith('.crc') for args in opens],[False,False,True,True,True,False])
+            self.assertEqual(port._WindowsMMKVHost__open['global_lock'],'released')
+            self.assertEqual(port._WindowsMMKVHost__open['boundary'],0xd3de50)
+            narrow=[x for x in e['stdio_calls'] if x[0]=='format' and x[4].startswith(b'file [')]
+            self.assertEqual(narrow[-1][4],b'file [C] not valid')
             self.assertFalse([x for x in e['file_api'].calls if x[0]=='LockFileEx'])
 
     def test_api_exception_or_permit_denial_retains_debt_before_retirement(self):
@@ -237,7 +249,9 @@ class FileChecks(unittest.TestCase):
     def test_partial_write_failure_restores_only_memory_and_maps_actual_extended_file(self):
         with connected({'written':2048,'write_fail_at':2}) as (e,port):
             r=e['runtime'];first=port._WindowsMMKVHost__open['files'][0];api=e['file_api']
-            self.assertEqual(first.load(0x38),0);self.assertEqual(first.native_extent,8192)
+            stores=[int.from_bytes(row[1],'little') for row in r.memory.writes if row[0]==first.address+0x38]
+            self.assertIn(0,stores[1:]);self.assertEqual(stores[-1],8192)
+            self.assertEqual(first.load(0x38),8192);self.assertEqual(first.native_extent,8192)
             self.assertEqual(api.sizes[first.load(0x18)],8192)
             view=first.load(0x30);self.assertNotEqual(view,0)
             self.assertEqual(r.memory.read(view,2048),bytes(2048))

@@ -1,4 +1,4 @@
-"""Connected cold B99200 prefix, ending before the first1BD99A0 loader."""
+"""Connected finite cold B99200 open through ordinary empty load and publication."""
 import ctypes as C
 import sys
 from .errors import InputError
@@ -78,9 +78,12 @@ def _parent(r,port,parent,identifier):
     if not result:emit(r,'cs_error',error)
     for off in (0xb8,0xc0):m.store(m.load(parent+off,8)+0xc,m.load(parent+0xd1,1),1,source='B98948.copy_enabled')
     guard.acquire() # shared type0 ordinary FALSE ignored
-    r.events.append(('source.unavailable',0x1bd99a0,parent))
-    session['boundary']=0x1bd99a0
-    raise PrimarySemanticUnavailable('1BD99A0 first MMKV loader unavailable; parent/global lock retained')
+    from .primary_mmkv_load import load
+    session['outer_guard']=guard
+    load(r,port,parent,guard)
+    guard.release()
+    r.events.append(('source.parent_return',0xb9898f,parent))
+    return parent
 
 
 def open_mmkv(runtime,identifier,mode,key,path,extra):
@@ -96,13 +99,22 @@ def open_mmkv(runtime,identifier,mode,key,path,extra):
         runtime.memory.store(guard,runtime.memory.load(runtime.image_base+0x6751390,8),8,source='B995F0.guard_publish')
         session['global_guard']=guard;port._enter_global()
         local,_=_frame(runtime,32,'B996A0 owned NULL-root MMKV key')
-        source=_String.read(runtime,identifier);owned=source.clone();owned.write_to(local)
+        source=_String.read(runtime,identifier);owned=source.clone();owned.write_to(local);session['key']=local
         cache=runtime.memory.load(runtime.image_base+0x6751388,8)
         _invoke(runtime,0x8ed82,cache,local+24,local)
         if runtime.memory.load(cache+8,8) or runtime.memory.load(local+24,8):
             raise PrimarySemanticUnavailable('noncold MMKV lookup branch outside finite connected prefix')
         parent=_invoke(runtime,0xB75000,0xd8);session['parent']=parent
-        return _parent(runtime,port,parent,source)
+        _parent(runtime,port,parent,source)
+        _invoke(runtime,0x75cec0,parent,local)
+        from .primary_mmkv_map import emplace
+        slot=emplace(runtime,cache,local)
+        runtime.memory.store(slot,parent,8,source='B9938A.cache_value_publish')
+        _String.read(runtime,local).destroy();runtime.memory.unmap(local)
+        port._leave_global()
+        runtime.memory.store(guard,0,8,source='B99399.global_guard_clear');runtime.memory.unmap(guard)
+        runtime.events.append(('source.mmkv_return',parent))
+        return parent
     except BaseException as error:
         session.setdefault('failure',error)
         raise

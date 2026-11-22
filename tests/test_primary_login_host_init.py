@@ -191,7 +191,7 @@ class AttachPhase(unittest.TestCase):
             upper=Runtime.invoke.__get__(r,type(r))
             lower=PrimaryRuntime.invoke.__get__(r,type(r))
             def source_invoke(vm,rva,cells):
-                if rva in (0x3e97020,0x3e94f90) or connected and rva in (0xB75000,0xB75029,0xB7593F,0xB758C4,0xB758ED,0x8ed82,0x3c77e,0x6270):return lower(vm,rva,cells)
+                if rva in (0x3e97020,0x3e94f90,0x75b810) or connected and rva in (0xB75000,0xB75029,0xB7593F,0xB758C4,0xB758ED,0x8ed82,0x3c77e,0x6270,0x75cec0,0x75b810,0x1bdf3e0):return lower(vm,rva,cells)
                 return upper(vm,rva,cells)
             r.invoke=source_invoke
             from qq_nt_replica.primary_windows_mmkv_host_init import WindowsMMKVHost,for_runtime
@@ -204,7 +204,7 @@ class AttachPhase(unittest.TestCase):
                 if name=='InitializeCriticalSectionAndSpinCount':
                     if failure=='init_api':raise RuntimeError('controlled MMKV native failure')
                     self.assertIn(arguments[1],(400,0x400) if connected else (400,));C.memset(arguments[0],0x5a,40);return 0 if failure=='init_false' else 1
-                if name=='GetLastError':return (directory or {}).get('error',5)
+                if name=='GetLastError':return file_api(name) if connected else (directory or {}).get('error',5)
                 if name=='GetSystemInfo':
                     if failure=='page_api':raise RuntimeError('controlled MMKV page failure')
                     C.memset(arguments[0],0,48);C.c_uint32.from_address(arguments[0]+4).value=page_size;return
@@ -243,9 +243,12 @@ class AttachPhase(unittest.TestCase):
             with patch.object(WindowsMMKVStdio,'_load',return_value=stdio_functions),patch.object(WindowsMMKVHost,'_api',api),patch('qq_nt_replica.primary_shared_locale.resolve_current_module_tls',return_value=receipt),owner._registrar.operation():
                 service=get_login_service(owner)
                 with patch('qq_nt_replica.primary_windows_outer_sync.WindowsOuterSync._api',side_effect=lambda name,*args:1 if name=='InitializeCriticalSectionEx' else None):
-                    expected_error='controlled MMKV native failure' if failure=='init_api' else ('controlled MMKV page failure' if failure=='page_api' else ('controlled stdio' if stdio_failure else ('1BD99A0' if connected else ('scope denied' if directory is not None else '1BD8F45'))))
+                    expected_error='controlled MMKV native failure' if failure=='init_api' else ('controlled MMKV page failure' if failure=='page_api' else ('controlled stdio' if stdio_failure else ('D3DE50' if connected else ('scope denied' if directory is not None else '1BD8F45'))))
                     expected_type=RuntimeError if failure in ('init_api','page_api') or stdio_failure else PrimarySemanticUnavailable
                     if connected and directory.get('raise'):expected_type=RuntimeError;expected_error='controlled file API failure'
+                    if connected and directory.get('initial_size'):expected_error='1BDA3CA'
+                    if connected and directory.get('expected_error'):expected_error=directory['expected_error']
+                    if connected and directory.get('expected_type'):expected_type=directory['expected_type']
                     if connected and directory.get('convert_false'):expected_type=UnknownMemory;expected_error='unknown bytes'
                     if connected and directory.get('deny'):expected_error='scope denied'
                     with self.assertRaisesRegex(expected_type,expected_error):
@@ -266,7 +269,7 @@ class AttachPhase(unittest.TestCase):
                 # Test boundary deliberately aborted before any directory API. Retain semantics were asserted; release only synthetic pins.
                 m._unpin_native_span(work_record[1],host);work_record[2].release()
                 host._WindowsMMKVHost__directory=None;host._WindowsMMKVHost__failures.clear()
-            if defer_terminal:
+            if defer_terminal or directory is not None and getattr(r,'_mmkv_caller_pending',None) is not None:
                 # Keep the synthetic physical CS boundary valid for the caller's real close.
                 r._outer_sync_port._api=lambda *args:None
                 return dict(runtime=r,stdio_calls=stdio_calls,owner=owner,mmkv_api=api,prefixes=prefixes,api_calls=calls,file_api=file_api if connected else None)
