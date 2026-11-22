@@ -3,13 +3,17 @@ import ctypes as C
 
 
 def fake_ucrt(calls):
+    from test_primary_mmkv_directory import read_wide
     def render(fmt,args):
         if fmt==b'version %s, page size %d, arch %s':return fmt%(C.string_at(args[0]),C.c_int32(args[1]&0xffffffff).value,C.string_at(args[2]))
         if fmt==b'fail to init critical section:%d':return fmt%C.c_int32(args[0]&0xffffffff).value
+        if fmt==b'root dir: %ls':return b'root dir: '+read_wide(args[0]).encode('ascii')
+        if fmt==b'%ls attribute:%d not a directry':return read_wide(args[0]).encode('ascii')+b' attribute:%d not a directry'%C.c_int32(args[1]&0xffffffff).value
+        if fmt==b'fail to create dir:%ls, %d':return b'fail to create dir:'+read_wide(args[0]).encode('ascii')+b', %d'%C.c_int32(args[1]&0xffffffff).value
         if fmt==b'[%s] <%s:%d::%s> %s\n':return fmt%(C.string_at(args[0]),C.string_at(args[1]),C.c_int32(args[2]&0xffffffff).value,C.string_at(args[3]),C.string_at(args[4]))
         raise AssertionError(fmt)
     def vsprintf(options,buffer,capacity,fmt,locale,args):
-        template=C.string_at(fmt);count=3 if template.startswith(b'version') else 1
+        template=C.string_at(fmt);count=3 if template.startswith(b'version') else (2 if template in (b'%ls attribute:%d not a directry',b'fail to create dir:%ls, %d') else 1)
         raw=render(template,(C.c_uint64*count).from_address(args))
         calls.append(('format',options,capacity,args,raw))
         part=raw[:capacity-1];C.memmove(buffer,part,len(part));C.c_ubyte.from_address(buffer+len(part)).value=0

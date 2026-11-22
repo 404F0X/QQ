@@ -28,7 +28,7 @@ class WindowsMMKVHost:
         self.__allocator=self.__runtime._custom_allocator_backend
         self.__epoch=self.__allocator.source.epoch;self.__memory=self.__runtime.memory
         self.__base=self.__runtime.image_base;self.__pid=os.getpid();self.__thread=threading.get_native_id()
-        self.__origin=None;self.__lock=None;self.__infos={};self.__failures=[]
+        self.__directory=None;self.__origin=None;self.__lock=None;self.__infos={};self.__failures=[]
         self.__active=False;self.__checking=False;self.__terminal=False;self.__kernel=None
 
     def _check(self,operation,*,terminal=False):
@@ -137,9 +137,67 @@ class WindowsMMKVHost:
             return result
         finally:self.__active=False
 
+    def _prepare_directory(self,root):
+        from .primary_mmkv_host_init import _directory
+        f=sys._getframe(1)
+        if f.f_code is not _directory.__code__ or f.f_locals.get('runtime') is not self.__runtime:
+            raise InputError('MMKV directory preparation requires source adapter')
+        self._check(None);root.validate(self.__runtime)
+        if self.__directory is not None:raise PrimarySemanticUnavailable('MMKV pending directory cannot retry')
+
+    def _directory_failed(self,error):
+        if not self.__failures:self.__failures.append(error)
+
+    def _issue_directory(self,work):
+        from .primary_mmkv_host_init import _directory,_DirectoryWork
+        import ctypes as C
+        f=sys._getframe(1)
+        if f.f_code is not _directory.__code__ or type(work) is not _DirectoryWork or work.runtime is not self.__runtime or self.__directory is not None:
+            raise InputError('MMKV directory requires unique actual duplicate producer')
+        self._check(None);work.root.validate(self.__runtime)
+        token,view=self.__memory._pin_native_span(work.pointer,work.size,self)
+        try:native=(C.c_uint16*(work.size//2)).from_buffer(view)
+        except BaseException:self.__memory._unpin_native_span(token,self);view.release();raise
+        self.__directory=(work,token,view,native,work.pointer,work.size,work.region,work.root)
+
+    def _directory_record(self,work):
+        record=self.__directory
+        if record is None or record[0] is not work or (work.pointer!=record[4] or work.size!=record[5] or work.region is not record[6] or work.root is not record[7]):raise InputError('foreign/closed MMKV directory workbuffer')
+        work.root.validate(self.__runtime)
+        region,offset=self.__memory._span(work.pointer,work.size)
+        if region is not work.region or offset or self.__runtime.allocations.get(work.pointer)!=work.size:
+            raise InputError('MMKV directory CRT duplicate changed')
+        self.__memory._validate_native_pin(record[1],self)
+        return record
+
+    def _directory_step(self,work):
+        import ctypes as C
+        self._check('GetFileAttributesW');record=self._directory_record(work)
+        pointer=C.addressof(record[3]);self.__active=True
+        try:attrs=self._api('GetFileAttributesW',C.c_uint32,(C.c_void_p,),pointer)&0xffffffff
+        except BaseException as error:self.__failures.append(error);raise
+        finally:self.__active=False
+        if attrs!=0xffffffff:return attrs,None
+        self._check('CreateDirectoryW');self._directory_record(work);self.__active=True
+        try:
+            result=self._api('CreateDirectoryW',C.c_int32,(C.c_void_p,C.c_void_p),pointer,0)
+            error=None if result else self._api('GetLastError',C.c_uint32,())&0xffffffff
+            return attrs,error
+        except BaseException as error:self.__failures.append(error);raise
+        finally:self.__active=False
+
+    def _finish_directory(self,work):
+        from .primary_worker_consumer import _invoke
+        self._check(None);record=self._directory_record(work)
+        self.__memory._unpin_native_span(record[1],self);record[2].release()
+        try:_invoke(self.__runtime,0x3E94F90,work.pointer)
+        except BaseException as error:self.__failures.append(error);raise
+        self.__directory=None
+
     def dispose_terminal(self):
         import ctypes as C
         self._check(None,terminal=True)
+        if self.__directory is not None:raise PrimarySemanticUnavailable('MMKV directory workbuffer remains unresolved')
         if self.__infos:raise PrimarySemanticUnavailable('MMKV SystemInfo borrow remains unresolved')
         record=self.__lock
         if record is not None:

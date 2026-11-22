@@ -121,6 +121,94 @@ def _initialize_cache(runtime):
     _version_log(runtime,page)
 
 
+_WIDE_TOKEN=object()
+
+
+class _WideArgument:
+    def __init__(self,runtime,address,token):
+        if token is not _WIDE_TOKEN or address!=runtime.image_base+0x6751398:
+            raise InputError('wide argument requires original MMKV global root')
+        _validate(runtime)
+        self.runtime=runtime;self.memory=runtime.memory;self.base=runtime.image_base
+        self.source=runtime._shared_locale_source;self.epoch=runtime._shared_locale_source_epoch
+        self.address=address;self.region,self.offset=self.memory._span(address,24)
+        self.header=self.memory.read(address,24)
+        if self.header[0]&1:
+            self.length=self.memory.load(address+8,8);self.pointer=self.memory.load(address+16,8)
+            self.allocation=runtime._custom_allocator_backend.records.get(self.pointer)
+            if self.allocation is None:raise InputError('MMKV wide root lacks its owning allocation')
+        else:
+            self.length=self.header[0]>>1;self.pointer=address+2;self.allocation=None
+            if self.length>10:raise InputError('MMKV short wide root overflow')
+        if not 0<self.length<200:raise PrimarySemanticUnavailable('MMKV wide length outside finite domain')
+        self.backing,self.start=self.memory._span(self.pointer,2*(self.length+1))
+        self.raw=self.memory.read(self.pointer,2*(self.length+1))
+        if self.raw[-2:]!=bytes(2):raise InputError('MMKV wide root lacks terminator')
+        self.validate(runtime)
+
+    def validate(self,runtime):
+        if (runtime is not self.runtime or runtime.memory is not self.memory or runtime.image_base!=self.base or
+                runtime._shared_locale_source is not self.source or runtime._shared_locale_source_epoch is not self.epoch):
+            raise InputError('MMKV wide argument image changed')
+        self.source.validate_image(runtime)
+        region,offset=self.memory._span(self.address,24);backing,start=self.memory._span(self.pointer,len(self.raw))
+        if (region is not self.region or offset!=self.offset or backing is not self.backing or start!=self.start or
+                self.memory.read(self.address,24)!=self.header or self.memory.read(self.pointer,len(self.raw))!=self.raw):
+            raise InputError('MMKV wide argument backing/lifetime changed')
+        if self.allocation is not None:
+            record=runtime._custom_allocator_backend.records.get(self.pointer)
+            if record is not self.allocation or record[0] is not backing or record[1]<len(self.raw) or start:
+                raise InputError('MMKV wide owning allocation changed')
+
+
+class _DirectoryWork:
+    def __init__(self,root,pointer,size):
+        self.root=root;self.runtime=root.runtime;self.pointer=pointer;self.size=size
+        self.region,self.offset=root.memory._span(pointer,size)
+        if (self.offset or self.runtime.allocations.get(pointer)!=size or self.region is root.backing or
+                pointer<root.pointer+len(root.raw) and root.pointer<pointer+size):
+            raise InputError('MMKV duplicate requires normal CRT allocation')
+
+
+def _directory(runtime,root):
+    import re
+    from .primary_windows_mmkv_host_init import for_runtime
+    root.validate(runtime)
+    text=root.raw[:-2].decode('utf-16-le')
+    if not 10<root.length<200 or re.fullmatch(r'[A-Za-z]:\\[A-Za-z0-9_-]+(?:\\[A-Za-z0-9_-]+)*',text) is None:
+        raise PrimarySemanticUnavailable('1BD8F45 path outside finite ASCII drive domain')
+    port=for_runtime(runtime);port._prepare_directory(root)
+    try:
+        size=len(root.raw)
+        pointer=_invoke(runtime,0x3E97020,size)
+        if not pointer:raise PrimarySemanticUnavailable('3E90050 CRT duplicate NULL/OOM unsupported')
+        work=_DirectoryWork(root,pointer,size);port._issue_directory(work)
+        memory=runtime.memory
+        memory.write(pointer,root.raw,source='3E90050.duplicate_UTF16_with_NUL')
+        cursor=pointer
+        while True:
+            while memory.load(cursor,2)==0x5c:cursor+=2
+            end=cursor
+            while memory.load(end,2) not in (0,0x5c):end+=2
+            done=memory.load(end,2)==0
+            memory.store(end,0,2,source='1BD8FD2.temporary_NUL')
+            attrs,error=port._directory_step(work)
+            if error is not None:
+                _log(runtime,3,b'MemoryFile_Win32.cpp',b'mkPath',0x102,b'fail to create dir:%ls, %d',(root,error))
+                result=False;break
+            if attrs!=0xffffffff and not attrs&0x10:
+                _log(runtime,3,b'MemoryFile_Win32.cpp',b'mkPath',0x107,b'%ls attribute:%d not a directry',(root,attrs))
+                result=False;break
+            cursor=end
+            memory.store(cursor,0x5c,2,source='1BD8FE3.write_backslash_even_final_NUL')
+            if done:result=True;break
+        port._finish_directory(work)
+        return result
+    except BaseException as error:
+        port._directory_failed(error);raise
+
+
+
 def initialize(runtime,wide_root):
     _validate(runtime);memory=runtime.memory;base=runtime.image_base
     # B9955C stores its source level/handler before independent once initialization.
@@ -136,7 +224,9 @@ def initialize(runtime,wide_root):
     elif state!=2:
         raise PrimarySemanticUnavailable('1BD910A unexpected once-state branch unavailable')
     copy_wide_root_fresh(runtime,base+0x6751398,wide_root)
-    raise PrimarySemanticUnavailable('1BD8F45 source directory traversal requires additional scoped source host ports')
+    root=_WideArgument(runtime,base+0x6751398,_WIDE_TOKEN)
+    _directory(runtime,root) # ordinary BOOL is ignored by the source caller
+    _log(runtime,1,b'MMKV.cpp',b'initializeMMKV',0xe9,b'root dir: %ls',(root,))
 
 
 def initialize_login_root(runtime,common_path):

@@ -2864,14 +2864,14 @@
     {
       "path": "src/qq_nt_replica/primary_mmkv_host_init.py",
       "source_sha256": "9b30a78828aecf3995a8ec1eb5b4a10788802f5be2ad8598d5b8162e7b6fc6ed",
-      "sha256": "24338b09b9a55af6d64892781022b62d795e063821ba89b8bfbcf46470f83d5d",
+      "sha256": "61efdbdd763924f75cbf3b0aa31a4880f5ceaa929204c837fe7f084adfe38cd1",
       "classification": "project_source",
       "origin": "MAT-SIGN-LOGIN-SOURCE-ORDER-REPAIR/a1; first retained authored snapshot: login-source-order-repair/first-retained-source/primary_mmkv_host_init.py"
     },
     {
       "path": "src/qq_nt_replica/primary_windows_mmkv_host_init.py",
       "source_sha256": "53dd6167ab027ea703b54d4a9c3480510de15b854c23ba348b81aad69afb4ad6",
-      "sha256": "53dd6167ab027ea703b54d4a9c3480510de15b854c23ba348b81aad69afb4ad6",
+      "sha256": "bc404d33e280412ce41f588c1ed9b6cc5a66f8027563e26b858291326cbe2a8e",
       "classification": "project_source",
       "origin": "MAT-SIGN-LOGIN-SOURCE-ORDER-REPAIR/a1; first retained authored snapshot: login-source-order-repair/first-retained-source/primary_windows_mmkv_host_init.py"
     },
@@ -2892,7 +2892,7 @@
     {
       "path": "src/qq_nt_replica/primary_windows_mmkv_stdio.py",
       "source_sha256": "90798522f0c6e07587aaf184c0459ba44fd0ca3e5b0647a6cc37214ac8e999a2",
-      "sha256": "90798522f0c6e07587aaf184c0459ba44fd0ca3e5b0647a6cc37214ac8e999a2",
+      "sha256": "4927137bbf3b7361898312726705b5c68ce804e5374c4cf6a0c8ed7e3955c5f4",
       "classification": "project_source",
       "origin": "MAT-SIGN-MMKV-STDIO-SUBUNIT/a1 first retained authored snapshot: mmkv-stdio-subunit-a1/first-retained-source/primary_windows_mmkv_stdio.py"
     },

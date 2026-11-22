@@ -13,7 +13,7 @@ class WindowsMMKVStdio:
         self.__memory=self.__runtime.memory;self.__base=self.__runtime.image_base
         self.__pid=os.getpid();self.__thread=threading.get_native_id()
         self.__library=None;self.__functions=None;self.__stdout=None
-        self.__records={};self.__pins={};self.__failures=[];self.__active=False;self.__checking=False;self.__terminal=False
+        self.__records={};self.__widepins={};self.__pins={};self.__failures=[];self.__active=False;self.__checking=False;self.__terminal=False
 
     def _check(self,operation=None,terminal=False):
         from .primary_module_sync import _resource,MODEL_NATIVE
@@ -60,27 +60,43 @@ class WindowsMMKVStdio:
         f=sys._getframe(1)
         if f.f_code is not log.__code__ or f.f_locals.get('runtime') is not self.__runtime:raise InputError('stdio arguments require actual source log producer')
         self._check()
-        if template not in (b'version %s, page size %d, arch %s',b'fail to init critical section:%d'):raise PrimarySemanticUnavailable('other MMKV printf template unavailable')
-        expected=(bytes,int,bytes) if template.startswith(b'version') else (int,)
+        from .primary_mmkv_host_init import _WideArgument
+        wide={b'%ls attribute:%d not a directry':(_WideArgument,int),b'fail to create dir:%ls, %d':(_WideArgument,int),b'root dir: %ls':(_WideArgument,)}
+        if template not in (*wide,b'version %s, page size %d, arch %s',b'fail to init critical section:%d'):raise PrimarySemanticUnavailable('other MMKV printf template unavailable')
+        expected=wide.get(template,(bytes,int,bytes) if template.startswith(b'version') else (int,))
         if len(arguments)!=len(expected) or any(type(value) is not kind for value,kind in zip(arguments,expected)):
             raise InputError('fixed MMKV va_list count/type mismatch')
         import ctypes as C
-        owned=[];slots=[]
+        region,offset=self.__memory._span(buffer,16)
+        token=object();owned=[];slots=[];widepins=[]
+        self.__widepins[token]=widepins
         for arg in arguments:
-            if type(arg) is bytes:
+            if type(arg) is _WideArgument:
+                arg.validate(self.__runtime)
+                pin,view=self.__memory._pin_native_span(arg.pointer,len(arg.raw),self)
+                try:native=(C.c_uint16*(len(arg.raw)//2)).from_buffer(view)
+                except BaseException as error:
+                    self.__memory._unpin_native_span(pin,self);view.release();self.__failures.append(error);raise
+                widepins.append((arg,pin,view,native));slots.append(C.addressof(native))
+            elif type(arg) is bytes:
                 if any(x>=128 for x in arg):raise PrimarySemanticUnavailable('non-ASCII MMKV CString provider unavailable')
                 item=C.create_string_buffer(arg+b'\0');owned.append(item);slots.append(C.addressof(item))
             elif type(arg) is int:slots.append(arg&0xffffffff)
             else:raise InputError('unsupported finite va_list argument')
         vector=(C.c_uint64*len(slots))(*slots);fmt=C.create_string_buffer(template+b'\0')
-        region,offset=self.__memory._span(buffer,16)
-        token=object();self.__records[token]=(tuple(owned),vector,fmt,buffer,region,offset)
+        self.__records[token]=(tuple(owned),vector,fmt,buffer,region,offset)
+        self.__widepins[token]=widepins
         return token
+
+    def _validate_wide(self,token):
+        for arg,pin,view,native in self.__widepins.get(token,()):
+            arg.validate(self.__runtime);self.__memory._validate_native_pin(pin,self)
 
     def _format(self,token,buffer,capacity,options):
         from .primary_mmkv_log import _format
         if sys._getframe(1).f_code is not _format.__code__:raise InputError('stdio buffer requires actual7017B4 caller')
         self._check('__stdio_common_vsprintf')
+        self._validate_wide(token)
         record=self.__records.get(token)
         if record is None:raise InputError('foreign/closed stdio call token')
         if buffer==record[3]:
@@ -118,6 +134,7 @@ class WindowsMMKVStdio:
         if sys._getframe(1).f_code is not log.__code__:raise InputError('stdio output requires actual622D94 caller')
         self._check('__stdio_common_vfprintf')
         if token not in self.__records:raise InputError('foreign stdio output token')
+        self._validate_wide(token)
         import ctypes as C
         leveltext={1:b'I',3:b'E'}.get(level)
         if leveltext is None:raise PrimarySemanticUnavailable('MMKV level text outside finite domain')
@@ -145,11 +162,14 @@ class WindowsMMKVStdio:
         if sys._getframe(1).f_code is not log.__code__:raise InputError('stdio call cleanup requires source log')
         self._check()
         if token not in self.__records:raise InputError('stdio call already closed')
+        self._validate_wide(token)
+        for arg,pin,view,native in self.__widepins.pop(token,()):
+            self.__memory._unpin_native_span(pin,self);view.release()
         del self.__records[token]
 
     def dispose_terminal(self):
         self._check(terminal=True)
-        if self.__records or self.__pins:raise PrimarySemanticUnavailable('stdio live call/buffer remains')
+        if self.__records or self.__pins or self.__widepins:raise PrimarySemanticUnavailable('stdio live call/buffer remains')
         self.__terminal=True;self.__stdout=None;self.__functions=None;self.__library=None
         # Borrowed system stdout is never fclose'd; dropping host references is not source teardown.
 
