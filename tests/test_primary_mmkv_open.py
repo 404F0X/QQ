@@ -9,7 +9,7 @@ class OpenChecks(unittest.TestCase):
         from qq_nt_replica.primary_memory import UnknownMemory
         with connected() as (e,port):
             r=e['runtime'];m=r.memory;session=port._WindowsMMKVHost__open;p=session['parent']
-            self.assertEqual(session['global_lock'],'released');self.assertEqual(session['boundary'],0xd3de50)
+            self.assertEqual(session['global_lock'],'released');self.assertEqual(session['boundary'],0x65240)
             for off,size in ((0x8a,2),(0xc9,3),(0xd2,6)):
                 with self.assertRaises(UnknownMemory):m.read(p+off,size)
             self.assertEqual(m.load(p+0xd1,1),1)
@@ -23,7 +23,7 @@ class OpenChecks(unittest.TestCase):
             self.assertTrue(r._custom_allocator_backend.storage.hooks.complete)
             cache=m.load(r.image_base+0x6751388,8)
             self.assertEqual(m.load(cache+8,8),2);self.assertEqual(m.load(m.load(cache+0x10,8)+0x28,8),p)
-            self.assertEqual(m.load(r.image_base+0x674d418,8),1)
+            self.assertEqual(m.load(r.image_base+0x674d418,8),(1<<64)-1)
             obj=m.load(r.image_base+0x674c730,8);self.assertEqual(m.read(obj+0x90,16),bytes(16))
 
     def test_close_rejects_before_guest_creator_bridge_retirement(self):

@@ -70,32 +70,45 @@ def _nt_mmkv_method(runtime,interface,identifier,path,crypt):
     from .primary_windows_mmkv_host_init import for_runtime
     session=for_runtime(runtime)._WindowsMMKVHost__open;session['caller']=pending;session['boundary']=0xd3de50
     memory.store(frame+0x88,interface+0x3b0,8,source='64E04.caller_guard_pointer')
-    runtime.events.append(('source.unavailable',0xd3de50,0x64e08,interface+0x3b0,raw))
-    raise PrimarySemanticUnavailable('64E08 D3DE50 NT misc map lock unavailable; caller locals retained')
+    from .primary_nt_misc_map import bind
+    bound=bind(runtime,pending);runtime._nt_misc_record=bound
+    bound.acquire();bound.publish(identifier,raw)
+    bound.release()
+    pending['released_guard_value']=memory.load(pending['guard'],8)
+    from .primary_mmkv_host_init import destroy_wide_root
+    for site,address,kind in ((0x64e2f,frame+0x58,'wide'),(0x64e38,frame+0x70,'byte'),(0x64e41,path,'R8'),(0x64e4a,crypt,'R9')):
+        runtime.events.append(('source.NT_normal_dtor',site,address))
+        if kind=='wide':destroy_wide_root(runtime,address)
+        else:_String.read(runtime,address).destroy()
+    pending['method_consumed']=True
+    memory.unmap(frame);pending['method_finished']=True
+    runtime.events.append(('source.64C9E.return',raw))
+    return raw
 
 def _callback_7510f1(runtime,closure,frame):
     memory=runtime.memory
     if closure!=frame+0x30 or memory.load(closure,8)!=frame+0x38 or memory.load(frame+0x38,8)!=frame+0x2f:
         raise InputError('7503EA synchronous closure pointer chain changed')
     runtime.events.append(('source.callback',0x7510F1,closure))
-    # Entry overwrites RCX for5B11A before reading the incoming marker byte.
-    obj,control=acquire_nt(runtime)
-    local=None;values=[]
-    try:
-        local,unused=_frame(runtime,0x50,'7510F1 owned String locals')
-        for offset,value in ((0,b'nt_mmkv_msf_united_config'),(0x18,b''),(0x30,b'')):
-            string=_String.construct(runtime,value);values.append(string);string.write_to(local+offset)
-        alias=obj+8
-        target=memory.load(memory.load(alias,8)+0x30,8)
-        if target!=runtime.image_base+0x64c9e:raise InputError('NT misc MMKV interface target mismatch')
-        runtime._mmkv_caller_pending=dict(phase='nt_method',locals=local,values=values,nt_pair=(obj,control))
-        return _nt_mmkv_method(runtime,alias,local,local+0x18,local+0x30)
-    finally:
-        # Earlier abort-only cleanup is not source EH; connected loader/caller debt stays owned.
-        if getattr(runtime,'_mmkv_caller_pending',None) is None:
-            for value in reversed(values):value.destroy()
-            if local is not None:runtime.memory.unmap(local)
-            release_nt(runtime,obj,control)
+    pending=dict(phase='callback_entered',callback_frame=frame,nt_pair=None)
+    runtime._mmkv_caller_pending=pending
+    obj,control=acquire_nt(runtime);pending['nt_pair']=(obj,control)
+    local,unused=_frame(runtime,0x50,'7510F1 owned String locals');pending['locals']=local
+    for offset,value in ((0,b'nt_mmkv_msf_united_config'),(0x18,b''),(0x30,b'')):
+        _String.construct(runtime,value).write_to(local+offset)
+    alias=obj+8
+    target=memory.load(memory.load(alias,8)+0x30,8)
+    if target!=runtime.image_base+0x64c9e:raise InputError('NT misc MMKV interface target mismatch')
+    pending['phase']='nt_method'
+    _nt_mmkv_method(runtime,alias,local,local+0x18,local+0x30)
+    runtime.events.append(('source.callback_normal_dtor',0x75116f,local))
+    _String.read(runtime,local).destroy();pending['callback_id_consumed']=True
+    release_nt(runtime,obj,control);pending['callback_pair_consumed']=True
+    memory.unmap(local);pending['callback_finished']=True
+    history=getattr(runtime,'_nt_callback_history',None)
+    if history is None:history=[];runtime._nt_callback_history=history
+    history.append(pending);runtime._mmkv_caller_pending=None
+    runtime.events.append(('source.7510F1.return',0x751188))
 
 
 def _preinitialize(runtime):
@@ -105,11 +118,32 @@ def _preinitialize(runtime):
     memory.store(frame+0x38,frame+0x2f,8,source='7503EA.marker_pointer')
     memory.store(frame+0x30,frame+0x38,8,source='7503EA.closure_pointer')
     from .primary_module_sync import selector_once
-    try:
-        return selector_once(runtime,lambda:_callback_7510f1(runtime,frame+0x30,frame))
-    finally:
-        if getattr(runtime,'_mmkv_caller_pending',None) is None:memory.unmap(frame)
-        else:runtime._mmkv_caller_pending['callback_frame']=frame
+    try:selector_once(runtime,lambda:_callback_7510f1(runtime,frame+0x30,frame))
+    except BaseException as error:
+        runtime._selector_once_failure=(error,memory.load(runtime.image_base+0x674d418,8))
+        raise
+    runtime._nt_callback_history[-1]['once_finished']=True
+    memory.unmap(frame);runtime._nt_callback_history[-1]['closure_frame_finished']=True
+    runtime.events.append(('source.7503EA.return',0x7507bc))
+
+
+def _config_prepare(runtime):
+    memory=runtime.memory
+    frame,unused=_frame(runtime,0x60,'750756 config output/key/id/new NT pair')
+    pending=dict(frame=frame,output=frame,key=frame+0x18,identifier=frame+0x30)
+    runtime._selector_config_pending=pending
+    _invoke(runtime,0x6270,frame)
+    obj,control=acquire_nt(runtime);pending['nt_pair']=(obj,control)
+    memory.store(frame+0x48,obj,8,source='7507C9.new_NT_object');memory.store(frame+0x50,control,8,source='7507C9.new_NT_control')
+    for site,address,literal,rva in ((0x7507dd,frame+0x18,b'107775_switch',0x3f71a2a),(0x7507ed,frame+0x30,b'nt_mmkv_msf_united_config',0x3f71a10)):
+        runtime.events.append(('source.330E',site,address,runtime.image_base+rva,len(literal)))
+        _String.construct(runtime,literal).write_to(address)
+    alias=obj+8;target=memory.load(memory.load(alias,8)+0x38,8)
+    pending.update(alias=alias,target=target)
+    runtime.events.append(('source.unavailable',target-runtime.image_base,0x750808,alias,frame+0x30,frame+0x18,frame))
+    from .primary_windows_mmkv_host_init import for_runtime
+    for_runtime(runtime)._WindowsMMKVHost__open['boundary']=target-runtime.image_base
+    raise PrimarySemanticUnavailable('750808 actual NT config target '+hex(target-runtime.image_base)+' unavailable')
 
 
 def select(runtime):
@@ -119,7 +153,7 @@ def select(runtime):
         runtime._locale_thread_header(guard)
         if memory.load(guard,4,signed=True)==-1:
             _preinitialize(runtime)
-            raise PrimarySemanticUnavailable('65240 MMKV lookup/decode after preinit unavailable')
+            _config_prepare(runtime)
     return bool(memory.load(base+0x674d420,1))
 
 

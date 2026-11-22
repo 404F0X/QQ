@@ -9,15 +9,15 @@ class EmptyLoad(unittest.TestCase):
     def test_continuous_factory_zero_load_cache_and_caller_stop(self):
         with connected() as (e,port):
             r=e['runtime'];m=r.memory;s=port._WindowsMMKVHost__open;p=s['parent']
-            self.assertEqual((s['global_lock'],s['boundary']),('released',0xd3de50))
+            self.assertEqual((s['global_lock'],s['boundary']),('released',0x65240))
             self.assertEqual(m.load(p+0x78,8),0);self.assertEqual(m.load(p+0x88,1),0)
             self.assertEqual(m.load(m.load(p+0x98,8)+4,4),4)
             cache=m.load(r.image_base+0x6751388,8);node=m.load(cache+0x10,8)
             self.assertEqual((m.load(cache+8,8),m.load(cache+0x18,8),m.load(node+0x28,8)),(2,1,p))
             self.assertEqual(m.load(m.load(cache,8)+(m.load(node+8,8)&1)*8,8),cache+0x10)
-            self.assertEqual(r._mmkv_caller_pending['raw'],p)
-            self.assertEqual(m.load(r._mmkv_caller_pending['guard'],8),r._mmkv_caller_pending['interface']+0x3b0)
-            self.assertEqual(m.load(r.image_base+0x674d418,8),1)
+            self.assertEqual(r._nt_callback_history[-1]['raw'],p)
+            self.assertEqual(r._nt_callback_history[-1]['released_guard_value'],r._nt_callback_history[-1]['interface']+0x3b0)
+            self.assertEqual(m.load(r.image_base+0x674d418,8),(1<<64)-1)
             obj=m.load(r.image_base+0x674c730,8);self.assertEqual(m.read(obj+0x90,16),bytes(16))
 
     def test_actual_zero_production_copy_crc_descriptor_logs_and_writeback(self):
@@ -67,7 +67,7 @@ class EmptyLoad(unittest.TestCase):
 
     def test_getsize_false_is_not_a_history_guard(self):
         with connected({'size_false':True}) as (e,port):
-            self.assertEqual(port._WindowsMMKVHost__open['boundary'],0xd3de50)
+            self.assertEqual(port._WindowsMMKVHost__open['boundary'],0x65240)
             self.assertFalse([x for x in e['file_api'].calls if x[0]=='GetLastError'])
 
     def test_partial_write_retains_bytes_and_real_reopen_not_fake_zero(self):
@@ -77,7 +77,7 @@ class EmptyLoad(unittest.TestCase):
             stores=[int.from_bytes(x[1],'little') for x in m.writes if x[0]==file.address+0x38]
             self.assertIn(0,stores[1:]);self.assertEqual(stores[-1],8192)
             self.assertGreater(len([x for x in e['file_api'].calls if x[0]=='GetFileSizeEx']),2)
-            self.assertEqual(port._WindowsMMKVHost__open['boundary'],0xd3de50)
+            self.assertEqual(port._WindowsMMKVHost__open['boundary'],0x65240)
 
     def test_nonzero_crc_stops_after_length_without_fake_result(self):
         main=bytearray(8192);main[:4]=(1).to_bytes(4,'little')
@@ -110,7 +110,7 @@ class EmptyLoad(unittest.TestCase):
         with connected({'file_data':(bytes(8192),bytes(meta))},transform=instrument) as (e,port):
             self.assertEqual(len(observed),1);self.assertTrue(observed[0].startswith(b'[W]'))
             r=e['runtime'];p=port._WindowsMMKVHost__open['parent'];self.assertEqual(r.memory.load(p+0x78,8),0)
-            self.assertEqual(port._WindowsMMKVHost__open['boundary'],0xd3de50)
+            self.assertEqual(port._WindowsMMKVHost__open['boundary'],0x65240)
 
     def test_shared_state_same_overlapped_and_upgrade_downgrade_order(self):
         with connected() as (e,port):
@@ -128,7 +128,7 @@ class EmptyLoad(unittest.TestCase):
             self.assertEqual((m.load(outer.address+8,8),m.load(outer.address+16,8)),(0,0))
             templates=[x[5] for x in r.events if x[0]=='1BDF22C.arguments']
             self.assertIn(b'fail to lock fd=%p, error:%d',templates);self.assertIn(b'fail to recover shared-lock fd=%p, error:%d',templates)
-            self.assertEqual(s['boundary'],0xd3de50)
+            self.assertEqual(s['boundary'],0x65240)
 
     def test_downgrade_ignored_shared_false_and_failed_unlock_are_distinct(self):
         for options,exclusive,pinned in (({'lock_script':{5:(0,7)}},0,False),({'unlock_script':{4:(0,5)}},1,True),({'unlock_script':{4:(0,0x9e)}},0,False)):
@@ -137,7 +137,7 @@ class EmptyLoad(unittest.TestCase):
                 self.assertEqual((m.load(outer.address+8,8),m.load(outer.address+16,8)),(0,exclusive))
                 self.assertEqual(outer.pinned,pinned);self.assertIsNone(inner.guard);self.assertIsNone(outer.guard)
                 if exclusive:self.assertEqual(e['file_api'].unlock_calls,4)
-                self.assertEqual(s['boundary'],0xd3de50)
+                self.assertEqual(s['boundary'],0x65240)
 
     def test_upgrade_exception_retains_guard_pin_and_no_descriptor(self):
         with connected({'lock_raise_at':4,'expected_type':RuntimeError,'expected_error':'controlled file API failure'}) as (e,port):
@@ -161,7 +161,7 @@ class EmptyLoad(unittest.TestCase):
     def test_ordinary_invalid_metadata_keeps_constructor_and_narrow_wide_log(self):
         with connected({'open_false_crc':True}) as (e,port):
             r=e['runtime'];s=port._WindowsMMKVHost__open;p=s['parent'];m=r.memory
-            self.assertEqual(s['boundary'],0xd3de50);self.assertEqual(m.load(m.load(p+0x98,8)+4,4),1)
+            self.assertEqual(s['boundary'],0x65240);self.assertEqual(m.load(m.load(p+0x98,8)+4,4),1)
             self.assertFalse([x for x in m.writes if x[2]=='1BDA25E.actual_Meta70_copy'])
             logs=[x for x in e['stdio_calls'] if x[0]=='format' and x[4].startswith(b'file [')]
             self.assertEqual(logs[-1][4],b'file [C] not valid')
@@ -210,7 +210,7 @@ class EmptyLoad(unittest.TestCase):
         with connected({'file_data':(bytes(main),bytes(meta))}) as (e,port):
             lines=[x[4] for x in e['stdio_calls'] if x[0]=='format' and b'actual size 4294967295' in x[4]]
             self.assertTrue(lines);self.assertIn(b'meta actual size 0',lines[-1])
-            self.assertEqual(port._WindowsMMKVHost__open['boundary'],0xd3de50)
+            self.assertEqual(port._WindowsMMKVHost__open['boundary'],0x65240)
 
     def test_emplace_rereads_cache_after_second_real_hash_without_cold_reset(self):
         def instrument(functions,r,calls):
@@ -246,7 +246,7 @@ class EmptyLoad(unittest.TestCase):
             logs=[x for x in r.events if x[0]=='1BDF22C.arguments' and x[2]==b'MMKV_IO.cpp']
             self.assertEqual([x[4] for x in logs],[0xc0,0x50])
             self.assertIs(logs[-1][-1][0].path,s['paths'][0]);self.assertEqual(m.load(p+0x88,1),0)
-            self.assertEqual((s['global_lock'],s['boundary']),('released',0xd3de50))
+            self.assertEqual((s['global_lock'],s['boundary']),('released',0x65240))
 
 
 class NativePrefix(unittest.TestCase):
@@ -272,14 +272,15 @@ class NativePrefix(unittest.TestCase):
                     self.assertEqual([x.value() for x in copies],[b'nt_mmkv_msf_united_config',b'',b''])
                     self.assertEqual(slots,[copies[0].get(16,8),pending['path_copy']+1,pending['crypt_copy']+1])
                     original=_String.read(r,pending['locals']);self.assertNotEqual(slots[0],original.get(16,8))
-                    snapshots.append((dict(pending),slots))
+                    snapshots.append((dict(pending),slots,original.get(16,8)))
                 return load(address,size,**kw)
             r.memory.store=actual_store;r.memory.load=actual_load;return functions
         with connected(transform=instrument) as (e,port):
-            self.assertEqual(len(snapshots),1);r=e['runtime'];pending,slots=snapshots[0];m=r.memory
+            self.assertEqual(len(snapshots),1);r=e['runtime'];pending,slots,original_pointer=snapshots[0];m=r.memory
             self.assertNotIn(slots[0],r._custom_allocator_backend.records)
             from qq_nt_replica.primary_logger import _String
-            self.assertIn(_String.read(r,pending['locals']).get(16,8),r._custom_allocator_backend.records)
+            self.assertNotIn(original_pointer,r._custom_allocator_backend.records)
+            self.assertTrue(r._nt_callback_history[-1]['callback_id_consumed'])
             copies=[x[1] for x in trace if x[0]=='event' and x[1][0]=='source.75B810'];self.assertEqual([x[1] for x in copies],[0x64cd9,0x64ce8,0x64cf7])
             cleanup=[x[2] for x in trace if x[:2]==('store','2896.variant11_RET')]
             self.assertEqual(cleanup,[pending['log_array']+80+32,pending['log_array']+40+32,pending['log_array']+32])
@@ -295,21 +296,29 @@ class NativePrefix(unittest.TestCase):
             self.assertEqual(source_search[1:],(r.image_base+0x486b891,0x5c,r.image_base+0x486b8ae))
 
     def test_empty_byte_unknown_tail_wide_known_zero_and_caller_ownership(self):
-        with connected() as (e,port):
+        snapshots=[]
+        def instrument(functions,r,calls):
             from qq_nt_replica.primary_memory import UnknownMemory
-            r=e['runtime'];m=r.memory;p=r._mmkv_caller_pending;bytepath=p['bytepath'];wide=p['wide']
-            region,offset=m._span(bytepath,24);self.assertEqual(bytes(region.initialized[offset:offset+24]),bytes([1,1])+bytes(22))
-            self.assertEqual(m.read(bytepath,2),bytes(2))
-            with self.assertRaises(UnknownMemory):m.read(bytepath+8,8)
-            self.assertEqual(m.read(wide,24),bytes(24))
-            self.assertTrue([x for x in r.events if x[0]=='source.discarded_unknown_long_candidate' and x[1]==bytepath+8])
+            store=r.memory.store
+            def actual(address,value,size,**kw):
+                if kw.get('source')=='64E1F.raw_MMkv_publish':
+                    m=r.memory;p=r._mmkv_caller_pending;bytepath=p['bytepath'];wide=p['wide']
+                    region,offset=m._span(bytepath,24);self.assertEqual(bytes(region.initialized[offset:offset+24]),bytes([1,1])+bytes(22))
+                    self.assertEqual(m.read(bytepath,2),bytes(2))
+                    with self.assertRaises(UnknownMemory):m.read(bytepath+8,8)
+                    self.assertEqual(m.read(wide,24),bytes(24))
+                    self.assertEqual(m.load(p['span'],8),p['locals']+0x19);self.assertEqual(m.load(p['span']+8,8),0)
+                    snapshots.append(dict(p))
+                return store(address,value,size,**kw)
+            r.memory.store=actual;return functions
+        with connected(transform=instrument) as (e,port):
+            r=e['runtime'];m=r.memory;p=snapshots[0];self.assertEqual(len(snapshots),1)
+            self.assertTrue([x for x in r.events if x[0]=='source.discarded_unknown_long_candidate' and x[1]==p['bytepath']+8])
             self.assertEqual([x for x in r.events if x[0]=='source.75C480'][-1][-1],(1<<64)-1)
             self.assertEqual(len([x for x in e['file_api'].calls if x[0]=='MultiByteToWideChar']),4)
-            self.assertEqual(m.load(p['span'],8),p['locals']+0x19);self.assertEqual(m.load(p['span']+8,8),0)
-            self.assertEqual(m.load(p['guard'],8),p['interface']+0x3b0)
-            self.assertEqual(m.load(p['nt_pair'][0]+0x3c0,8),p['nt_pair'][0]+0x3c8)
-            self.assertEqual(m.read(p['nt_pair'][0]+0x3c8,16),bytes(16))
-            self.assertEqual(m.load(r.image_base+0x674d418,8),1)
+            h=r._nt_callback_history[-1];self.assertEqual(h['released_guard_value'],p['interface']+0x3b0)
+            self.assertTrue(h['method_finished']);self.assertTrue(h['callback_finished'])
+            self.assertEqual(m.load(r.image_base+0x674d418,8),(1<<64)-1)
             before=e['file_api'].calls[:]
             with patch.object(e['owner']._threads,'prepare_close',side_effect=AssertionError('dangerous retirement')):
                 with self.assertRaises(ExceptionGroup):e['owner'].close()
@@ -327,7 +336,7 @@ class NativePrefix(unittest.TestCase):
             self.assertTrue([w for w in r.memory.writes if w[2]=='D3AF48.threshold' and int.from_bytes(w[1],'little')==2])
             self.assertFalse([w for w in r.memory.writes if w[2]=='308A.variant11'])
             self.assertEqual(len([x for x in r.events if x[0]=='source.64FBA.copy_dtor']),3)
-            self.assertEqual(port._WindowsMMKVHost__open['boundary'],0xd3de50)
+            self.assertEqual(port._WindowsMMKVHost__open['boundary'],0x65240)
 
     def test_actual_formatter_or_sink_write_failure_retains_native_arguments_and_copies(self):
         for stage,expected_tags in (('formatter',11),('sink',0xffffffff)):

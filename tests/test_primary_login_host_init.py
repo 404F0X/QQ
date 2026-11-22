@@ -243,7 +243,7 @@ class AttachPhase(unittest.TestCase):
             with patch.object(WindowsMMKVStdio,'_load',return_value=stdio_functions),patch.object(WindowsMMKVHost,'_api',api),patch('qq_nt_replica.primary_shared_locale.resolve_current_module_tls',return_value=receipt),owner._registrar.operation():
                 service=get_login_service(owner)
                 with patch('qq_nt_replica.primary_windows_outer_sync.WindowsOuterSync._api',side_effect=lambda name,*args:1 if name=='InitializeCriticalSectionEx' else None):
-                    expected_error='controlled MMKV native failure' if failure=='init_api' else ('controlled MMKV page failure' if failure=='page_api' else ('controlled stdio' if stdio_failure else ('D3DE50' if connected else ('scope denied' if directory is not None else '1BD8F45'))))
+                    expected_error='controlled MMKV native failure' if failure=='init_api' else ('controlled MMKV page failure' if failure=='page_api' else ('controlled stdio' if stdio_failure else ('750808' if connected else ('scope denied' if directory is not None else '1BD8F45'))))
                     expected_type=RuntimeError if failure in ('init_api','page_api') or stdio_failure else PrimarySemanticUnavailable
                     if connected and directory.get('raise'):expected_type=RuntimeError;expected_error='controlled file API failure'
                     if connected and directory.get('initial_size'):expected_error='1BDA3CA'
