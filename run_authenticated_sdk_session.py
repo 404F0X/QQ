@@ -32,6 +32,44 @@ _LOGIN_STATES = frozenset(('FAILED', 'QR_ISSUED', 'PHONE_CONFIRMED', 'EXPIRED',
     'REGISTRATION_REJECTED', 'ONLINE_OBSERVED_CONNECTION_CLOSED'))
 
 
+# Fixed public literals from the selected T/Q source contracts; no prefix acceptance.
+_QR_FIXED_ERRORS = frozenset((
+    'QR_ATTEMPT_INPUT_CHANGED', 'QR_ATTEMPT_TERMINAL', 'QR_BYTES_LENGTH', 'QR_CALLBACK_REQUIRED',
+    'QR_DESKTOP_PROFILE_UNSUPPORTED', 'QR_DUPLICATE_TLV', 'QR_ECDH_PEER', 'QR_ECDH_PUBLIC_PREFIX',
+    'QR_ECDH_REQUIRED', 'QR_ECDH_SCALAR', 'QR_ENTROPY_PROVIDER', 'QR_EXECUTION_MODE',
+    'QR_EXPERIMENT_FETCH_ONLY', 'QR_EXPERIMENT_LIFECYCLE_DEADLINE', 'QR_EXPERIMENT_PROFILE_SOURCE',
+    'QR_EXPERIMENT_TRANSPORT_BINDING', 'QR_EXPERIMENT_TRANSPORT_NOT_STARTED', 'QR_HEAD_INTEGER',
+    'QR_HEAD_VERSION', 'QR_INITIAL_SEQUENCE', 'QR_INTEGER_RANGE', 'QR_LOCAL_LIFETIME',
+    'QR_MONOTONIC_CLOCK', 'QR_POLICY_BOUND', 'QR_POLICY_POLLS', 'QR_POLICY_TIME', 'QR_POLL_CAP',
+    'QR_POLL_NOT_DUE', 'QR_PREPARATION_FAILED', 'QR_PREPARE_TIMEOUT', 'QR_REQUEST_INFLIGHT',
+    'QR_REQUEST_TIMEOUT', 'QR_RESIDENT_EXPERIMENT_REQUIRED', 'QR_RESPONSE_FAILED',
+    'QR_SEQUENCE_EXHAUSTED', 'QR_SIGNING_ASSOCIATION', 'QR_SIGNING_FAILED',
+    'QR_SIGN_CALLER_SLOT_LENGTH', 'QR_SIGN_INPUT_REQUIRED', 'QR_SSO_BODY_LENGTH',
+    'QR_SSO_COMMAND_LENGTH', 'QR_SSO_COMPRESSION', 'QR_SSO_CORRELATION', 'QR_SSO_DECOMPRESSION_LIMIT',
+    'QR_SSO_EXTRA_LENGTH', 'QR_SSO_HEAD_LENGTH', 'QR_SSO_OUTER_FRAME', 'QR_SSO_UIN_LENGTH',
+    'QR_STALE_ATTEMPT', 'QR_STALE_REQUEST', 'QR_STATE_TRANSITION', 'QR_TARGET_PROFILE_NOT_QUALIFIED',
+    'QR_TEA_LENGTH', 'QR_TEA_PADDING', 'QR_TEXT_ENCODING', 'QR_TEXT_REQUIRED', 'QR_TLV_COUNT',
+    'QR_TRAILING_BYTES', 'QR_TRANSPORT_ERROR_KIND', 'QR_TRANS_EMP_APP_ID', 'QR_TRANS_EMP_SUBCOMMAND',
+    'QR_TRUNCATED', 'QR_TYPED_INPUT_REQUIRED', 'QR_URL_INVALID', 'QR_URL_REQUIRED',
+    'QR_WTLOGIN_COMMAND', 'QR_WTLOGIN_FRAME',
+))
+_TICKET_FIXED_ERRORS = frozenset((
+    'LOGIN_BYTES_LENGTH', 'LOGIN_CANONICAL_UIN_REQUIRED', 'LOGIN_CONFIRMED_POLL_REQUIRED',
+    'LOGIN_ERROR_INFO_ENCODING', 'LOGIN_INTEGER_RANGE', 'LOGIN_PROTO_FIELD_LIMIT',
+    'LOGIN_PROTO_FIELD_NUMBER', 'LOGIN_PROTO_VARINT_OVERFLOW', 'LOGIN_PROTO_WIRE_UNSUPPORTED',
+    'LOGIN_QR_PROFILE_REQUIRED', 'LOGIN_TEXT_ENCODING', 'LOGIN_TEXT_REQUIRED', 'LOGIN_TRAILING_BYTES',
+    'LOGIN_TRUNCATED', 'LOGIN_TYPED_INPUT_REQUIRED', 'LOGIN_UID_ENCODING', 'LOGIN_UID_FIELD_AMBIGUOUS',
+    'LOGIN_UID_FIELD_REQUIRED', 'LOGIN_UID_REQUIRED', 'LOGIN_WTLOGIN_COMMAND', 'LOGIN_WTLOGIN_FRAME',
+))
+_TICKET_TLV_ERRORS = frozenset('LOGIN_TLV_' + tag + '_REQUIRED'
+    for tag in ('0119', '0143', '0305', '010A', '0543')) | {'LOGIN_TLV_0305_LENGTH'}
+_TICKET_SHARED_ERRORS = frozenset('LOGIN_SHARED_' + code for code in (
+    'QR_BYTES_LENGTH', 'QR_TEA_LENGTH', 'QR_TEA_PADDING', 'QR_TRUNCATED',
+    'QR_TLV_COUNT', 'QR_DUPLICATE_TLV', 'QR_TRAILING_BYTES'))
+_SELECTED_LOGIN_ERRORS = (_QR_FIXED_ERRORS | _TICKET_FIXED_ERRORS |
+    _TICKET_TLV_ERRORS | _TICKET_SHARED_ERRORS | {'ACCOUNT_' + code for code in _QR_FIXED_ERRORS})
+
+
 def _remember_failure(error, stage=None):
     global _FAILURE
     if _FAILURE is None:
@@ -65,6 +103,127 @@ def _remember_failure(error, stage=None):
 
 class EntryError(RuntimeError):
     pass
+
+
+def _remember_glue_failure(error, glue_api, source_binding, login_root):
+    """Project only selected public error semantics; never format an exception."""
+    if _FAILURE is None or glue_api is None or source_binding is None:
+        return
+    try:
+        pin = json.loads((login_root / 'G/ENTRY-SOURCE-BINDING.json').read_bytes())['modules'][
+            'candidate/independent_login_account_registration/common.py']
+        path = Path(pin['path']).resolve()
+        base = glue_api.GlueError
+        common = sys.modules.get(base.__module__)
+        if (common is None or Path(common.__file__).resolve() != path or
+                common.GlueError is not base or
+                Path(base.__init__.__code__.co_filename).resolve() != path or
+                hashlib.sha256(path.read_bytes()).hexdigest() != pin['sha256']):
+            return
+        kinds = tuple(getattr(common, name) for name in ('GlueError', 'InputError', 'StateError', 'DecodeError'))
+        if type(error) not in kinds:
+            return
+        codes = frozenset(('GLUE_SIGN_PROVIDER_FAILED', 'GLUE_SIGN_ASSOCIATION', 'GLUE_SIGNATURE_REQUIRED',
+            'ACCOUNT_CONTINUATION_TERMINAL', 'ACCOUNT_GUARD_FAILED', 'ACCOUNT_STALE_ATTEMPT',
+            'ACCOUNT_MONOTONIC_CLOCK', 'ACCOUNT_LOCAL_LIFETIME', 'ACCOUNT_QR_CONTEXT_CHANGED',
+            'ACCOUNT_PHASE', 'ACCOUNT_SEQUENCE_REUSE', 'ACCOUNT_STALE_REQUEST', 'ACCOUNT_REQUEST_REQUIRED',
+            'ACCOUNT_HTTP_STATUS', 'ACCOUNT_JSON_LIMIT', 'ACCOUNT_JSON_INVALID',
+            'ACCOUNT_UIN_EXACT_INTEGER_REQUIRED', 'ACCOUNT_EXPECTED_MISMATCH',
+            'ACCOUNT_LOGIN_PREPARATION', 'ACCOUNT_REGISTRATION_PREPARATION',
+            'LOGIN_TLV_0143_REQUIRED', 'LOGIN_TLV_0305_REQUIRED', 'LOGIN_TLV_0305_LENGTH',
+            'LOGIN_TLV_010A_REQUIRED', 'LOGIN_UID_FIELD_REQUIRED', 'LOGIN_UID_REQUIRED')) | _SELECTED_LOGIN_ERRORS
+        names = frozenset(('GlueError', 'InputError', 'StateError', 'DecodeError', 'ResidentError',
+            'LoginError', 'LoginInputError', 'LoginDecodeError', 'QrError',
+            'PrimarySemanticUnavailable', 'PrimaryProgramLimit', 'PrimaryMemoryLimit', 'UnknownMemory',
+            'RuntimeError', 'ValueError', 'TypeError', 'KeyError', 'AttributeError', 'OSError'))
+        selected = list(source_binding.values()) + list(source_binding.get('_sources', {}).values())
+        trusted = {os.path.normcase(str(Path(row['path']).resolve())) for row in selected
+            if isinstance(row, dict) and type(row.get('path')) is str}
+        binding = json.loads((login_root / 'G/ENTRY-SOURCE-BINDING.json').read_bytes())
+        trusted.update(os.path.normcase(str(Path(row['path']).resolve())) for row in binding['modules'].values())
+        chain, seen, current = [], set(), error
+        for _ in range(3):
+            if current is None or id(current) in seen:
+                break
+            seen.add(id(current))
+            name = type(current).__name__
+            record = {'type': name if name in names else 'OtherError'}
+            if type(current) in kinds:
+                code = current.code
+                if type(code) is str and code in codes:
+                    record['code'] = code
+            sites, traceback = [], current.__traceback__
+            while traceback is not None:
+                code = traceback.tb_frame.f_code
+                if os.path.normcase(code.co_filename) in trusted:
+                    sites.append({'file': Path(code.co_filename).name,
+                        'function': code.co_name, 'line': traceback.tb_lineno})
+                traceback = traceback.tb_next
+            if sites:
+                record['sites'] = sites[-2:]
+            chain.append(record)
+            current = current.__context__
+        _FAILURE['login_error_chain'] = chain
+    except BaseException:
+        _FAILURE['glue_observation_unavailable'] = True
+
+
+class _QrTiming:
+    """Optional bounded diagnostic sink; never a business input or authority."""
+    labels = frozenset(('login.factory.begin', 'login.factory.end',
+        'fetch.prepare.begin', 'fetch.prepare.end', 'poll.prepare.begin', 'poll.prepare.end',
+        'qr.sign.begin', 'qr.sign.end', 'fetch.exchange.begin', 'fetch.exchange.end',
+        'poll.exchange.begin', 'poll.exchange.end', 'fetch.decode.begin', 'fetch.decode.end',
+        'poll.decode.begin', 'poll.decode.end', 'qr.paint.return',
+        'session.cleanup.begin', 'session.cleanup.end', 'login.cleanup.begin', 'login.cleanup.end')) | frozenset(
+            'state.' + value for value in _LOGIN_STATES | {'CONFIRMED'})
+
+    def __init__(self, path=None, *, stream=None, clock=time.monotonic):
+        self.stream, self.clock = stream, clock
+        self.owned, self.available, self.index = False, True, None
+        try:
+            if stream is None:
+                self.stream = Path(path).open('x', encoding='utf-8')
+                self.owned = True
+        except BaseException:
+            self.available = False
+
+    def __call__(self, label, index=None):
+        if not self.available:
+            return
+        try:
+            if (type(label) is not str or label not in self.labels or
+                    index is not None and (type(index) is not int or not 0 <= index <= 8)):
+                raise ValueError('invalid timing field')
+            if label in ('fetch.prepare.begin', 'poll.prepare.begin'):
+                self.index = index
+            value = self.clock()
+            if type(value) not in (int, float) or not math.isfinite(value):
+                raise ValueError('invalid timing clock')
+            row = {'label': label, 'monotonic': value}
+            if index is not None:
+                row['index'] = index
+            self.stream.write(json.dumps(row, separators=(',', ':')) + '\n')
+            self.stream.flush()
+            if label in ('fetch.prepare.end', 'poll.prepare.end'):
+                self.index = None
+        except BaseException:
+            self.available = False
+
+    def policy_event(self, name, **fields):
+        # Do not forward Policy payloads, commands, result sizes or exceptions.
+        try:
+            if self.index is not None and name in ('OP_BEGIN', 'OP_END') and fields.get('stage') == 'SIGN':
+                self('qr.sign.begin' if name == 'OP_BEGIN' else 'qr.sign.end', self.index)
+        except BaseException:
+            self.available = False
+
+    def close(self):
+        if self.owned:
+            try:
+                self.stream.close()
+            except BaseException:
+                self.available = False
 
 
 class _Discard(io.TextIOBase):
@@ -252,7 +411,7 @@ def _require_online(result, captured):
         raise error
 
 
-def _login_phase(options, network, notify, sleep):
+def _login_phase(options, network, notify, sleep, timing=None):
     global _STAGE
     _STAGE = 'login_inputs'
     import mode1_binding as binding
@@ -263,12 +422,14 @@ def _login_phase(options, network, notify, sleep):
     from resident_core_composition import run_session
     from core_result_r10 import CoreObservedSigner
 
-    core = activation = owner = signer = transport = None
+    core = activation = owner = signer = transport = G = None
     captured = []
     guard = NetworkGuard()
     network.login, network.stage = guard, 'login'
-    policy = Policy(network.deadline)
+    policy = Policy(network.deadline, event=timing.policy_event) if timing is not None else Policy(network.deadline)
     try:
+        if timing is not None:
+            timing('login.factory.begin')
         Q, T, G, W, adapter = binding.load_all()
         core = adapter.load_core()
         dependency = json.loads((options.login_root / 'DEPENDENCY-U.json').read_bytes())
@@ -295,6 +456,8 @@ def _login_phase(options, network, notify, sleep):
         except BaseException as error:
             owner = getattr(error, 'independent_windows_owner', None)
             raise
+        if timing is not None:
+            timing('login.factory.end')
         device = Q.QrDevice(identity.guid, 'Windows', platform.node(),
             Q.EcdhKeys.from_private_scalar(secrets.randbelow(
                 0xFFFFFFFFFFFFFFFFFFFFFFFE26F2FC170F69466A74DEFD8D - 1) + 1))
@@ -311,15 +474,20 @@ def _login_phase(options, network, notify, sleep):
         result = run_session(Q, T, G, W, device=device, signer=signer, transport=transport,
             https=GetFaceOnce(G, guard), confirm_uin=owner.confirm_uin, policy=policy,
             entropy=os.urandom, unix_seconds=lambda: int(time.time()), notify=notify,
-            system_kernel=platform.version(), sleep=sleep, on_authenticated=capture)
+            system_kernel=platform.version(), sleep=sleep, on_authenticated=capture, timing=timing)
         _require_online(result, captured)
     except BaseException as error:
         _remember_failure(error)
+        _remember_glue_failure(error, G, core.binding if core is not None else None, options.login_root)
         captured.clear()
         raise
     finally:
         try:
+            if timing is not None:
+                timing('login.cleanup.begin')
             _close_login(transport, signer, owner, activation, core)
+            if timing is not None:
+                timing('login.cleanup.end')
         except BaseException as error:
             _remember_failure(error)
             captured.clear()
@@ -329,7 +497,7 @@ def _login_phase(options, network, notify, sleep):
     return captured.pop()
 
 
-def run(options, notify, sleep=time.sleep):
+def run(options, notify, sleep=time.sleep, *, timing=None):
     global _STAGE, _FAILURE
     _STAGE, _FAILURE = 'inputs', None
     if (type(options.timeout) not in (int, float) or not math.isfinite(options.timeout) or
@@ -345,7 +513,7 @@ def run(options, notify, sleep=time.sleep):
     sys.path.insert(0, str(options.login_root))
     core = activation = phase = None
     try:
-        material, profile = _login_phase(options, network, notify, sleep)
+        material, profile = _login_phase(options, network, notify, sleep, timing)
         _STAGE = 'sdk_core'
         import signature_core
         if Path(signature_core.__file__).resolve() != ROOT / 'signature_core.py':
@@ -399,6 +567,7 @@ def main(argv=None):
     parser.add_argument('--loader-profile', required=True)
     parser.add_argument('--timeout', type=float, default=600)
     parser.add_argument('--sdk-timeout', type=float, default=60)
+    parser.add_argument('--qr-timing-events', type=Path, help='owned fixed-label monotonic JSONL diagnostic')
     options = parser.parse_args(argv)
     if not options.run:
         parser.error('--run is required; this entry has no synthetic success mode')
@@ -410,14 +579,50 @@ def main(argv=None):
     image_label = tk.Label(root)
     image_label.pack()
     cancelled = False
+    timing = _QrTiming(options.qr_timing_events) if options.qr_timing_events is not None else None
+    attention_job = None
+    bell_rung = False
+
+    def clear_attention():
+        nonlocal attention_job
+        job, attention_job = attention_job, None
+        if job is not None:
+            try:
+                root.after_cancel(job)
+            except tk.TclError:
+                pass
+        try:
+            root.attributes('-topmost', False)
+        except tk.TclError:
+            pass
+
+    def show_attention():
+        nonlocal attention_job, bell_rung
+        try:
+            root.deiconify()
+            root.update_idletasks()
+            x = max(0, (root.winfo_screenwidth() - root.winfo_reqwidth()) // 2)
+            y = max(0, (root.winfo_screenheight() - root.winfo_reqheight()) // 3)
+            root.geometry(f'+{x}+{y}')
+            root.lift()
+            root.attributes('-topmost', True)
+            attention_job = root.after(8000, clear_attention)
+            if not bell_rung:
+                bell_rung = True
+                root.bell()
+        except tk.TclError:
+            clear_attention()
 
     def cancel():
         nonlocal cancelled
         cancelled = True
+        clear_attention()
     root.protocol('WM_DELETE_WINDOW', cancel)
 
-    def pump():
+    def pump(*, qr_paint=False):
         root.update()
+        if qr_paint and timing is not None:
+            timing('qr.paint.return')
         if cancelled:
             raise EntryError('AUTH_CANCELLED')
 
@@ -425,9 +630,14 @@ def main(argv=None):
         if kind == 'QR':
             image_label.image = tk.PhotoImage(master=root, data=base64.b64encode(value))
             image_label.configure(image=image_label.image)
+            show_attention()
         elif kind == 'STATUS':
             label.configure(text=value)
-        pump()
+            if value in ('PHONE_CONFIRMED', 'ONLINE', 'ONLINE_OBSERVED_CONNECTION_CLOSED',
+                    'EXPIRED', 'CANCELLED', 'UNKNOWN_STATUS', 'LOCAL_EXPIRED', 'FAILED',
+                    'POLL_CAP_REACHED', 'LOGIN_NOT_COMPLETED', 'REGISTRATION_REJECTED'):
+                clear_attention()
+        pump(qr_paint=kind == 'QR')
 
     def sleep(seconds):
         pump()
@@ -437,15 +647,21 @@ def main(argv=None):
         # Source loggers may format private material. Neither stream is a
         # credential transport, including on exceptions or close refusal.
         with _private_output():
-            result = run(options, notify, sleep)
+            result = run(options, notify, sleep, timing=timing)
         print(json.dumps(dict(profile=result.profile, verified_install=result.verified_install,
             next_sign_consumed=result.next_sign_consumed)))
         return 0
     except BaseException as error:
         _remember_failure(error)
-        print(json.dumps(dict(status='AUTHENTICATED_SDK_SESSION_NOT_COMPLETED', **_FAILURE)), file=sys.stderr)
+        public = dict(status='AUTHENTICATED_SDK_SESSION_NOT_COMPLETED', **_FAILURE)
+        if timing is not None:
+            public['timing_available'] = timing.available
+        print(json.dumps(public), file=sys.stderr)
         return 1
     finally:
+        clear_attention()
+        if timing is not None:
+            timing.close()
         root.destroy()
 
 

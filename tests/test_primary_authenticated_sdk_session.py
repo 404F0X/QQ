@@ -27,6 +27,140 @@ entry = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(entry)
 
 
+class Timing(unittest.TestCase):
+    def test_timing_privacy_and_failure_do_not_change_business(self):
+        stream = io.StringIO()
+        timing = entry._QrTiming(stream=stream, clock=iter(range(100)).__next__)
+        timing('login.factory.begin')
+        timing('login.factory.end')
+        timing('fetch.prepare.begin', 0)
+        timing.policy_event('OP_BEGIN', stage='SIGN', payload='synthetic-secret-payload')
+        timing.policy_event('OP_END', stage='SIGN', raw_exception='synthetic-secret-error')
+        timing('fetch.prepare.end', 0)
+        timing('qr.paint.return')
+        timing('state.EXPIRED', 1)
+        rows = [json.loads(line) for line in stream.getvalue().splitlines()]
+        self.assertEqual([r['label'] for r in rows], ['login.factory.begin', 'login.factory.end',
+            'fetch.prepare.begin', 'qr.sign.begin', 'qr.sign.end', 'fetch.prepare.end',
+            'qr.paint.return', 'state.EXPIRED'])
+        self.assertTrue(all(set(r) <= {'label', 'monotonic', 'index'} for r in rows))
+        self.assertEqual([r['monotonic'] for r in rows], list(range(8)))
+        self.assertNotIn('synthetic-secret', stream.getvalue())
+        before = stream.getvalue()
+        timing.policy_event('OP_BEGIN', stage='SIGN', payload='synthetic-secret-outside-QR')
+        self.assertEqual(stream.getvalue(), before)
+        timing('synthetic-secret-label')
+        self.assertFalse(timing.available)
+        timing('fetch.prepare.begin', 0)
+        self.assertEqual(stream.getvalue(), before)
+
+        writer = Mock()
+        writer.write.side_effect = OSError('synthetic-secret-disk-error')
+        broken = entry._QrTiming(stream=writer, clock=lambda: 1.0)
+        value = object()
+        def business():
+            broken('fetch.prepare.begin', 0)
+            broken.policy_event('OP_BEGIN', stage='SIGN')
+            return value
+        self.assertIs(business(), value)
+        self.assertFalse(broken.available)
+        self.assertEqual(writer.write.call_count, 1)
+        primary = ValueError('synthetic-business-first-error')
+        try:
+            broken('login.cleanup.begin')
+            raise primary
+        except ValueError as error:
+            self.assertIs(error, primary)
+        bad_clock = Mock(side_effect=RuntimeError('synthetic-secret-clock'))
+        unavailable = entry._QrTiming(stream=io.StringIO(), clock=bad_clock)
+        unavailable('fetch.prepare.begin', 0)
+        unavailable('fetch.prepare.end', 0)
+        self.assertFalse(unavailable.available)
+        self.assertEqual(bad_clock.call_count, 1)
+        # Execute only the four pinned error class definitions, not the login
+        # package or algorithms, in an owned temporary test module.
+        import types
+        login = Path(os.environ['AUTHENTICATED_LOGIN_ROOT'])
+        binding = json.loads((login / 'G/ENTRY-SOURCE-BINDING.json').read_bytes())
+        pin = binding['modules']['candidate/independent_login_account_registration/common.py']
+        raw = Path(pin['path']).read_bytes()
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), pin['sha256'])
+        source = ast.parse(raw.decode('utf-8'))
+        definitions = [node for node in source.body if isinstance(node, ast.ClassDef)
+            and node.name in ('GlueError', 'InputError', 'StateError', 'DecodeError')]
+        module = types.ModuleType('_controlled_glue_errors')
+        module.__file__ = pin['path']
+        exec(compile(ast.Module(body=definitions, type_ignores=[]), pin['path'], 'exec'), module.__dict__)
+        ticket = types.ModuleType('_controlled_ticket_errors')
+        qr = types.ModuleType('_controlled_qr_errors')
+        for package, target, names in (
+                ('T', ticket, ('LoginError', 'LoginInputError', 'LoginDecodeError')),
+                ('Q', qr, ('QrError',))):
+            refs = json.loads((login / package / 'ENTRY-SOURCE-BINDING.json').read_bytes())['modules']
+            ref = next(v for k, v in refs.items() if k.endswith('/codec.py'))
+            payload = Path(ref['path']).read_bytes()
+            self.assertEqual(hashlib.sha256(payload).hexdigest(), ref['sha256'])
+            defs = [n for n in ast.parse(payload.decode('utf-8')).body
+                if isinstance(n, ast.ClassDef) and n.name in names]
+            exec(compile(ast.Module(body=defs, type_ignores=[]), ref['path'], 'exec'), target.__dict__)
+        previous = entry._FAILURE
+        try:
+            with patch.dict(sys.modules, {module.__name__: module}):
+                api = types.ModuleType('_controlled_actual_G_exports')
+                exports = ast.parse((Path(pin['path']).parent / '__init__.py').read_text(encoding='utf-8')).body[0]
+                self.assertEqual(exports.module, 'common')
+                for name in exports.names:
+                    if hasattr(module, name.name):
+                        setattr(api, name.asname or name.name, getattr(module, name.name))
+                selected = {'test': {'path': str(Path(entry.__file__).parent /
+                    'tests/test_primary_authenticated_sdk_session.py')}}
+                for public_code in ('LOGIN_WTLOGIN_FRAME', 'LOGIN_WTLOGIN_COMMAND',
+                        'LOGIN_TLV_0119_REQUIRED', 'LOGIN_TLV_0543_REQUIRED',
+                        'LOGIN_TLV_0305_LENGTH', 'LOGIN_PROTO_VARINT_OVERFLOW',
+                        'LOGIN_UID_FIELD_AMBIGUOUS'):
+                    try:
+                        try:
+                            error = ticket.LoginDecodeError(public_code)
+                            error.args = ('synthetic-secret-ticket-body',)
+                            raise error
+                        except ticket.LoginError as error:
+                            raise api.StateError(error.code) from None
+                    except api.StateError as error:
+                        entry._FAILURE = {}
+                        entry._remember_glue_failure(error, api, selected, login)
+                    actual = entry._FAILURE['login_error_chain']
+                    self.assertEqual(actual[0]['code'], public_code)
+                    self.assertEqual(actual[1]['type'], 'LoginDecodeError')
+                    self.assertNotIn('synthetic-secret', json.dumps(actual))
+                try:
+                    try:
+                        try:
+                            error = qr.QrError('QR_TEA_PADDING')
+                            error.args = ('synthetic-secret-inner-body',)
+                            raise error
+                        except qr.QrError as error:
+                            raise ticket.LoginDecodeError('LOGIN_SHARED_' + error.code) from None
+                    except ticket.LoginError as error:
+                        raise api.StateError(error.code) from None
+                except module.StateError as error:
+                    entry._FAILURE = None
+                    entry._remember_failure(error, 'login_protocol')
+                    entry._remember_glue_failure(error, api, selected, login)
+                chain = entry._FAILURE['login_error_chain']
+                self.assertEqual([r['type'] for r in chain], ['StateError', 'LoginDecodeError', 'QrError'])
+                self.assertEqual(chain[0]['code'], 'LOGIN_SHARED_QR_TEA_PADDING')
+                self.assertTrue(all(len(r.get('sites', [])) <= 2 for r in chain))
+                self.assertTrue(all(set(r) <= {'type', 'code', 'sites'} for r in chain))
+                self.assertNotIn('synthetic-secret', json.dumps(entry._FAILURE))
+                self.assertNotIn(str(login), json.dumps(entry._FAILURE))
+                entry._FAILURE = {}
+                entry._remember_glue_failure(module.StateError('synthetic-secret-code'), api, selected, login)
+                self.assertNotIn('code', entry._FAILURE['login_error_chain'][0])
+                self.assertNotIn('synthetic-secret', json.dumps(entry._FAILURE))
+        finally:
+            entry._FAILURE = previous
+
+
 class Lifecycle(unittest.TestCase):
     def session(self):
         with patch.object(subject, 'packet_inputs', return_value=(object(), object())):
