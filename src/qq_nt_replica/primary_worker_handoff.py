@@ -29,7 +29,7 @@ def _configured(runtime, receiver, tag, pointer, count, function, metadata, mode
     if status not in (0, 1):
         raise PrimarySemanticUnavailable('1CE7D19 nonstandard request status cleanup remains unavailable')
     from .primary_request_transport import dispatch
-    return dispatch(runtime, receiver, record, function, metadata, status, packet, frame, rbp)
+    return dispatch(runtime, receiver, record, function, metadata, status, packet, frame, rbp, original_command=tag)
 
 
 def handoff(runtime, receiver, tag, pointer, count, function, metadata, mode):

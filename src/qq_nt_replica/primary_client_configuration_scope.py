@@ -61,6 +61,7 @@ def premap(signer, spans):
     if signer in _IMAGES or getattr(signer, '_client_configuration_image', None) is not None:
         raise InputError('client configuration repeated fresh image installation')
     memory, base = signer.memory, signer.image_base
+    spans=tuple(spans)+((0x3FEED30,bytes.fromhex('0123456789abcdeffedcba9876543210'),True),)
     # Check every interval before publishing even the first mapping.
     for rva, raw, readonly in spans:
         start, end = base + rva, base + rva + len(raw)
@@ -443,6 +444,66 @@ def current_request(runtime):
     if owner is None:
         return None
     return require_owner(runtime, 'client_loop')
+
+
+
+class _NormalHandoff:
+    def __init__(self, owner, producer, source, values, token):
+        if token is not _FACTORY:
+            raise InputError('normal handoff requires its original source admission')
+        self.owner, self.producer, self.source, self.values = owner, producer, source, values
+        runtime=owner.runtime
+        receiver,record,function,metadata,packet,frame,rbp,command=values
+        bindings=[]
+        for address,size in ((record,0xB8),(frame,0x178),(command,24),(function,40)):
+            region,offset=runtime.memory._span(address,size)
+            bindings.append((address,size,region,offset,region.data,region.initialized,len(region.data)))
+        self.bindings=tuple(bindings)
+        self._anchors=(owner,producer,source,values,self.bindings)
+        self.phase='admitted';self.gate=None;self.lock_held=False;self.node=None;self.manager=None;self.presend=None
+
+    def validate(self, runtime):
+        from .primary_worker_handoff import _configured
+        owner=require_owner(runtime,'client_loop')
+        if (owner is not self.owner or owner.producer is not self.producer or
+                _frame(_configured.__code__,runtime) is not self.source or
+                not any(kind=='normal_transport' and type(value) is tuple and len(value)==2 and
+                        value[0] is self and value[1] is self._anchors for kind,value in owner.image.debts) or
+                any(actual is not original for actual,original in
+                    zip((self.owner,self.producer,self.source,self.values,self.bindings),self._anchors))):
+            raise InputError('normal handoff original owner/producer/lease expired')
+        receiver,record,function,metadata,packet,frame,rbp,command=self.values
+        for name,value in (('receiver',receiver),('record',record),('function',function),
+                           ('metadata',metadata),('frame',frame),('rbp',rbp),('tag',command)):
+            if self.source.f_locals.get(name)!=value:
+                raise InputError('normal handoff original source arguments changed')
+        if self.source.f_locals.get('packet') is not packet:
+            raise InputError('normal handoff original encoder result changed')
+        for address,size,region,offset,data,known,length in self.bindings:
+            actual,observed=runtime.memory._span(address,size)
+            if (actual is not region or observed!=offset or region.data is not data or
+                    region.initialized is not known or len(region.data)!=length):
+                raise InputError('normal handoff original frame/backing replaced')
+        return self
+
+
+def admit_normal(runtime, receiver, record, function, metadata, packet, frame, rbp, command):
+    from .primary_request_transport import dispatch
+    from .primary_worker_handoff import _configured, handoff
+    owner=require_owner(runtime,'client_loop');producer=owner.producer
+    call=sys._getframe(1);source=call.f_back;entry=None if source is None else source.f_back
+    if (call.f_code is not dispatch.__code__ or source is None or source.f_code is not _configured.__code__ or
+            entry is None or entry.f_code is not handoff.__code__ or producer is None or
+            source.f_locals.get('runtime') is not runtime or source.f_locals.get('tag')!=command or
+            entry.f_locals.get('tag')!=command or source.f_locals.get('record')!=record or
+            source.f_locals.get('receiver')!=receiver or source.f_locals.get('function')!=function or
+            source.f_locals.get('metadata')!=metadata or source.f_locals.get('packet') is not packet or
+            source.f_locals.get('frame')!=frame or source.f_locals.get('rbp')!=rbp or
+            command is None or rbp!=frame+0x80 or producer.get('normal_transport') is not None):
+        raise InputError('normal handoff requires exact original configured caller arguments')
+    receipt=_NormalHandoff(owner,producer,source,(receiver,record,function,metadata,packet,frame,rbp,command),_FACTORY)
+    owner.image.debts.append(('normal_transport',(receipt,receipt._anchors)));producer['normal_transport']=receipt
+    return receipt.validate(runtime)
 
 
 def transport_type(runtime, transport, target):

@@ -121,7 +121,7 @@ class OwnedCapi(unittest.TestCase):
                 if scenario=='acquire_false':
                     self.assertEqual(physical.capi_calls,[('CryptAcquireContextW','private'),('CryptAcquireContextW','blinding')])
                     self.assertEqual(p.handles,[])
-                    self.assertIn('client configured transport requires recovered source admission',str(stop.exception))
+                    self.assertIn('native host RVA1d05120',str(stop.exception))
                 elif scenario=='generate_false':
                     self.assertEqual([name for name,phase in physical.capi_calls],['CryptAcquireContextW','CryptGenRandom','CryptReleaseContext'])
                     self.assertIn('unknown original caller scratch',str(stop.exception))
@@ -130,11 +130,24 @@ class OwnedCapi(unittest.TestCase):
                     self.assertFalse(any(buffer._known))
                     self.assertFalse(p.handles[0]['live'])
                 else:
-                    self.assertIn('client configured transport requires recovered source admission',str(stop.exception))
+                    self.assertIn('native host RVA1d05120',str(stop.exception))
                     self.assertEqual([row['result'] for row in p.operations if row['operation']=='release'],[0,1])
                     self.assertEqual([phase for name,phase in physical.capi_calls if name=='CryptAcquireContextW'],['private','private','blinding'])
                     self.assertTrue(p.handles[0]['live']);self.assertFalse(p.handles[1]['live'])
                     with self.assertRaises(PrimarySemanticUnavailable):capi.preflight(owner)
+                if scenario!='generate_false':
+                    from qq_nt_replica.primary_client_configuration_scope import image_for
+                    from qq_nt_replica.primary_memory import UnknownMemory
+                    normal=next(value['normal_transport'] for kind,value in image_for(r).debts if kind=='producer')
+                    self.assertTrue(normal.lock_held);self.assertEqual(normal.phase,'presend')
+                    self.assertEqual(r.locks[normal.gate+56],1)
+                    self.assertEqual(r.memory.load(normal.gate+40,8),1)
+                    self.assertIn(normal.manager,r._constructed_request_managers)
+                    self.assertEqual(r.memory.load(r.image_base+0x677D1C0,8),normal.manager)
+                    scratch=normal.presend[1]-72
+                    self.assertEqual(r.memory.read(scratch,24),bytes.fromhex('0123456789abcdeffedcba9876543210')+bytes(8))
+                    with self.assertRaises(UnknownMemory):r.memory.read(scratch+24,8)
+                    self.assertFalse(any(e[0]=='request.pending_dispatch' for e in r.events))
                 self.assertIsNone(p.first_error)
                 self.assertFalse(p.tickets[0].active)
                 self.assertTrue(all(row['returned'] and row['recorded'] for row in p.operations))

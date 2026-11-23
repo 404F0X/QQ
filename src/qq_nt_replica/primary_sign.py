@@ -2297,7 +2297,7 @@ class PrimaryRuntime:
         if rva in (0x1CACFA0, 0x1CD3CB0, 0x1CB0580, 0x1CABB60, 0x1CACBB0):
             from .primary_request_response import invoke
             return invoke(self, rva, tuple(arg(n) for n in range(len(cells))))
-        if rva in (0x1CE9930, 0x1CF2D00, 0x1CF4110, 0x75B070, 0x75B0A0,
+        if rva in (0x1D04800, 0x1CF41A0, 0x1CE8160, 0x1CE9930, 0x1CF2D00, 0x1CF4110, 0x75B070, 0x75B0A0,
                    0x1CE3390, 0x1CE82B0, 0x1CE4EF0, 0x1CE6300, 0x1CE6850):
             from .primary_request_transport import invoke
             return invoke(self, rva, tuple(arg(n) for n in range(len(cells))))

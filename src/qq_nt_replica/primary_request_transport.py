@@ -241,7 +241,7 @@ def release_record(runtime, record):
     _invoke(runtime, 0x75AD90, record)
 
 
-def _clone_function(runtime, source, destination):
+def _clone_function(runtime, source, destination, *, temporary=None):
     active = runtime.memory.load(source + 32, 8)
     if not active:
         return
@@ -253,14 +253,17 @@ def _clone_function(runtime, source, destination):
         expected = {base + 0x436EC18: 0x2DF1450, base + 0x414ABD8: 0x1C513C0, base + 0x414BB08: 0x1D27500}
         if clone != base + expected[memory.load(active, 8)]:
             raise PrimarySemanticUnavailable('High inline handoff clone target differs from source')
-        temporary, _ = _frame(runtime, 32, '1CE7B91.High_inline_function_temporary')
+        owned_temporary = temporary is None
+        if owned_temporary:
+            temporary, _ = _frame(runtime, 32, '1CE7B91.High_inline_function_temporary')
         memory.store(temporary + 24, temporary, 8, source='1CE7B91.inline_temporary_owner')
         _invoke(runtime, clone - base, active, temporary)
         _invoke(runtime, memory.load(memory.load(temporary, 8) + 8, 8) - base, temporary, destination)
         _invoke(runtime, memory.load(memory.load(temporary, 8) + 24, 8) - base, temporary)
         memory.store(temporary + 24, memory.load(destination + 24, 8), 8, source='BED8CF.inline_temporary_previous_owner')
         memory.store(destination + 24, destination, 8, source='BED952.inline_record_owner')
-        memory.unmap(temporary)
+        if owned_temporary:
+            memory.unmap(temporary)
         return
     target = runtime.memory.load(runtime.memory.load(active, 8) + 16, 8)
     if runtime.memory.load(active, 8) == runtime.image_base + 0x414BB08 and target == runtime.image_base + 0x1D27510:
@@ -333,8 +336,147 @@ def _remember_digest(runtime, table, tag, digest):
     value.destroy()
 
 
-def dispatch(runtime, receiver, record, function, metadata, status, packet, frame, rbp):
-    from .primary_client_configuration_scope import current_request,_frame
+
+def _pending_emplace(runtime, table, output, temporary):
+    """Actual 1CF41A0 candidate/MOVE/search, with only cold-root balancing."""
+    memory=runtime.memory
+    node=_invoke(runtime,0xB75000,56)
+    key=memory.load(temporary,8)
+    memory.store(node+32,key,8,source='1CF41A0.candidate_key')
+    memory.copy_disjoint(node+40,temporary+8,16,label='1CF41A0.candidate_pair_MOVE')
+    memory.write(temporary+8,bytes(16),source='1CF41DB.temporary_pair_clear')
+    signed=lambda n:n-(1<<64) if n>>63 else n
+    parent=slot=table+8;current=memory.load(slot,8)
+    for _ in range(4096):
+        if not current:break
+        observed=memory.load(current+32,8)
+        if observed==key:
+            memory.store(output,current,8,source='1CF41A0.out_existing')
+            memory.store(output+8,0,1,source='1CF41A0.out_not_inserted')
+            control=memory.load(node+48,8)
+            if control:release_record(runtime,control)
+            _invoke(runtime,0xB75029,node)
+            return output
+        parent=current;slot=current+(8 if signed(observed)<signed(key) else 0)
+        current=memory.load(slot,8)
+    else:raise PrimaryProgramLimit('source pending tree traversal exceeds its bound')
+    memory.write(node,bytes(16),source='1CF41A0.node_children')
+    memory.store(node+16,parent,8,source='1CF41A0.node_parent')
+    memory.store(slot,node,8,source='1CF41A0.link_publish')
+    actual_begin=memory.load(table,8)
+    left=memory.load(actual_begin,8)
+    if left:memory.store(table,left,8,source='1CF41A0.begin_publish')
+    actual_root=memory.load(table+8,8)
+    runtime.events.append(('source.1CF4288.4341',actual_root,node))
+    if actual_root!=node:
+        # This invokes the actual unknown body rather than engineering balance.
+        return _invoke(runtime,0x4341,actual_root,node)
+    memory.store(node+24,1,1,source='434C.pending_root_black')
+    memory.store(table+16,(memory.load(table+16,8)+1)&_U64,8,source='1CF41A0.count_publish')
+    memory.store(output,node,8,source='1CF41A0.out_node')
+    memory.store(output+8,1,1,source='1CF41A0.out_inserted')
+    return output
+
+
+
+def _scratch_initialize(runtime, address):
+    memory=runtime.memory
+    memory.store(address+16,0,8,source='1D04800.scratch_tail_zero')
+    initial=memory.read(runtime.image_base+0x3FEED30,16)
+    memory.write(address,initial,source='1D0480F.scratch_initial_words')
+    return None
+
+
+def _presend(runtime, manager, selected, original, pointer, count):
+    memory=runtime.memory
+    frame,rbp=_frame(runtime,0x148,'1CE8160.presend_frame')
+    memory.store(rbp+0x60,_U64-1,8,source='1CE8177.presend_unwind_state')
+    from .primary_client_configuration_scope import current_request
+    client=current_request(runtime)
+    receipt=None if client is None else client.producer.get('normal_transport')
+    if receipt is not None:receipt.validate(runtime);receipt.presend=(frame,rbp,manager,selected,original,pointer,count)
+    runtime.events.append(('source.1CE8160.arguments',manager,selected,original,pointer,count,frame,rbp))
+    value=_String.read(runtime,original)
+    length=memory.load(original+8,8) if value.get(0,1)&1 else value.get(0,1)>>1
+    if not length:
+        memory.unmap(frame)
+        return None
+    # The fifth machine argument is a DWORD count, not a guest pointer.
+    memory.store(rbp+0xC0,count&0xFFFFFFFF,4,source='1CE8160.stack_encoded_count')
+    if memory.load(manager+0x38,8)>=101:
+        runtime.events.append(('source.1CE81C3.C92EC4',manager+0x28,rbp-0x48,memory.load(manager+0x28,8)))
+        _invoke(runtime,0xC92EC4,manager+0x28,rbp-0x48,memory.load(manager+0x28,8))
+    memory.write(rbp+0x20,bytes(16),source='1CE81CB.presend_zero16')
+    runtime.events.append(('source.1CE81D6.1D04800',rbp-0x48))
+    _invoke(runtime,0x1D04800,rbp-0x48)
+    _invoke(runtime,0x1D05120,rbp-0x48,pointer,count&0xFFFFFFFF)
+    _invoke(runtime,0x1D05590,rbp+0x20,rbp-0x48)
+    raise PrimarySemanticUnavailable('1CE822D subsequent source emplace requires its typed arguments')
+
+
+def _normal_registration(runtime, receiver, record, function, rbp, journal=None):
+    memory=runtime.memory
+    gate=_invoke(runtime,0xBA21A0)
+    if journal is not None:journal.gate=gate;journal.phase='lock_enter'
+    _invoke(runtime,0x75B070,gate+56)
+    if journal is not None:journal.lock_held=True;journal.phase='locked'
+    if memory.load(function+32,8):
+        _clone_function(runtime,function,record+144,temporary=rbp+0x88)
+        old=memory.load(receiver+48,8)
+        memory.store(receiver+48,(old+1)&_U64,8,source='1CE7BE3.original_receiver_sequence_advance')
+        memory.store(record+128,old,8,source='1CE7BE8.record_old_sequence')
+        memory.store(record+176,_invoke(runtime,0x3E8ED3C,0),8,source='1CE7BFD.record_created_at')
+        memory.store(rbp+0x80,memory.load(record+128,8),8,source='1CE7C0A.T_key')
+        memory.store(rbp+0x88,memory.load(rbp+8,8),8,source='1CE7C18.T_value')
+        memory.store(rbp+0x90,record,8,source='1CE7C23.T_control')
+        memory.store(record+8,(memory.load(record+8,4)+1)&0xFFFFFFFF,4,source='1CE7C2A.unchecked_owner_add')
+        pending=_invoke(runtime,0xBA21A0)+24
+        if journal is not None:journal.phase='registering'
+        _invoke(runtime,0x1CF41A0,pending,rbp+0x58,rbp+0x80)
+        node=memory.load(rbp+0x58,8)
+        if journal is not None:journal.node=node
+        remaining=memory.load(rbp+0x90,8)
+        if remaining:release_record(runtime,remaining)
+    return gate
+
+
+def _normal_dispatch(runtime, receipt, status, packet):
+    receipt.validate(runtime)
+    memory,base=runtime.memory,runtime.image_base
+    receiver,record,function,metadata,unused,frame,rbp,original=receipt.values
+    def transport_type():
+        from .primary_client_configuration_scope import transport_type as actual_type
+        gate=_invoke(runtime,0xBA21A0);transport=memory.load(gate+8,8)
+        if not transport:return None
+        target=memory.load(memory.load(transport,8)+16,8)
+        return actual_type(runtime,transport,target)
+    first=transport_type()
+    if first in (None,0):a2=bool(memory.load(receiver,1)&1)
+    else:
+        second=transport_type()
+        if second is None:raise PrimarySemanticUnavailable('request transport disappeared before its second type call')
+        a2=second==1
+    command=base+0x677D160+24*(int(a2)*2+int(status==0))
+    _String.read(runtime,command).clone().write_to(record+48)
+    if _invoke(runtime,0x1CF2D00,metadata,record+48,original):
+        receipt.phase='duplicate_suppressed'
+        raise PrimarySemanticUnavailable('1CE7D19 duplicate normal cleanup is outside the supported prefix')
+    receipt.validate(runtime)
+    _normal_registration(runtime,receiver,record,function,rbp,receipt)
+    receipt.phase='manager'
+    manager=memory.load(base+0x677D1C0,8)
+    if not manager:
+        manager=_invoke(runtime,0xB75000,64);receipt.manager=manager
+        memory.write(manager,bytes(64),source='1CE7C8E.manager_zero64')
+        _invoke(runtime,0x1CF35E0,manager)
+        memory.store(base+0x677D1C0,manager,8,source='1CE7CAD.manager_publish')
+    receipt.manager=manager;receipt.phase='presend'
+    _invoke(runtime,0x1CE8160,manager,record+48,original,memory.load(record+120,8),len(packet.value())&0xFFFFFFFF)
+    raise PrimarySemanticUnavailable('1CE7CCD post-presend source continuation is outside this increment')
+
+
+def dispatch(runtime, receiver, record, function, metadata, status, packet, frame, rbp, *, original_command=None):
+    from .primary_client_configuration_scope import current_request, _frame as source_frame
     client=current_request(runtime)
     if client is not None:
         from .primary_client_configuration import produce
@@ -344,14 +486,15 @@ def dispatch(runtime, receiver, record, function, metadata, status, packet, fram
         if (source.f_code is not _configured.__code__ or source.f_locals.get('runtime') is not runtime or
                 source.f_locals.get('record')!=record or source.f_locals.get('packet') is not packet or
                 producer is None or producer['owner'] is not client or
-                _frame(produce.__code__,runtime) is not producer['source'] or
+                source_frame(produce.__code__,runtime) is not producer['source'] or
                 not any(kind=='producer' and issued is producer for kind,issued in client.image.debts)):
             raise InputError('Client configured transport lacks its original source producer')
         region,offset=runtime.memory._span(producer['frame'],0x110)
         if region is not producer['region'] or offset or len(region.data)!=0x110:
             raise InputError('Client configured transport original producer backing changed')
-        runtime.events.append(('configuration.configured_transport_unavailable',record,frame))
-        raise PrimarySemanticUnavailable('client configured transport requires recovered source admission before cache/registration')
+        from .primary_client_configuration_scope import admit_normal
+        receipt = admit_normal(runtime, receiver, record, function, metadata, packet, frame, rbp, original_command)
+        return _normal_dispatch(runtime, receipt, status, packet)
     memory, base = runtime.memory, runtime.image_base
     binding = runtime.request_transport
 
@@ -981,6 +1124,12 @@ def _complete_enhanced(runtime, receiver, command, pointer, count, success, sequ
 
 
 def invoke(runtime, rva, values):
+    if rva == 0x1D04800 and len(values) == 1:
+        return _scratch_initialize(runtime,*values)
+    if rva == 0x1CF41A0 and len(values) == 3:
+        return _pending_emplace(runtime,*values)
+    if rva == 0x1CE8160 and len(values) == 5:
+        return _presend(runtime,*values)
     if rva == 0x1CE3390 and len(values) == 6:
         return send_enhanced(runtime, *values)
     if rva == 0x1CE82B0 and len(values) == 7:
