@@ -41,14 +41,14 @@ def install_image(memory, base):
         offset = 0
         while offset < len(raw):
             current = pointer + offset
-            present = next((region for region in memory._regions
+            present = next((region for region in memory._region_snapshot()
                             if region.address <= current < region.address + len(region.data)), None)
             if present is not None:
                 size = min(len(raw) - offset, present.address + len(present.data) - current)
                 if memory.read(current, size) != raw[offset:offset + size]:
                     raise InputError('provider initializer source image overlaps different bytes')
             else:
-                boundary = min((region.address for region in memory._regions if region.address > current),
+                boundary = min((region.address for region in memory._region_snapshot() if region.address > current),
                                default=pointer + len(raw))
                 size = min(len(raw) - offset, boundary - current)
                 memory.map(current, raw[offset:offset + size], name='fixed provider initializer source image', initialized=True)

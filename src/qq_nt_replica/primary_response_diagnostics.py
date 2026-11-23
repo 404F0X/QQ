@@ -24,7 +24,7 @@ def install_image(memory, base):
         address = base + segment['rva']
         raw = bytes.fromhex(segment['hex'])
         if any(region.address <= address and address + len(raw) <= region.address + len(region.data)
-               for region in memory._regions):
+               for region in memory._region_snapshot()):
             if memory.read(address, len(raw)) != raw:
                 raise InputError('response diagnostics image overlaps different source bytes')
         else:

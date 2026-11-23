@@ -53,7 +53,7 @@ class _ConstructorClaim:
                 runtime.__dict__.get('_primary_direct_scope') is self.scope and owner is not None and
                 self.scope.notification_owner is owner and owner.valid() and owner.serial == self.serial and
                 owner.lease is self.lease and runtime.allocations.get(self.address) == 0xE0 and
-                any(region is self.region for region in runtime.memory._regions) and
+                any(region is self.region for region in runtime.memory._region_snapshot()) and
                 runtime.locks.get(runtime.image_base + 0x677CEA0) == 1 and
                 runtime.memory.load(runtime.image_base + 0x677CEC0, 8) == 0)
 

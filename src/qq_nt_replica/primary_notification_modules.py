@@ -79,8 +79,8 @@ class _ModuleCollectorClaim:
                 invoke.f_locals.get('self') is runtime and invoke.f_locals.get('rva') == 0x1D20B30 and
                 type(invoke.f_locals.get('cells')) is tuple and invoke.f_locals.get('cells') == () and
                 prefix is self.prefix and prefix.f_locals.get('frame') == self.prefix_address and
-                any(region is self.prefix_region for region in runtime.memory._regions) and
-                any(region is self.region for region in runtime.memory._regions) and
+                any(region is self.prefix_region for region in runtime.memory._region_snapshot()) and
+                any(region is self.region for region in runtime.memory._region_snapshot()) and
                 runtime.__dict__.get('_primary_direct_scope') is scope and scope.notification_owner is owner and
                 runtime.__dict__.get('_primary_notification_worker_owner') is owner and owner.runtime is runtime and
                 scope._valid_notification() and owner.serial == self.serial and owner.lease is self.lease and
@@ -648,7 +648,7 @@ class _SourceBuffer:
         self.closed = False
 
     def check(self):
-        if self.closed or not any(region is self.region for region in self.runtime.memory._regions):
+        if self.closed or not any(region is self.region for region in self.runtime.memory._region_snapshot()):
             raise InputError('module source buffer allocation generation expired')
         region, offset = self.runtime.memory._span(self.address, self.capacity)
         if region is not self.region or offset != self.offset:

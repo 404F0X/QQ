@@ -57,7 +57,7 @@ def localtime(runtime, pointer):
         return 0
     if not isinstance(raw, bytes) or len(raw) != 36 or result > _MASK64 - 36:
         raise InputError('localtime64 requires its complete nine-DWORD returned calendar buffer')
-    if not any(region.address <= result < region.address + len(region.data) for region in runtime.memory._regions):
+    if not any(region.address <= result < region.address + len(region.data) for region in runtime.memory._region_snapshot()):
         runtime.memory.map(result, bytearray(raw), name='explicit CRT localtime64 calendar buffer', initialized=True)
     else:
         runtime.memory.write(result, raw, source='CRT.localtime64.observed_calendar')

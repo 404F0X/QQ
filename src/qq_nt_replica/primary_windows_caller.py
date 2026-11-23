@@ -242,7 +242,7 @@ class WindowsCallerObservations(WorkerObservations):
             if name == '_localtime64' and result:
                 if not isinstance(effects, bytes) or len(effects) != 36 or result > _MASK - 36:
                     raise InputError('caller CRT calendar requires its complete nonwrapping buffer')
-                for region in runtime.memory._regions:
+                for region in runtime.memory._region_snapshot():
                     if result < region.address + len(region.data) and region.address < result + 36:
                         if not (result in self._calendars and region.address == result and len(region.data) == 36 and
                                 region.name == 'explicit CRT localtime64 calendar buffer'):

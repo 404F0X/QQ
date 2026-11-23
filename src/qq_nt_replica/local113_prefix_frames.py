@@ -72,7 +72,7 @@ class PrefixFramePlan:
         require(runtime._main_generation == self.identity['generation'] and runtime._execute_thread == self.thread, 'FRAME_GENERATION')
         require((name == 'main' and not self.active) or (name == 'host129' and len(self.active) == 1 and self.active[0][0].frame.program == 'main'), 'FRAME_ACTIVE_PARENT')
         for address, width in ((frame.cells, (load_program(name).cell_count + 1) * 24), (frame.arena, frame.arena_size)):
-            require(not any(overlap(address, width, region.address, len(region.data)) for region in runtime.memory._regions), 'FRAME_SOURCE_ALIAS')
+            require(not any(overlap(address, width, region.address, len(region.data)) for region in runtime.memory._region_snapshot()), 'FRAME_SOURCE_ALIAS')
 
     def attach_vm(self, runtime, name, frame, vm):
         require(runtime is self.runtime and self.pending is not None and self.pending.frame is frame and vm.runtime is runtime, 'FRAME_ATTACH')

@@ -6,6 +6,7 @@ import threading
 from dataclasses import dataclass
 
 from .errors import InputError
+from .primary_memory import PrimaryMemory
 from .primary_device_hardware import AdapterBufferEffect
 from .primary_vm import PrimarySemanticUnavailable
 from .primary_worker import WorkerObservations
@@ -307,7 +308,7 @@ class WindowsDeviceHardwareObservations(WorkerObservations):
             while True:
                 token = 0x6E0000000000 + next(_TOKENS) * 0x10000
                 if not any(token < region.address + len(region.data) and region.address < token + 0x10000
-                           for region in getattr(memory, '_regions', ())):
+                           for region in (memory._region_snapshot() if type(memory) is PrimaryMemory else getattr(memory, '_regions', ()))):
                     self._tokens[pointer] = token
                     break
         return self._tokens[pointer]

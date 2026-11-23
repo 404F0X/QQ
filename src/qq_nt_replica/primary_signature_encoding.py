@@ -27,7 +27,7 @@ def complete_image_segment(rva, raw):
 def install_image(memory, base):
     for rva, raw in _IMAGE:
         pointer = base + rva
-        overlaps = [region for region in memory._regions
+        overlaps = [region for region in memory._region_snapshot()
                     if pointer < region.address + len(region.data)
                     and region.address < pointer + len(raw)]
         if not overlaps:

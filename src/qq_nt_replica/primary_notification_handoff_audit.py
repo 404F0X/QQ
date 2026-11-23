@@ -19,7 +19,7 @@ def _empty_source_metadata(memory, address, parent):
     if guard is not None:
         guard.guard_overlap(address, 48)
     region, ignored = memory._span(address, 48)
-    if region is not parent or any(other is not parent and other.data.obj is parent.data.obj for other in memory._regions):
+    if region is not parent or any(other is not parent and other.data.obj is parent.data.obj for other in memory._region_snapshot()):
         return False
     return memory.load(address, 2) == 0 and memory.load(address + 24, 2) == 0
 

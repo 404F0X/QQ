@@ -64,7 +64,7 @@ def premap(signer, spans):
     # Check every interval before publishing even the first mapping.
     for rva, raw, readonly in spans:
         start, end = base + rva, base + rva + len(raw)
-        if any(start < region.address + len(region.data) and region.address < end for region in memory._regions):
+        if any(start < region.address + len(region.data) and region.address < end for region in memory._region_snapshot()):
             raise PrimaryMemoryLimit('client configuration fresh image overlaps existing memory')
     regions = []
     for rva, raw, readonly in spans:

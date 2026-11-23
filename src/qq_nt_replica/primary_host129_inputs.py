@@ -655,7 +655,7 @@ class ObservedHost129AddressSpace:
             if type(address) is not int or not 0 <= address <= (1 << 64) - size:
                 raise InputError('observed host129 frame range is invalid')
             if any(address < region.address + len(region.data) and region.address < address + size
-                   for region in self._runtime.memory._regions):
+                   for region in self._runtime.memory._region_snapshot()):
                 raise PrimaryMemoryLimit('observed host129 frame collides with owned memory')
         if spans[0][0] < spans[1][0] + 32 and spans[1][0] < spans[0][0] + spans[0][1]:
             raise PrimaryMemoryLimit('observed host129 frame ranges overlap')

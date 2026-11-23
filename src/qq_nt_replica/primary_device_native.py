@@ -627,7 +627,7 @@ class _NativeEnumeration:
 
         literal = runtime.image_base + 0x4905276
         if not any(region.address <= literal < region.address + len(region.data)
-                   for region in runtime.memory._regions):
+                   for region in runtime.memory._region_snapshot()):
             runtime.memory.map(literal, '\\GLOBAL??\0'.encode('utf-16le'),
                                name='fixed source GLOBAL?? literal', initialized=True)
         self.runtime, self.rbp, self.hardware = runtime, rbp, rbp - 0x40
@@ -690,7 +690,7 @@ class _NativeEnumeration:
         memory, base = self.runtime.memory, self.runtime.image_base
         root = base + 0x4904E66
         literal = 'C:\\\0'.encode('utf-16le')
-        containing = next((region for region in memory._regions
+        containing = next((region for region in memory._region_snapshot()
                            if region.address <= root and root + len(literal) <= region.address + len(region.data)), None)
         if containing is None:
             memory.map(root, bytearray(literal), name='fixed source volume root literal', initialized=True)

@@ -9,11 +9,11 @@ _MASK = (1 << 64) - 1
 def install_image(memory, image_base):
     address = image_base + 0x6751D60
     if not any(region.address <= address and address + 32 <= region.address + len(region.data)
-               for region in memory._regions):
+               for region in memory._region_snapshot()):
         memory.map(address, bytearray(32), name='fixed public sampling PE zero fill', initialized=True)
     for rva, raw in ((0x677DD9C, bytes(20)), (0x618C970, (5).to_bytes(4, 'little'))):
         target = image_base + rva
-        if not any(region.address <= target and target + len(raw) <= region.address + len(region.data) for region in memory._regions):
+        if not any(region.address <= target and target + len(raw) <= region.address + len(region.data) for region in memory._region_snapshot()):
             memory.map(target, bytearray(raw), name='fixed public command observation image', initialized=True)
 
 

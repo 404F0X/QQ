@@ -263,11 +263,11 @@ class _PrefixProviderBinding:
         rows=self.memory_rows()
         payloads=[(int.from_bytes(string.header[16:24],'little'),string.payload) for string in (self.inputs.cache.value,self.inputs.cache.token) if string.header[0]&1] if self.inputs.cache is not None else []
         new_rows=[]
-        original_regions={id(region) for region in memory._regions}
+        original_regions={id(region) for region in memory._region_snapshot()}
         for index,(address,data) in enumerate(rows):
             require(type(address) is int and 0<=address<(1<<64) and type(data) is bytes and 0<len(data)<=(1<<64)-address,'SNAPSHOT_SPAN')
             require(all(not (address<other+len(raw) and other<address+len(data)) for other,raw in rows[index+1:]),'SNAPSHOT_ALIAS')
-            overlaps=[region for region in memory._regions if address<region.address+len(region.data) and region.address<address+len(data)]
+            overlaps=[region for region in memory._region_snapshot() if address<region.address+len(region.data) and region.address<address+len(data)]
             if (address,data) in payloads:
                 require(not overlaps,'HISTORICAL_BUFFER_OVERLAP')
             if overlaps:
@@ -286,7 +286,7 @@ class _PrefixProviderBinding:
         except BaseException as error:
             self.runtime._active_failed=True
             for address,_ in reversed(new_rows):
-                if any(region.address==address and id(region) not in original_regions for region in memory._regions):
+                if any(region.address==address and id(region) not in original_regions for region in memory._region_snapshot()):
                     try:
                         memory.unmap(address)
                     except BaseException:

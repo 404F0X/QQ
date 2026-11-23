@@ -334,6 +334,24 @@ def _remember_digest(runtime, table, tag, digest):
 
 
 def dispatch(runtime, receiver, record, function, metadata, status, packet, frame, rbp):
+    from .primary_client_configuration_scope import current_request,_frame
+    client=current_request(runtime)
+    if client is not None:
+        from .primary_client_configuration import produce
+        from .primary_worker_handoff import _configured
+        import sys
+        source=sys._getframe(1);producer=client.producer
+        if (source.f_code is not _configured.__code__ or source.f_locals.get('runtime') is not runtime or
+                source.f_locals.get('record')!=record or source.f_locals.get('packet') is not packet or
+                producer is None or producer['owner'] is not client or
+                _frame(produce.__code__,runtime) is not producer['source'] or
+                not any(kind=='producer' and issued is producer for kind,issued in client.image.debts)):
+            raise InputError('Client configured transport lacks its original source producer')
+        region,offset=runtime.memory._span(producer['frame'],0x110)
+        if region is not producer['region'] or offset or len(region.data)!=0x110:
+            raise InputError('Client configured transport original producer backing changed')
+        runtime.events.append(('configuration.configured_transport_unavailable',record,frame))
+        raise PrimarySemanticUnavailable('client configured transport requires recovered source admission before cache/registration')
     memory, base = runtime.memory, runtime.image_base
     binding = runtime.request_transport
 

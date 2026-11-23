@@ -48,12 +48,12 @@ def install_image(memory, base):
     for rva, data in images:
         cursor, end = base + rva, base + rva + len(data)
         while cursor < end:
-            region = next((item for item in memory._regions
+            region = next((item for item in memory._region_snapshot()
                            if item.address <= cursor < item.address + len(item.data)), None)
             if region is not None:
                 cursor = min(end, region.address + len(region.data))
                 continue
-            boundary = min((item.address for item in memory._regions if item.address > cursor), default=end)
+            boundary = min((item.address for item in memory._region_snapshot() if item.address > cursor), default=end)
             size = min(end, boundary) - cursor
             offset = cursor - base - rva
             memory.map(cursor, bytearray(data[offset:offset + size]),

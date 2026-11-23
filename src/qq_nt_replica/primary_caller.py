@@ -37,7 +37,7 @@ def install_image(memory, base):
     memory.map(base + 0x677D2B0, bytearray(0x9E0), name='fixed caller online random and manager PE zero fill', initialized=True)
     for rva in (0x677BE28, 0x677BE78):
         if not any(region.address <= base + rva and base + rva + 8 <= region.address + len(region.data)
-                   for region in memory._regions):
+                   for region in memory._region_snapshot()):
             memory.map(base + rva, bytearray(8), name='fixed caller online persistence PE zero fill', initialized=True)
 
 

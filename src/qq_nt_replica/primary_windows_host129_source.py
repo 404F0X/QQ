@@ -389,7 +389,7 @@ class WindowsHost129Source:
         self._require(count == 8 and type(address) is int and 0 < address <= (1 << 64) - 9 and
             (initial is None or type(initial) is bytes and len(initial) == 8), 'eight-byte guest temporary required')
         self._require(not any(address < region.address + len(region.data) and region.address < address + 8
-            for region in runtime.memory._regions), 'private temporary overlaps live guest memory')
+            for region in runtime.memory._region_snapshot()), 'private temporary overlaps live guest memory')
         return result
 
     def read_counter(self, runtime, vm, pc, source, destination, width):

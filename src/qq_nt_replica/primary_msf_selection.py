@@ -22,7 +22,7 @@ def install_fresh_image(signer):
     from .primary_memory import PrimaryMemoryLimit
     for rva,size in ((0x674d2c0,16),(0x674d2d0,4),(0x3f6df58,8)):
         address=signer.image_base+rva
-        for region in signer.memory._regions:
+        for region in signer.memory._region_snapshot():
             if address<region.address+len(region.data) and region.address<address+size:
                 raise PrimaryMemoryLimit('ordinary MSF birth overlaps existing mapping')
     rows=[]

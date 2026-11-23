@@ -45,7 +45,7 @@ def install_image(runtime):
                 raise InputError('fixed configuration adapter vtable identity mismatch')
     for rva in (0x677BD98, 0x677BDC0, 0x677BDE8):
         cursor, end = runtime.image_base + rva, runtime.image_base + rva + 32
-        for region in tuple(runtime.memory._regions):
+        for region in tuple(runtime.memory._region_snapshot()):
             if region.address >= end:
                 break
             region_end = region.address + len(region.data)

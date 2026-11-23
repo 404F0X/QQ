@@ -36,7 +36,7 @@ def install_cold_state(memory, base):
     for rva, data in ranges:
         begin, end = base + rva, base + rva + len(data)
         cursor = begin
-        overlaps = [region for region in memory._regions
+        overlaps = [region for region in memory._region_snapshot()
                     if region.address < end and begin < region.address + len(region.data)]
         for region in overlaps:
             if cursor < region.address:

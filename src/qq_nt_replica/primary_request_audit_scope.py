@@ -353,6 +353,8 @@ def client_handoff_audit(runtime):
         scope.report['clientConfigurationAudit'] = dict(completed=True, materialInitialized=claim.material_used)
         producer['audit_completed'] = True
         producer['material_initialized'] = claim.material_used
+        from .primary_windows_request_capi import completed_audit
+        completed_audit(claim)
     finally:
         producer['audit_exit']=dict(stage=claim.stage,status_completed=claim.status_completed,
             status_wrapper_seen=claim.status_wrapper_seen,material_wrapper_completed=claim.material_wrapper_completed,

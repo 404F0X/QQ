@@ -16,7 +16,7 @@ def install_image(memory, base):
                      (0x677CCA0, bytearray(24))):
         address = base + rva
         if any(region.address <= address and address + len(raw) <= region.address + len(region.data)
-               for region in memory._regions):
+               for region in memory._region_snapshot()):
             if memory.read(address, len(raw)) != raw:
                 raise InputError('caller cost source image overlaps different bytes')
         else:

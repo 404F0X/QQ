@@ -411,7 +411,7 @@ class _Policy3Binding:
     def _clear_local(self, address):
         from .primary_consumed_mgf import _clear_chunks
         name = self._locals.pop(address, None)
-        region = next((row for row in self.runtime.memory._regions if row.address == address and row.name == name), None)
+        region = next((row for row in self.runtime.memory._region_snapshot() if row.address == address and row.name == name), None)
         if region is not None:
             _clear_chunks(region.data)
             self.runtime.memory.unmap(address)

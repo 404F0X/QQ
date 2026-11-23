@@ -41,7 +41,7 @@ def install_fresh_globals(signer):
                 (0x3EB8678,(base+0x45D1E46).to_bytes(8,'little')+(8).to_bytes(8,'little')))
     for rva, raw in spans+literals:
         start, end = base + rva, base + rva + len(raw)
-        if any(start < region.address + len(region.data) and region.address < end for region in memory._regions):
+        if any(start < region.address + len(region.data) and region.address < end for region in memory._region_snapshot()):
             raise PrimaryMemoryLimit('client startup exact fresh cell overlaps existing memory')
     regions = []
     for rva, raw in spans+literals:

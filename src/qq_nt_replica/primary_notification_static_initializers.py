@@ -230,21 +230,21 @@ _INTEGRITY_STRINGS = (
 
 def install_image(memory, base):
     if not any(region.address <= base + 0x48C7B93 and base + 0x48C7B96 <= region.address + len(region.data)
-               for region in memory._regions):
+               for region in memory._region_snapshot()):
         memory.map(base + 0x48C7B93, b'\\*\0', name='fixed notification account wildcard', initialized=True)
     if memory.read(base + 0x48C7B93, 3) != b'\\*\0':
         raise InputError('notification account wildcard differs from its fixed PE literal')
     for rva, target in ((0x64290E0, 0x3E97020), (0x64290E8, 0x3E94F90), (0x5E954D8, 0x3E94F90)):
         address = base + rva
         if not any(region.address <= address and address + 8 <= region.address + len(region.data)
-                   for region in memory._regions):
+                   for region in memory._region_snapshot()):
             memory.map(address, (base + target).to_bytes(8, 'little'),
                        name='fixed notification default CRT JSON hook', initialized=True)
         if memory.load(address, 8) != base + target:
             raise InputError('notification JSON hook differs from its fixed original PE initializer')
     for rva, size, initialized in ((0x677DE38, 327, False), (0x6D86588, 0x250, True), (0x6D869C8, 232, True), (0x6D88D78, 0x170, True), (0x6D890C0, 40, True)):
         cursor, end = base + rva, base + rva + size
-        for region in tuple(memory._regions):
+        for region in memory._region_snapshot():
             start, stop = region.address, region.address + len(region.data)
             if stop <= cursor or start >= end:
                 continue

@@ -20,9 +20,9 @@ def _source_image(runtime):
         address, offset = base + rva, 0
         while offset < len(raw):
             current = address + offset
-            region = next((region for region in memory._regions if region.address <= current < region.address + len(region.data)), None)
+            region = next((region for region in memory._region_snapshot() if region.address <= current < region.address + len(region.data)), None)
             if region is None:
-                following = min((region.address for region in memory._regions if current < region.address < address + len(raw)), default=address + len(raw))
+                following = min((region.address for region in memory._region_snapshot() if current < region.address < address + len(raw)), default=address + len(raw))
                 size = following - current
                 memory.map(current, raw[offset:offset + size], name='fixed notification record source image', initialized=True)
             else:

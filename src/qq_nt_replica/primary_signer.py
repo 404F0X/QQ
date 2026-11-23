@@ -1925,7 +1925,7 @@ class PrimarySigner:
 
             address = base + rva
 
-            if not any(region.address <= address and address + 8 <= region.address + len(region.data) for region in self.memory._regions):
+            if not any(region.address <= address and address + 8 <= region.address + len(region.data) for region in self.memory._region_snapshot()):
 
                 self.memory.map(address, functions[name].to_bytes(8, 'little'), name='public entry raw import', initialized=True)
 
@@ -1985,13 +1985,13 @@ class PrimarySigner:
 
         marker = base + 0x6D8677A
 
-        if not any(region.address <= marker and marker + 14 <= region.address + len(region.data) for region in self.memory._regions):
+        if not any(region.address <= marker and marker + 14 <= region.address + len(region.data) for region in self.memory._region_snapshot()):
 
             self.memory.map(marker, bytearray(14), name='env_detect PE zero fill before declared initializer', initialized=True)
 
         literal = base + 0x4903C10
 
-        if not any(region.address <= literal < region.address + len(region.data) for region in self.memory._regions):
+        if not any(region.address <= literal < region.address + len(region.data) for region in self.memory._region_snapshot()):
 
             self.memory.map(literal, b'\0', name='fixed empty INI default literal', initialized=True)
 

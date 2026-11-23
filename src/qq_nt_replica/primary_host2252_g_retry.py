@@ -15,21 +15,21 @@ def install_image(memory, image_base):
                for rva, targets in _DISPATCH]
     for address, data in planned:
         if any(address < region.address + len(region.data) and region.address < address + len(data)
-               for region in memory._regions):
+               for region in memory._region_snapshot()):
             raise PrimaryProgramLimit('host2252 G dispatch initialization cannot replace existing memory')
     try:
         for address, data in planned:
             memory.map(address, data, name='fixed QQ52230 pair-head G dispatch', initialized=True)
     except BaseException as error:
         for address, data in reversed(planned):
-            region = next((r for r in memory._regions if r.address == address and r.data.obj is data), None)
+            region = next((r for r in memory._region_snapshot() if r.address == address and r.data.obj is data), None)
             if region is not None:
                 try:
                     memory.unmap(address)
                 except BaseException as cleanup_error:
                     error.add_note('host2252 G dispatch initialization cleanup failed: ' + type(cleanup_error).__name__)
         raise
-    regions = tuple((address, next(r for r in memory._regions if r.address == address)) for address, data in planned)
+    regions = tuple((address, next(r for r in memory._region_snapshot() if r.address == address)) for address, data in planned)
     memory._host2252_g_dispatch_regions = regions
     return regions
 
@@ -131,7 +131,7 @@ class Stage2GWait:
                          if start == self.image_base + rva), None)
         if (not region.data.readonly or
                 region is not expected or
-                any(other is not region and other.data.obj is region.data.obj for other in self.memory._regions)):
+                any(other is not region and other.data.obj is region.data.obj for other in self.memory._region_snapshot())):
             raise PrimarySemanticUnavailable('host2252 pair-head G dispatch requires disjoint readonly backing')
         owner = self.pair_head_dispatch_owners.setdefault(rva, region)
         if owner is not region:

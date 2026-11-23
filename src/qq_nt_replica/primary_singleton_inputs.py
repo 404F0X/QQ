@@ -669,7 +669,7 @@ class _ProducerBinding:
         if actual != size or not _uint(pointer, 64) or not pointer or pointer + size > 1 << 64 or initial is not None:
             raise InputError('singleton API local requires fresh role storage')
         runtime.memory.map(pointer, bytearray(size), name='singleton API local', initialized=zero)
-        region = next(r for r in runtime.memory._regions if r.address == pointer)
+        region = next(r for r in runtime.memory._region_snapshot() if r.address == pointer)
         try:
             yield pointer
         finally:
@@ -687,7 +687,7 @@ class _ProducerBinding:
 
     def allocated(self, role, pointer):
         runtime = self._runtime
-        region = next(r for r in runtime.memory._regions if r.address == pointer)
+        region = next(r for r in runtime.memory._region_snapshot() if r.address == pointer)
         self._roles[role] = (pointer, region)
 
     def free(self, pointer):

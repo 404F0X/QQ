@@ -16,7 +16,7 @@ _IMPORTS = {'GetTimeZoneInformation': 0x4910000}
 
 def install_image(memory, base):
     address = base + _MARKER
-    overlaps = [region for region in memory._regions
+    overlaps = [region for region in memory._region_snapshot()
                 if address < region.address + len(region.data) and region.address < address + 12]
     if not overlaps:
         memory.map(address, bytearray(12), name='timezone name PE zero fill', initialized=True)

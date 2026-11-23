@@ -599,7 +599,7 @@ class WindowsSystemRecordObservations(WorkerObservations):
                     not isinstance(effects[1][0], tuple) or len(effects[1][0]) != 2 or
                     effects[1][0][0] != pointer or not isinstance(effects[1][0][1], bytes) or len(effects[1][0][1]) != 16):
                 raise InputError('native active power scheme requires exactly its owned GUID16')
-            for region in runtime.memory._regions:
+            for region in runtime.memory._region_snapshot():
                 if pointer < region.address + len(region.data) and region.address < pointer + 16:
                     raise PrimarySemanticUnavailable('native power GUID overlaps existing source memory')
             self._power.add(pointer)

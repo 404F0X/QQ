@@ -7,6 +7,7 @@ import struct
 import threading
 
 from .errors import InputError
+from .primary_memory import PrimaryMemory
 from .primary_device_process_records import ProcessBufferEffect
 from .primary_vm import PrimarySemanticUnavailable
 from .primary_worker import WorkerObservations
@@ -368,7 +369,7 @@ class WindowsDeviceProcessRecordObservations(WorkerObservations, _Domain):
             memory = getattr(self._runtime, 'memory', None)
             while True:
                 token = 0x6D0000000000 + next(_TOKENS)*0x200000
-                if not any(token < region.address+len(region.data) and region.address < token+len(raw) for region in getattr(memory, '_regions', ())):
+                if not any(token < region.address+len(region.data) and region.address < token+len(raw) for region in (memory._region_snapshot() if type(memory) is PrimaryMemory else getattr(memory, '_regions', ()))):
                     self._tokens[key] = token
                     break
         return self._tokens[key]

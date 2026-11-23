@@ -30,7 +30,7 @@ def execute_prefix_scalar(runtime, parent, rva, cells, argument_types):
     sequence = runtime.__dict__.setdefault('_local113_helper_counts', [])
     base = 0xE000000000000000 + len(sequence) * 0x10000
     spans = ((base, (program.cell_count + 1) * 24), (base + 0x8000, max(arena_reservation(program), 1)))
-    require(not any(overlap(address, size, region.address, len(region.data)) for address, size in spans for region in runtime.memory._regions) and not any(overlap(address, size, a, n) for address, size in spans for a, n in runtime._local113_frame_plan.reserved()), 'SCALAR_HELPER_PRIVATE_ALIAS')
+    require(not any(overlap(address, size, region.address, len(region.data)) for address, size in spans for region in runtime.memory._region_snapshot()) and not any(overlap(address, size, a, n) for address, size in spans for a, n in runtime._local113_frame_plan.reserved()), 'SCALAR_HELPER_PRIVATE_ALIAS')
     mapped = []
     try:
         for address, size in spans:

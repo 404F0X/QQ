@@ -156,36 +156,40 @@ class AttachPhase(unittest.TestCase):
             from qq_nt_replica.primary_worker_consumer import _invoke
             return _invoke(r,0x6270,args[0])
         with ExitStack() as stack:
-            stack.enter_context(patch.object(windows,'_validated_paths',return_value=(Path('controlled.dll'),Path('controlled'))))
-            for name in constructors:stack.enter_context(patch.object(windows,name))
-            from test_primary_creator_domain import PhysicalKernel
-            import ctypes as C
-            stack.enter_context(patch.object(C,'WinDLL',return_value=PhysicalKernel()))
-            stack.enter_context(patch.object(C,'CDLL',side_effect=AssertionError('no actual DLL')))
-            stack.enter_context(patch.object(windows.DeviceFactory,'windows'))
-            stack.enter_context(patch.object(windows.WindowsSigner,'_host_environment',return_value=(b'C:/explicit/p.exe',None,())))
-            stack.enter_context(patch.object(windows.WindowsSigner,'_initialize_notification_statics'))
-            stack.enter_context(patch('qq_nt_replica.primary_windows_allocator_issuer.install_early_allocator',side_effect=allocator))
-            stack.enter_context(patch.object(WindowsAllocatorIssuer,'validate'))
-            if connected:
-                stack.enter_context(patch('qq_nt_replica.primary_windows_command_line.capture_early_allocator',side_effect=lambda *args:(0x7f00001000,bytearray(b'model-program\0'),14,lambda:None)))
-            stack.enter_context(patch.object(PrimaryRuntime,'_crt_call',return_value=1))
-            stack.enter_context(patch.object(PrimaryRuntime,'_crt_thread',crt_thread))
-            stack.enter_context(patch.object(attach,'_invoke',side_effect=invoke))
-            stack.enter_context(patch('qq_nt_replica.primary_windows_signer_setup.IndependentWindowsSetup'))
-            if stage_failure:
-                with patch.object(windows.WindowsSigner,'close'),patch.object(windows.WindowsSigner,'diagnostics',new=property(lambda actual:{})):
-                    with self.assertRaisesRegex(RuntimeError,'controlled stdio'):
-                        windows.open_windows_signer(bridge_path='controlled.dll',storage_root='controlled',host_profile_string=b'explicit-model-profile',primary_backend='direct',outer_login_config={},outer_sync_permit=lambda actual,operation:True)
-                r=stage_owners[0].signer.runtime
-                from qq_nt_replica import primary_crt_stdio_options as options
-                self.assertEqual(observed,[])
-                self.assertEqual(r.memory.load(r.image_base+0x6749cc0,8),0 if stage_failure=='thread' else 0x24)
-                if stage_failure=='thread':self.assertNotIn(id(r),options._PHASES)
-                else:self.assertEqual(options._PHASES[id(r)]['state'],'failed')
-                with self.assertRaises(PrimarySemanticUnavailable):options.read_options(r)
-                return
-            owner=windows.open_windows_signer(bridge_path='controlled.dll',storage_root='controlled',host_profile_string=b'explicit-model-profile',primary_backend='direct',outer_login_config={},outer_sync_permit=lambda actual,operation:True)
+            if connected and not stage_failure:
+                from test_primary_client_configuration_request import client_factory
+                owner,unused_kernel,unused_physical=stack.enter_context(client_factory(outer=True))
+            else:
+                stack.enter_context(patch.object(windows,'_validated_paths',return_value=(Path('controlled.dll'),Path('controlled'))))
+                for name in constructors:stack.enter_context(patch.object(windows,name))
+                from test_primary_creator_domain import PhysicalKernel
+                import ctypes as C
+                stack.enter_context(patch.object(C,'WinDLL',return_value=PhysicalKernel()))
+                stack.enter_context(patch.object(C,'CDLL',side_effect=AssertionError('no actual DLL')))
+                stack.enter_context(patch.object(windows.DeviceFactory,'windows'))
+                stack.enter_context(patch.object(windows.WindowsSigner,'_host_environment',return_value=(b'C:/explicit/p.exe',None,())))
+                stack.enter_context(patch.object(windows.WindowsSigner,'_initialize_notification_statics'))
+                stack.enter_context(patch('qq_nt_replica.primary_windows_allocator_issuer.install_early_allocator',side_effect=allocator))
+                stack.enter_context(patch.object(WindowsAllocatorIssuer,'validate'))
+                if connected:
+                    stack.enter_context(patch('qq_nt_replica.primary_windows_command_line.capture_early_allocator',side_effect=lambda *args:(0x7f00001000,bytearray(b'model-program\0'),14,lambda:None)))
+                stack.enter_context(patch.object(PrimaryRuntime,'_crt_call',return_value=1))
+                stack.enter_context(patch.object(PrimaryRuntime,'_crt_thread',crt_thread))
+                stack.enter_context(patch.object(attach,'_invoke',side_effect=invoke))
+                stack.enter_context(patch('qq_nt_replica.primary_windows_signer_setup.IndependentWindowsSetup'))
+                if stage_failure:
+                    with patch.object(windows.WindowsSigner,'close'),patch.object(windows.WindowsSigner,'diagnostics',new=property(lambda actual:{})):
+                        with self.assertRaisesRegex(RuntimeError,'controlled stdio'):
+                            windows.open_windows_signer(bridge_path='controlled.dll',storage_root='controlled',host_profile_string=b'explicit-model-profile',primary_backend='direct',outer_login_config={},outer_sync_permit=lambda actual,operation:True)
+                    r=stage_owners[0].signer.runtime
+                    from qq_nt_replica import primary_crt_stdio_options as options
+                    self.assertEqual(observed,[])
+                    self.assertEqual(r.memory.load(r.image_base+0x6749cc0,8),0 if stage_failure=='thread' else 0x24)
+                    if stage_failure=='thread':self.assertNotIn(id(r),options._PHASES)
+                    else:self.assertEqual(options._PHASES[id(r)]['state'],'failed')
+                    with self.assertRaises(PrimarySemanticUnavailable):options.read_options(r)
+                    return
+                owner=windows.open_windows_signer(bridge_path='controlled.dll',storage_root='controlled',host_profile_string=b'explicit-model-profile',primary_backend='direct',outer_login_config={},outer_sync_permit=lambda actual,operation:True)
             r=owner.signer.runtime;m=r.memory;b=r.image_base
             r.next=0x7b00000000;r.calls=[];r.fail_size=None;r.epoch=r._custom_allocator_backend.source.epoch
             upper=Runtime.invoke.__get__(r,type(r))

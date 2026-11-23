@@ -49,13 +49,21 @@ class _Capi:
     def __init__(self, runtime, frame):
         self.runtime, self.frame = runtime, frame
         self.buffers = {}
+        from .primary_windows_request_capi import begin
+        self.ticket=begin(self)
 
     def acquire(self, phase):
+        if self.ticket is not None:
+            from .primary_windows_request_capi import check_use
+            check_use(self,'acquire',phase)
         if self.runtime.request_capi is None:
             raise PrimarySemanticUnavailable('1C572E0 requires the actual CAPI service binding')
         return self.runtime.request_capi.acquire(phase)
 
     def generate(self, phase, handle, buffer):
+        if self.ticket is not None:
+            from .primary_windows_request_capi import check_use
+            check_use(self,'generate',phase,buffer,handle)
         self.buffers[phase] = buffer
         address = self.frame + (0x50 if phase == 'private' else 0x30)
         region, offset = self.runtime.memory._span(address, 32)
@@ -66,9 +74,16 @@ class _Capi:
         try:
             return self.runtime.request_capi.generate(phase, handle, buffer)
         finally:
-            self.sync()
+            primary=__import__('sys').exception()
+            try:self.sync()
+            except BaseException as failure:
+                if primary is None:raise
+                primary.add_note('request CAPI known-byte sync also failed: '+type(failure).__name__)
 
     def release(self, phase, handle):
+        if self.ticket is not None:
+            from .primary_windows_request_capi import check_use
+            check_use(self,'release',phase,handle=handle)
         return self.runtime.request_capi.release(phase, handle)
 
     def scratch(self, offset):
@@ -78,6 +93,7 @@ class _Capi:
         return None
 
     def sync(self):
+        if self.ticket is not None:self.ticket.check()
         for phase, buffer in self.buffers.items():
             address = self.frame + (0x50 if phase == 'private' else 0x30)
             cursor = 0
@@ -170,7 +186,14 @@ def produce(runtime):
                                                      public_key_written=lambda value: memory.write(base + 0x677D139, value,
                                                                                                    source='request.public_key'))
     finally:
-        service.sync()
+        primary=__import__('sys').exception()
+        try:service.sync()
+        except BaseException as failure:
+            if primary is None:raise
+            primary.add_note('request CAPI known-byte sync also failed: '+type(failure).__name__)
+        finally:
+            from .primary_windows_request_capi import end
+            end(service.ticket)
     memory.write(base + 0x677D0B8, material.shared_x, source='1C91EF5.request_shared_x')
     _invoke(runtime, 0x1C54E10, base + 0x677D0E8, 32)
     memory.write(base + 0x677D110, _Random(runtime, frame + 0x258).draw_bytes(8), source='request.message_id')
@@ -196,6 +219,10 @@ def produce(runtime):
 class _MaterialState(RequestMaterialState):
     def __init__(self, runtime, frame):
         self.runtime, self.frame = runtime, frame
+        region,offset=runtime.memory._span(frame,0x448)
+        if offset or region.address!=frame or len(region.data)!=0x448:
+            raise InputError('request encoder requires its exact original frame')
+        self.frame_region=(frame,region,0x448)
         self.random = _Random(runtime, frame + 0x258)
         self.encoded_peer = runtime.memory.read(runtime.image_base + 0x677D090, 33)
         self.cache = []

@@ -1386,8 +1386,8 @@ class PrivateCoreReplayCapsule:
         self._events = _EventReader(self._encoded)
         self._original_guard = getattr(runtime.memory, '_consumed_mgf_guard', None)
         for rva in _GLOBALS:
-            region = next((r for r in runtime.memory._regions if r.address <= runtime.image_base + rva < r.address + len(r.data)), None)
-            if region is not None and sum(r.data.obj is region.data.obj for r in runtime.memory._regions) != 1:
+            region = next((r for r in runtime.memory._region_snapshot() if r.address <= runtime.image_base + rva < r.address + len(r.data)), None)
+            if region is not None and sum(r.data.obj is region.data.obj for r in runtime.memory._region_snapshot()) != 1:
                 self.close()
                 raise InputError('consumed replay rejects pre-existing five-global aliases')
         if self._original_guard is not None:
@@ -1429,7 +1429,7 @@ class PrivateCoreReplayCapsule:
         self.guard_overlap(address, len(buffer))
         backing = memoryview(buffer).obj
         for rva in _GLOBALS:
-            region = next((r for r in self._runtime.memory._regions if r.address <= self._runtime.image_base + rva < r.address + len(r.data)), None)
+            region = next((r for r in self._runtime.memory._region_snapshot() if r.address <= self._runtime.image_base + rva < r.address + len(r.data)), None)
             if region is not None and region.data.obj is backing:
                 raise InputError('consumed replay cannot introduce a five-global backing alias')
 

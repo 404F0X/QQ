@@ -26,12 +26,12 @@ class HighReliabilitySleepBoundary:
 def _map_image(memory, address, raw, *, writable=False):
     cursor, end = address, address + len(raw)
     while cursor < end:
-        region = next((item for item in memory._regions
+        region = next((item for item in memory._region_snapshot()
                        if item.address <= cursor < item.address + len(item.data)), None)
         if region is not None:
             cursor = min(end, region.address + len(region.data))
             continue
-        following = min((item.address for item in memory._regions if item.address > cursor), default=end)
+        following = min((item.address for item in memory._region_snapshot() if item.address > cursor), default=end)
         count = min(end, following) - cursor
         fragment = raw[cursor - address:cursor - address + count]
         memory.map(cursor, bytearray(fragment) if writable else fragment,

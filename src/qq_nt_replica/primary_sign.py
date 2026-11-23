@@ -83,12 +83,12 @@ def install_singleton_destroy_image(memory, image_base):
     raw = b''.join((image_base + rva).to_bytes(8, 'little') for rva in hosts)
     first = cursor = image_base + 0x6557000
     while cursor < first + len(raw):
-        containing = next((region for region in memory._regions
+        containing = next((region for region in memory._region_snapshot()
                            if region.address <= cursor < region.address + len(region.data)), None)
         if containing is not None:
             cursor = min(first + len(raw), containing.address + len(containing.data))
             continue
-        end = min([first + len(raw)] + [region.address for region in memory._regions
+        end = min([first + len(raw)] + [region.address for region in memory._region_snapshot()
                                        if region.address > cursor])
         memory.map(cursor, bytearray(raw[cursor - first:end - first]),
                    name='fixed singleton destructor host bank', initialized=True)
@@ -99,12 +99,12 @@ def _install_uin_wrapper_hosts(memory, image_base):
     raw = b''.join((image_base + rva).to_bytes(8, 'little') for rva in (0x3592167, 0x3EB2680, 0x3EB1FE0))
     first = cursor = image_base + 0x655BD70
     while cursor < first + len(raw):
-        containing = next((region for region in memory._regions
+        containing = next((region for region in memory._region_snapshot()
                            if region.address <= cursor < region.address + len(region.data)), None)
         if containing is not None:
             cursor = min(first + len(raw), containing.address + len(containing.data))
             continue
-        end = min([first + len(raw)] + [region.address for region in memory._regions if region.address > cursor])
+        end = min([first + len(raw)] + [region.address for region in memory._region_snapshot() if region.address > cursor])
         memory.map(cursor, bytearray(raw[cursor - first:end - first]), name='fixed UIN wrapper host bank', initialized=True)
         cursor = end
 
@@ -2801,7 +2801,7 @@ class PrimaryRuntime:
             if (region.data.readonly or pointer + 16 > 1 << 64 or
                     pointer < self.image_base + 0x6D8F1B4 and self.image_base < pointer + 16 or
                     any(other.data.obj is region.data.obj and self.image_base <= other.address < self.image_base + 0x6D8F1B4
-                        for other in self.memory._regions)):
+                        for other in self.memory._region_snapshot())):
                 raise PrimaryProgramLimit("host2252 needs writable private block memory disjoint from image state")
             if self.host2252_stage1_retry or self.host2252_stage2_g_retry or self.host2252_final_f_retry or self.host2252_control_m:
                 if len(cells) != 1:

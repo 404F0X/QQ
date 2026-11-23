@@ -1800,7 +1800,7 @@ def _map_root(runtime, row):
                 any(item.address < pointer + size and pointer < item.address + item.length for pointer, size in runtime.allocations.items())):
             _fail()
         if any(item.address < region.address + len(region.data) and region.address < item.address + item.length
-               for region in memory._regions):
+               for region in memory._region_snapshot()):
             _fail()
     backings = {}
     for item in descriptor.ranges:

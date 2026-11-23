@@ -325,6 +325,8 @@ class WindowsSigner:
                 with self._threads._creator_crt_context():
                     from .primary_client_configuration_startup import run_request_model_stage
                     run_request_model_stage(self)
+                    from .primary_windows_request_capi import bind as bind_request_capi
+                    bind_request_capi(self)
         finally:
             self._threads.after_public_operation()
 
@@ -516,6 +518,11 @@ class WindowsSigner:
         return self._operation('complete_request', command, response, success=success, sequence=sequence, error=error)
 
     def _release_resources(self):
+        from .primary_windows_request_capi import preflight as preflight_request_capi
+        try:preflight_request_capi(self)
+        except BaseException as error:
+            self._cleanup_outcomes.append(dict(_error_summary(error),stage='request_capi_early_debt',status='failed'))
+            return [error]
         from .primary_client_configuration_scope import preflight_owner
         try:
             preflight_owner(self)
@@ -580,6 +587,8 @@ class WindowsSigner:
         if self._threads is not None:
             if not attempt('sdk_threads_finish_workers', self._threads.finish_workers):
                 return errors
+        from .primary_windows_request_capi import close as close_request_capi
+        if not attempt('request_capi_terminal',lambda:close_request_capi(self)):return errors
         if self._crt is not None:
             def release_crt():
                 from .primary_crt_thread import cleanup

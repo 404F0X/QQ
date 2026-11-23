@@ -28,7 +28,7 @@ def install_image(memory, base):
         raw = value.to_bytes(8, 'little')
         address = base + segment['rva']
         if any(region.address <= address and address + 8 <= region.address + len(region.data)
-               for region in memory._regions):
+               for region in memory._region_snapshot()):
             if memory.read(address, 8) != raw:
                 raise InputError('request serialization image overlaps different source bytes')
         else:

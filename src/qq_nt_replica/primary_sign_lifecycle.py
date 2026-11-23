@@ -41,7 +41,7 @@ class _SignContinuation:
                          tuple(runtime._program_calls), runtime._execute_depth,
                          runtime.__dict__.get('_primary_direct_scope'),
                          runtime.__dict__.get('_primary_public_direct_owner'),
-                         tuple(runtime.memory._regions), tuple(chain), tuple(owner.items()),
+                         runtime.memory._region_snapshot(), tuple(chain), tuple(owner.items()),
                          tuple((call['name'], call['arguments'], call['hosts']) for call in runtime._program_calls),
                          vm._mgf_stage, vm._mgf_width, vm.trace, tuple(vm.trace))
         self.scope = runtime.__dict__.get('_primary_direct_scope')
@@ -71,8 +71,8 @@ class _SignContinuation:
                 vm._mgf_stage != stage or vm._mgf_width != width or vm.trace is not trace or tuple(trace) != records or
                 runtime.__dict__.get('_primary_direct_scope') is not scope or
                 runtime.__dict__.get('_primary_public_direct_owner') is not public or
-                len(runtime.memory._regions) != len(regions) or
-                any(a is not b for a, b in zip(runtime.memory._regions, regions)) or
+                len(runtime.memory._region_snapshot()) != len(regions) or
+                any(a is not b for a, b in zip(runtime.memory._region_snapshot(), regions)) or
                 any(g.gi_code is not code or g.gi_frame is not frame or g.gi_yieldfrom is not child
                     for g, code, frame, child in chain)):
             raise InputError('continuation Main identity, frame or pending body changed')
@@ -903,7 +903,7 @@ def provider_initialization_call(signer, metadata, tail):
 
 
 def region_at(memory, address):
-    return next((r for r in memory._regions if r.address == address), None)
+    return next((r for r in memory._region_snapshot() if r.address == address), None)
 
 
 def cleanup(runtime, regions, allocations=()):

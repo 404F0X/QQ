@@ -110,7 +110,7 @@ def _counter_inputs(episode):
 
 def _install_abi(memory, abi, reserved):
     targets = tuple((address, data, True) for address, data in abi.inputs) + ((abi.output_pointer, bytes(128), False), (abi.output_length_pointer, bytes(4), False))
-    existing = tuple((region.address, len(region.data)) for region in memory._regions) + reserved
+    existing = tuple((region.address, len(region.data)) for region in memory._region_snapshot()) + reserved
     for address, data, _ in targets:
         require(not any(overlap(address, len(data), start, size) for start, size in existing), 'ABI_PRIVATE_ALIAS')
     for address, data, known in targets:

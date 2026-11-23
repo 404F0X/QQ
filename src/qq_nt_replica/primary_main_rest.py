@@ -12062,7 +12062,7 @@ class _DirectM16Pending:
         self.generation, self.thread = vm.runtime._main_generation, get_ident()
         self.program, self.cells = vm.program, vm.cells
         self.frame = (vm.cells.address, vm.arena_address, vm.arena_size, vm.image_base)
-        self.regions = tuple(r for r in vm.memory._regions if r.address in self.frame[:2])
+        self.regions = tuple(r for r in vm.memory._region_snapshot() if r.address in self.frame[:2])
         self.site = (vm.pc, vm.block, vm.predecessor, vm.initial_block, vm.auxiliary)
         self.arguments, self.signature, self.argument_types = arguments, signature, argument_types
         self.address, self.call_index = address, len(vm.host_calls) - 1
@@ -12080,7 +12080,7 @@ class _DirectM16Pending:
                 type(vm) is not PrimaryVM or vm.runtime is not runtime or vm.memory is not self.memory or
                 vm.program is not self.program or sha256(vm.program.raw).hexdigest() != MAIN_SHA256 or
                 vm.cells is not self.cells or self.frame != (vm.cells.address, vm.arena_address, vm.arena_size, vm.image_base) or
-                any(not any(current is original for current in vm.memory._regions) for original in self.regions) or
+                any(not any(current is original for current in vm.memory._region_snapshot()) for original in self.regions) or
                 runtime.memory is not self.memory or runtime.image_base != vm.image_base or
                 runtime._active_main is not self.owner or type(self.owner) is not dict or
                 self.owner.get('vm') is not vm or self.owner.get('thread') != self.thread or

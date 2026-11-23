@@ -296,7 +296,7 @@ class _MainPrefixRawClockBinding(_MainClockReturnBinding):
         row = self.active.rows[self.api_index]
         require(row.name == name and row.api in ('QPC', 'FILETIME') and row.output == self.active.entry_rsp - 0x18, 'PREFIX_RAW_LOCAL_ABI')
         runtime, address = self._runtime, row.output
-        require(not any(address < region.address + len(region.data) and region.address < address + 8 for region in runtime.memory._regions), 'PREFIX_RAW_LOCAL_OVERLAP')
+        require(not any(address < region.address + len(region.data) and region.address < address + 8 for region in runtime.memory._region_snapshot()), 'PREFIX_RAW_LOCAL_OVERLAP')
         runtime.memory.map(address, bytearray(8), name='prefix raw clock private output', initialized=False)
         try:
             self.write_to(name, address)

@@ -29,7 +29,7 @@ def install_image(memory, base):
             raw[offset:offset + 8] = (value - image['image_base'] + base).to_bytes(8, 'little')
         address = base + segment['rva']
         if any(region.address <= address and address + len(raw) <= region.address + len(region.data)
-               for region in memory._regions):
+               for region in memory._region_snapshot()):
             if memory.read(address, len(raw)) != raw:
                 raise InputError('request audit image overlaps different source bytes')
         else:

@@ -241,7 +241,7 @@ class _ObservedProviderBinding:
         from .local113_episode_validation import overlap
         address = self.cursor
         self.cursor += (size + 0xFFF) & ~0xFFF
-        require(self.cursor < 1 << 64 and not any(overlap(address, size, r.address, len(r.data)) for r in self.runtime.memory._regions), 'MODEL_PRIVATE_ALLOCATOR_ALIAS')
+        require(self.cursor < 1 << 64 and not any(overlap(address, size, r.address, len(r.data)) for r in self.runtime.memory._region_snapshot()), 'MODEL_PRIVATE_ALLOCATOR_ALIAS')
         plan = self.runtime._local113_frame_plan
         require(not any(overlap(address, size, start, width) for start, width in plan.reserved()), 'MODEL_PRIVATE_FRAME_ALIAS')
         return address
@@ -297,7 +297,7 @@ class _ObservedProviderBinding:
             self.runtime.memory.forget(address, self.regions.pop(address), source='model_private_provider.failure_release')
             self.runtime.memory.unmap(address)
         for address in tuple(self.temporaries):
-            if any(r.address == address for r in self.runtime.memory._regions):
+            if any(r.address == address for r in self.runtime.memory._region_snapshot()):
                 self.runtime.memory.forget(address, 24, source='model_private_provider.failure_temporary')
                 self.runtime.memory.unmap(address)
             self.temporaries.remove(address)

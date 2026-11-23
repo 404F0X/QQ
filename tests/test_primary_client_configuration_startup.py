@@ -171,8 +171,27 @@ class TypedComponent(unittest.TestCase):
                 self.fail(''.join(traceback.format_exception(owner._threads._failure)))
             child=next(row for row in owner._threads._secondary if row['_kind']=='client_loop')
             bridge.launches[0].gate.set()
-            with self.assertRaisesRegex(PrimarySemanticUnavailable,'1C572E0 requires the actual CAPI'):
+            with self.assertRaisesRegex(PrimarySemanticUnavailable,'client configured transport requires recovered source admission') as next_stop:
                 physical.join(bridge.launches[0].handle)
+            self.assertEqual(physical.capi_calls,[
+                ('CryptAcquireContextW','private'),('CryptGenRandom','private'),('CryptReleaseContext','private'),
+                ('CryptAcquireContextW','blinding'),('CryptGenRandom','blinding'),('CryptReleaseContext','blinding')])
+            provider=r.request_capi
+            self.assertIsNone(provider.first_error)
+            self.assertTrue(all(row['entered'] and row['returned'] and row['recorded'] for row in provider.operations))
+            self.assertTrue(all(not row['live'] for row in provider.handles))
+            self.assertEqual(len(provider.tickets),1)
+            self.assertFalse(provider.tickets[0].active)
+            self.assertTrue(all(all(buffer._known) for buffer in provider.tickets[0].buffers.values()))
+            self.assertFalse(provider.tickets[0].history.claim.active)
+            self.assertIsNone(provider.tickets[0].history.claim.source)
+            self.assertNotIn('requires the actual CAPI',str(next_stop.exception))
+            print('controlled_owned_capi_next_stop '+str(next_stop.exception),flush=True)
+            self.assertTrue(any(e[0]=='request.encoder_complete' for e in r.events))
+            self.assertEqual(sum(e[0]=='configuration.configured_transport_unavailable' for e in r.events),1)
+            self.assertFalse(any(e[0]=='request.pending_dispatch' for e in r.events))
+            self.assertFalse(any(label in ('request.sequence_advance','request.pending_key','request.pending_value',
+                'request.pending_control','request.pending_owner_add') for address,raw,label in r.memory.writes))
             from qq_nt_replica.primary_client_configuration_scope import image_for
             producers=[issued for kind,issued in image_for(r).debts if kind=='producer']
             self.assertEqual(len(producers),1)
@@ -192,6 +211,10 @@ class TypedComponent(unittest.TestCase):
         self.assertTrue(all(not row['thread'].is_alive() for row in physical.rows.values()))
         self.assertEqual(physical.cleanup[-1]['event'],'all_children_exited_before_fake_restore')
         self.assertFalse(physical.cleanup[-1]['aborted'])
+        self.assertFalse(r.memory._layout_poisoned,getattr(r.memory,'_layout_first_escape',None))
+        self.assertIsNone(getattr(r.memory,'_layout_first_escape',None))
+        print('controlled_lookup_domain '+__import__('json').dumps(dict(
+            fast_eligible=True,first_raw_escape=None,regions=len(r.memory._region_snapshot()))),flush=True)
         print('controlled_positive_terminal '+__import__('json').dumps(dict(
             joins=physical.joins,cleanup=physical.cleanup,live_children=0)),flush=True)
 

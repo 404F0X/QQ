@@ -40,7 +40,7 @@ def install_image(memory, image_base):
         try:
             memory._span(address,len(raw))
         except PrimaryMemoryLimit:
-            overlaps = [region for region in memory._regions if address<region.address+len(region.data) and region.address<address+len(raw)]
+            overlaps = [region for region in memory._region_snapshot() if address<region.address+len(region.data) and region.address<address+len(raw)]
             if overlaps:
                 first = min(address,*(region.address for region in overlaps))
                 last = max(address+len(raw),*(region.address+len(region.data) for region in overlaps))

@@ -39,6 +39,7 @@ class PhysicalThreads:
         self.on_srw=None
         self.joins=[]
         self.cleanup=[]
+        self.capi_calls=[];self.on_capi=None
 
     def create(self, callback, argument, ready=None):
         self.next += 1; handle = self.next; registered = threading.Event()
@@ -64,6 +65,19 @@ class PhysicalThreads:
             self.rows[self.next] = self.rows[source]; args[3]._obj.value = self.next
             return 1
         if name == 'GetThreadId': return self.rows[integer(args[0])]['thread_id']
+        if name in ('CryptAcquireContextW','CryptGenRandom','CryptReleaseContext'):
+            provider=self.runtime.request_capi
+            row=provider.operations[-1]
+            self.capi_calls.append((name,row['phase']))
+            if self.on_capi is not None:
+                result=self.on_capi(name,args,row)
+                if result is not None:return result
+            if name=='CryptAcquireContextW':
+                args[0]._obj.value=100+len(self.capi_calls)
+                return 1
+            if name=='CryptGenRandom':
+                for index,value in enumerate((1).to_bytes(32,'little')):args[2][index]=value
+            return 1
         if name == 'Sleep':
             self.sleeps.append(args[0])
             if self.on_sleep is not None: self.on_sleep(args[0])
@@ -88,6 +102,7 @@ class PhysicalThreads:
             if not row['thread'].is_alive():break
             current=self._progress();current_cpu=time.process_time()
             sample=dict(wall_seconds=time.monotonic()-started,cpu_seconds=current_cpu-cpu,**current)
+            sample['stack']=self._stack(row['thread'].ident)
             progressing=current!=previous
             stalled=0 if progressing else stalled+1
             sample['progressing']=progressing
@@ -97,16 +112,46 @@ class PhysicalThreads:
             if stalled>=3:break
             previous,cpu=current,current_cpu
         record.update(exited=not row['thread'].is_alive(),wall_seconds=time.monotonic()-started)
+        print('controlled_join_terminal '+__import__('json').dumps(dict(
+            exited=record['exited'],wall_seconds=record['wall_seconds'],samples=len(record['samples']),
+            phase_counts=self._phase_counts(),stack=self._stack(row['thread'].ident))),flush=True)
         if not record['exited']:raise AssertionError('controlled client thread remains live; progress recorded')
         if row['error'] is not None: raise row['error']
         return row
 
     def _progress(self):
         runtime=getattr(self,'runtime',None)
-        return dict(writes=0 if runtime is None else len(runtime.memory.writes),programs=[] if runtime is None else
+        return dict(writes=0 if runtime is None else len(runtime.memory.writes),
+            regions=0 if runtime is None else len(runtime.memory._region_snapshot()),phase_counts=self._phase_counts(),
+            lookup_fast_eligible=False if runtime is None else not runtime.memory._layout_poisoned,
+            first_raw_escape=None if runtime is None else getattr(runtime.memory,'_layout_first_escape',None),
+            programs=[] if runtime is None else
             [dict(pc=vm.pc,block=vm.block,halted=vm.halted,abort=vm.abort_reason,
                   host_calls=len(vm.host_calls),bootstrap=dict(getattr(vm,'primary_bootstrap_direct_state',{})))
              for vm in tuple(runtime.vms)])
+
+    def _phase_counts(self):
+        from collections import Counter
+        return {name+':'+phase:count for (name,phase),count in Counter(self.capi_calls).items()}
+
+    @staticmethod
+    def _stack(identifier):
+        frame=sys._current_frames().get(identifier);stack=[]
+        while frame is not None and len(stack)<16:
+            stack.append(dict(file=Path(frame.f_code.co_filename).name,function=frame.f_code.co_name,line=frame.f_lineno))
+            frame=frame.f_back
+        return stack
+
+    def _cleanup_event(self,event,**fields):
+        row=dict(event=event,**fields)
+        if event in ('all_children_exited_before_fake_restore','failure_only_MODEL_abort','fake_ports_retained_for_live_children'):
+            self.cleanup.append(row)
+        print('controlled_fixture_cleanup '+__import__('json').dumps(row),flush=True)
+
+    def _restored(self):
+        self._cleanup_event('outer_fake_stack_restored',
+            live_children=sum(row['thread'].is_alive() for row in {id(r):r for r in self.rows.values()}.values()),
+            scalar_observer_closed=getattr(getattr(self,'scalar_entropy',None),'_closed',None))
 
     def quiesce(self, owner, stack):
         """Retain every fake port if bounded failure disposal cannot join a child."""
@@ -119,7 +164,7 @@ class PhysicalThreads:
         while True:
             live={id(row):row for row in self.rows.values() if row['thread'].is_alive()}
             if not live:
-                self.cleanup.append(dict(event='all_children_exited_before_fake_restore',aborted=aborted))
+                self._cleanup_event('all_children_exited_before_fake_restore',aborted=aborted)
                 return
             elapsed=time.monotonic()-started
             if elapsed>=self.cleanup_seconds and not aborted:
@@ -128,12 +173,12 @@ class PhysicalThreads:
                     for vm in tuple(runtime.vms):
                         if not vm.halted and vm.abort_reason is None:vm.abort_reason='controlled test resource deadline'
                 aborted=True
-                self.cleanup.append(dict(event='failure_only_MODEL_abort',children=len(live)))
+                self._cleanup_event('failure_only_MODEL_abort',children=len(live))
             if elapsed>=2*self.cleanup_seconds:
                 held=stack.pop_all()
                 debt=dict(stack=held,physical=self,owner=owner,children=list(live.values()))
                 _RETAINED_CLIENT_FIXTURES.append(debt)
-                self.cleanup.append(dict(event='fake_ports_retained_for_live_children',children=len(live)))
+                self._cleanup_event('fake_ports_retained_for_live_children',children=len(live))
                 raise AssertionError('controlled child not quiesced; fake ports retained, not restored')
             for row in live.values():row['thread'].join(min(.1,self.cleanup_seconds))
 
@@ -143,6 +188,10 @@ class PhysicalBridge:
         self.physical = physical; self.launches = []; self._closed = False
     def authorize_service(self, check):
         self.check = check; self.capability = object(); return self.capability
+    def close(self):
+        if any(launch.native['thread'].is_alive() for launch in self.launches):
+            raise AssertionError('controlled bridge still has live children')
+        self._closed=True
     @contextmanager
     def service_creation(self, capability):
         assert capability is self.capability and self.check()
@@ -259,7 +308,7 @@ def controlled_cached_apis(kernel, metadata):
 
 
 @contextmanager
-def client_factory(*,registration_failure=None):
+def client_factory(*,registration_failure=None,outer=False):
     """Actual factory/issuer/selected ctor with explicit physical CLI/CRT ports."""
     from test_primary_creator_domain import PhysicalKernel
     from qq_nt_replica import primary_windows_signer as windows
@@ -282,6 +331,8 @@ def client_factory(*,registration_failure=None):
         'WindowsWorkerObservations','WindowsDeviceFileObservations','WindowsCoreObservations','WindowsDeviceProcessRecordObservations',
         'WindowsDeviceHardwareObservations','WindowsSystemRecordObservations','WindowsWMIObservations')
     with ExitStack() as stack:
+        physical._fixture_stack=stack
+        stack.callback(physical._restored)
         stack.enter_context(patch.object(ctypes,'WinDLL',return_value=kernel))
         stack.enter_context(patch.object(ctypes,'CDLL',side_effect=AssertionError('no actual DLL')))
         stack.enter_context(controlled_cached_apis(kernel,physical.metadata))
@@ -293,6 +344,8 @@ def client_factory(*,registration_failure=None):
         stack.enter_context(patch.object(windows.WindowsSigner,'_host_environment',return_value=(b'C:/explicit/p.exe',None,())))
         stack.enter_context(patch.object(windows.WindowsSigner,'_initialize_notification_statics'))
         stack.enter_context(patch.object(windows.WindowsSigner,'diagnostics',new=property(lambda actual:{})))
+        if outer:
+            stack.enter_context(patch('qq_nt_replica.primary_windows_signer_setup.IndependentWindowsSetup'))
         if registration_failure is not None:
             from qq_nt_replica.primary_host_services import GuestExitRegistrar
             from qq_nt_replica.primary_client_configuration_startup import _INIT_ACTIVE
@@ -307,7 +360,8 @@ def client_factory(*,registration_failure=None):
         windows.WindowsDeviceFileObservations.return_value.pending_handles=0
         windows.WindowsDeviceFileObservations.return_value.cleanup_records=[]
         owner=windows.open_windows_signer(bridge_path='controlled.dll',storage_root='controlled',
-            host_profile_string=b'explicit-model-profile',primary_backend='direct')
+            host_profile_string=b'explicit-model-profile',primary_backend='direct',
+            **(dict(outer_login_config={},outer_sync_permit=lambda actual,operation:True) if outer else {}))
         physical.runtime=owner.signer.runtime
         try:
             yield owner,kernel,physical
@@ -340,6 +394,26 @@ def source_threads(*, observation=None, filetime=None, core_output=None):
             value=entropy[0].to_bytes(4,'little');entropy[0]=(entropy[0]+0x01010101)&0xFFFFFFFF
             core_events.append(('SystemFunction036',value));return value
         windows.WindowsCoreObservations.return_value.entropy_word.side_effect=entropy_word
+        from qq_nt_replica.primary_windows_core_observations import WindowsCoreObservations
+        class EntropyBackend:
+            closed=False
+            def request(self,name,output,count):
+                if self.closed or (name,count)!=('SystemFunction036',4):
+                    raise AssertionError('unprovided physical scalar entropy shape')
+                output.raw=entropy_word()
+                return 1
+            def close(self):self.closed=True
+        entropy_backend=EntropyBackend()
+        scalar_entropy=WindowsCoreObservations(backend=entropy_backend)
+        # Exercise the real success/FALSE projection over explicit physical
+        # output, rather than letting an unconfigured Mock become entropy.
+        windows.WindowsCoreObservations.return_value.random_bytes.side_effect=scalar_entropy.random_bytes
+        physical.scalar_entropy=scalar_entropy
+        def close_scalar_entropy():
+            scalar_entropy.close()
+            physical._cleanup_event('scalar_observer_closed',live_children=sum(
+                row['thread'].is_alive() for row in {id(r):r for r in physical.rows.values()}.values()))
+        physical._fixture_stack.callback(close_scalar_entropy)
         physical.runtime=runtime
         physical.core_events=core_events
         bridge = PhysicalBridge(physical); service.bind_worker_bridge(bridge);physical.bridge=bridge
