@@ -531,14 +531,15 @@ def _normal_dispatch(runtime, receipt, status, packet):
         _invoke(runtime,0x1CF35E0,manager)
         memory.store(base+0x677D1C0,manager,8,source='1CE7CAD.manager_publish')
     receipt.manager=manager;receipt.phase='presend'
-    _invoke(runtime,0x1CE8160,manager,record+48,original,memory.load(record+120,8),len(packet.value())&0xFFFFFFFF)
+    _invoke(runtime,0x1CE8160,manager,record+48,original,memory.load(record+120,8),(packet.get(8,8) if packet.get(0,1)&1 else packet.get(0,1)>>1)&0xFFFFFFFF)
     gate=_invoke(runtime,0xBA21A0)
     transport=memory.load(gate+8,8)
     from .primary_client_configuration_scope import sender_entry
     target=memory.load(memory.load(transport,8)+8,8)
     _invoke(runtime,0x75B810,rbp-64,record+48)
-    args=(transport,rbp-64,memory.load(record+120,8),len(packet.value())&0xFFFFFFFF,memory.load(record+128,8))
-    sender_entry(runtime,receipt,target,args)
+    args=(transport,rbp-64,memory.load(record+120,8),(packet.get(8,8) if packet.get(0,1)&1 else packet.get(0,1)>>1)&0xFFFFFFFF,memory.load(record+128,8))
+    borrow=sender_entry(runtime,receipt,target,args)
+    receipt.sender_borrow=borrow
     receipt.phase='sender';receipt.sender=(target,args)
     runtime.events.append(('source.1CE7D0A.arguments',target,*args))
     _invoke(runtime,target-base,*args)

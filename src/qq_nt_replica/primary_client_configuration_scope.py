@@ -13,6 +13,7 @@ _IMAGES = {}
 _PADDING_BIRTHS = {}
 _SERVICES = {}
 _OWNERS = {}
+_SENDER_BORROWS = {}
 
 
 def _frame(code, runtime):
@@ -544,6 +545,41 @@ def remember_clone(runtime, source, destination, pointer):
         owner.image.debts.append(('callback_clone', (source, destination, pointer)))
 
 
+class _SenderBorrow:
+    __slots__=()
+
+    def __init__(self,token):
+        if token is not _FACTORY or sys._getframe(1).f_code is not sender_entry.__code__:
+            raise InputError('sender borrow requires its actual literal issuer')
+
+    def check(self,runtime):
+        record=_SENDER_BORROWS.get(self)
+        if record is None or record['phase']!='entered' or record['runtime'] is not runtime:
+            raise InputError('sender borrow is unissued/foreign/retired')
+        normal=record['normal'];normal.validate(runtime)
+        owner=normal.owner
+        if (owner is not record['owner'] or owner.producer is not record['producer'] or
+                owner.lease is not record['lease'] or owner.image is not record['image'] or
+                owner.image.epoch is not record['epoch'] or runtime._primary_entry_owner is not record['issuer']):
+            raise InputError('sender original owner/producer/image/lease rebound')
+        for address,size,region,offset,data,known,length in record['bindings']:
+            actual,observed=runtime.memory._span(address,size)
+            if (actual is not region or observed!=offset or region.data is not data or
+                    region.initialized is not known or len(region.data)!=length):
+                raise InputError('sender original structure/backing rebound')
+        # Deliberately no receiver.fn or current gate content equality here.
+        return self
+
+    def probe(self,runtime,function):
+        self.check(runtime)
+        runtime.events.append(('source.1BE2FC1.probe_unavailable',function,runtime.image_base+0x4910108))
+        raise PrimarySemanticUnavailable('1BE2FC1 IsBadCodePtr IAT4910108 has no qualified SDK probe producer')
+
+    def raw(self,runtime,function,arguments):
+        self.check(runtime)
+        raise PrimarySemanticUnavailable('1BE2FF0 requires independently qualified SDK raw4 callback')
+
+
 def sender_entry(runtime,receipt,target,args):
     from .primary_request_transport import _normal_dispatch
     receipt.validate(runtime)
@@ -551,13 +587,64 @@ def sender_entry(runtime,receipt,target,args):
     if caller.f_code is not _normal_dispatch.__code__ or caller.f_locals.get('receipt') is not receipt:
         raise InputError('sender requires its actual normal source continuation')
     transport,command,pointer,count,sequence=args
-    validate_receiver(runtime,transport)
+    receiver_receipt=validate_receiver(runtime,transport)
     memory,base=runtime.memory,runtime.image_base
+    packet=receipt.values[4];tag=packet.get(0,1)
+    packet_pointer=packet.get(16,8) if tag&1 else receipt.values[6]+17
+    packet_count=packet.get(8,8) if tag&1 else tag>>1
     if (target!=memory.load(memory.load(transport,8)+8,8) or target!=base+0x1BE2F90 or
-            command!=receipt.values[6]-64 or pointer!=memory.load(receipt.values[1]+120,8) or
-            count!=len(receipt.values[4].value())&0xFFFFFFFF or sequence!=memory.load(receipt.values[1]+128,8)):
+            command!=receipt.values[6]-64 or pointer!=memory.load(receipt.values[1]+120,8) or pointer!=packet_pointer or
+            count!=(packet_count&0xFFFFFFFF) or sequence!=memory.load(receipt.values[1]+128,8)):
         raise InputError('sender original vtable/five-argument binding changed')
-    receipt.owner.image.debts.append(('source_sender',(receipt,target,args)))
+    bindings=[]
+    for address,size in ((receiver_receipt[1],40),(command,24)):
+        region,offset=memory._span(address,size)
+        bindings.append((address,size,region,offset,region.data,region.initialized,len(region.data)))
+    borrow=_SenderBorrow(_FACTORY)
+    _SENDER_BORROWS[borrow]=dict(runtime=runtime,normal=receipt,owner=receipt.owner,producer=receipt.producer,
+        issuer=runtime._primary_entry_owner,image=receipt.owner.image,epoch=receipt.owner.image.epoch,
+        lease=receipt.owner.lease,args=args,bindings=tuple(bindings),phase='issued',failure=None,
+        source=caller,packet=packet,packet_pointer=packet_pointer,packet_count=packet_count)
+    receipt.owner.image.debts.append(('source_sender',borrow))
+    return borrow
+
+
+def enter_sender(runtime,values):
+    from .primary_sdk import _sender,invoke as sdk_invoke
+    from .primary_sign import PrimaryRuntime
+    from .primary_request_transport import _normal_dispatch
+    from .primary_worker_consumer import _invoke
+    source=_frame(_normal_dispatch.__code__,runtime)
+    borrow=None if source is None else source.f_locals.get('borrow')
+    record=_SENDER_BORROWS.get(borrow)
+    sdk=sys._getframe(1);dispatch=sdk.f_back;entry=None if dispatch is None else dispatch.f_back
+    worker=None if entry is None else entry.f_back
+    if (type(borrow) is not _SenderBorrow or record is None or record['phase']!='issued' or
+            record['source'] is not source or source.f_locals.get('args') is not record['args'] or
+            source.f_locals.get('receipt') is not record['normal'] or tuple(values)!=record['args'] or
+            sdk.f_code is not _sender.__code__ or dispatch.f_code is not sdk_invoke.__code__ or
+            entry is None or entry.f_code is not PrimaryRuntime.invoke.__code__ or entry.f_locals.get('rva')!=0x1BE2F90 or
+            worker is None or worker.f_code is not _invoke.__code__ or worker.f_back is not source or
+            worker.f_locals.get('values')!=record['args']):
+        raise InputError('SDK sender requires its original once-only source borrow/dispatcher')
+    record['phase']='entered'
+    try:borrow.check(runtime)
+    except BaseException as error:
+        record['phase']='failed';record['failure']=error;raise
+    return borrow
+
+
+def finish_sender(runtime,borrow,error=None):
+    from .primary_sdk import _sender
+    caller=sys._getframe(1)
+    if caller.f_code is not _sender.__code__ or caller.f_locals.get('borrow') is not borrow:
+        raise InputError('sender completion requires its actual entered core')
+    record=_SENDER_BORROWS.get(borrow)
+    if record is None or record['runtime'] is not runtime or record['phase']!='entered':
+        raise InputError('sender borrow terminal transition is not pending')
+    record['phase']='failed' if error is not None else 'normal'
+    record['failure']=error
+
 
 
 def stop_sender(runtime, transport, command, pointer, count, sequence, target):

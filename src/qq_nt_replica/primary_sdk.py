@@ -459,7 +459,50 @@ def update_material_control(runtime, value, bit, operation, flag):
     return None
 
 
+
+def _sender_core(runtime,receiver,command,body,count,sequence,access):
+    """F90 business effects; explicit component doubles confer no source borrow."""
+    access.check(runtime)
+    memory=runtime.memory
+    fn0=memory.load(receiver+8,8)
+    if fn0:
+        count=count&0xFFFFFFFF;sequence=sequence&_MASK64
+        verdict=access.probe(runtime,fn0)
+        if type(verdict) is not int or not 0<=verdict<=0xFFFFFFFF:
+            raise PrimarySemanticUnavailable('SDK code probe has no known DWORD observation')
+        if verdict==0 and body!=0:
+            access.check(runtime)
+            fn1=memory.load(receiver+8,8)
+            tag=memory.load(command,1)
+            cstring=memory.load(command+16,8) if tag&1 else command+1
+            access.raw(runtime,fn1,(cstring,body,count,sequence))
+    access.check(runtime)
+    tag=memory.load(command,1)
+    if tag&1:
+        return _invoke_sender_free(runtime,memory.load(command+16,8))
+    # Source RAX is overwritten with command-object address, not send BOOL.
+    return command
+
+
+def _invoke_sender_free(runtime,pointer):
+    from .primary_worker_consumer import _invoke
+    return _invoke(runtime,0xB75029,pointer)
+
+
+def _sender(runtime,*values):
+    from .primary_client_configuration_scope import enter_sender,finish_sender
+    borrow=enter_sender(runtime,values)
+    try:result=_sender_core(runtime,*values,borrow)
+    except BaseException as error:
+        finish_sender(runtime,borrow,error);raise
+    finish_sender(runtime,borrow)
+    return result
+
+
 def invoke(runtime, rva, values):
+    if rva==0x1BE2F90:
+        if len(values)!=5:raise InputError('SDK sender requires five machine arguments')
+        return _sender(runtime,*values)
     memory, base = runtime.memory, runtime.image_base
     if rva == 0x28F0:
         if len(values) not in (0, 1):

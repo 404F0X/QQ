@@ -121,7 +121,7 @@ class OwnedCapi(unittest.TestCase):
                 if scenario=='acquire_false':
                     self.assertEqual(physical.capi_calls,[('CryptAcquireContextW','private'),('CryptAcquireContextW','blinding')])
                     self.assertEqual(p.handles,[])
-                    self.assertIn('native host RVA1be2f90',str(stop.exception))
+                    self.assertIn('1BE2FC1 IsBadCodePtr IAT4910108',str(stop.exception))
                 elif scenario=='generate_false':
                     self.assertEqual([name for name,phase in physical.capi_calls],['CryptAcquireContextW','CryptGenRandom','CryptReleaseContext'])
                     self.assertIn('unknown original caller scratch',str(stop.exception))
@@ -130,7 +130,7 @@ class OwnedCapi(unittest.TestCase):
                     self.assertFalse(any(buffer._known))
                     self.assertFalse(p.handles[0]['live'])
                 else:
-                    self.assertIn('native host RVA1be2f90',str(stop.exception))
+                    self.assertIn('1BE2FC1 IsBadCodePtr IAT4910108',str(stop.exception))
                     self.assertEqual([row['result'] for row in p.operations if row['operation']=='release'],[0,1])
                     self.assertEqual([phase for name,phase in physical.capi_calls if name=='CryptAcquireContextW'],['private','private','blinding'])
                     self.assertTrue(p.handles[0]['live']);self.assertFalse(p.handles[1]['live'])
@@ -149,6 +149,9 @@ class OwnedCapi(unittest.TestCase):
                     self.assertEqual(_String.read(r,node+32).value(),digest)
                     self.assertEqual(_String.read(r,node+56).value(),_String.read(r,normal.values[-1]).value())
                     self.assertEqual(normal.sender[0],r.image_base+0x1BE2F90)
+                    from qq_nt_replica import primary_client_configuration_scope as scope
+                    self.assertEqual(scope._SENDER_BORROWS[normal.sender_borrow]['phase'],'failed')
+                    self.assertEqual(sum(e[0]=='source.1BE2FC1.probe_unavailable' for e in r.events),1)
                     self.assertEqual(normal.sender[1][-1],r.memory.load(normal.values[1]+128,8))
                     self.assertFalse(any(e[0]=='request.pending_dispatch' for e in r.events))
                 self.assertIsNone(p.first_error)

@@ -226,7 +226,9 @@ class Normal(unittest.TestCase):
                 probes.append('suspended lease')
                 self.assertEqual(runtime.memory.writes,before)
             return 116444736000000000
-        with source_threads(filetime=physical_filetime) as (owner,r,physical,bridge):
+        from test_primary_sdk_sender import observe_source_borrow
+        borrow_observations=[]
+        with observe_source_borrow(self,borrow_observations),source_threads(filetime=physical_filetime) as (owner,r,physical,bridge):
             with creator(owner):
                 supplied=b'explicit-component-input-long-value'
                 receipt=own(owner,supplied)
@@ -287,7 +289,7 @@ class Normal(unittest.TestCase):
                 self.fail(''.join(traceback.format_exception(owner._threads._failure)))
             child=next(row for row in owner._threads._secondary if row['_kind']=='client_loop')
             bridge.launches[0].gate.set()
-            with self.assertRaisesRegex(PrimarySemanticUnavailable,'native host RVA1be2f90') as next_stop:
+            with self.assertRaisesRegex(PrimarySemanticUnavailable,'1BE2FC1 IsBadCodePtr IAT4910108') as next_stop:
                 try:
                     physical.join(bridge.launches[0].handle)
                 except PrimarySemanticUnavailable as thrown:
@@ -350,6 +352,17 @@ class Normal(unittest.TestCase):
             self.assertEqual(_String.read(r,args[1]).value(),_String.read(r,record+48).value())
             self.assertNotEqual(m.load(args[1]+16,8),m.load(record+64,8))
             self.assertEqual(source_invoke_args,args)
+            from qq_nt_replica import primary_client_configuration_scope as scope
+            borrow=normal.sender_borrow;book=scope._SENDER_BORROWS[borrow]
+            self.assertEqual(book['phase'],'failed');self.assertIs(book['failure'],next_stop.exception)
+            self.assertIs(book['args'],args)
+            self.assertEqual(borrow_observations,['entered','copied denied','foreign runtime denied','tuple cannot enter','journal nonauthority','fn/gate contents not revalidated'])
+            probe_events=[e for e in r.events if e[0]=='source.1BE2FC1.probe_unavailable']
+            self.assertEqual(probe_events,[('source.1BE2FC1.probe_unavailable',r.image_base+0x72B142,r.image_base+0x4910108)])
+            with self.assertRaises(InputError):borrow.check(r)
+            with self.assertRaises(InputError):__import__('copy').copy(borrow).check(r)
+            self.assertFalse(any(name=='IsBadCodePtr' for name,*rest in physical.kernel.calls))
+
             erase=[(address,raw) for address,raw,label in m.writes if label.startswith('1D05590.erase') or label=='1D0590D.erase_QWORD']
             self.assertEqual([address for address,raw in erase[-6:]],[presend_rbp-72+offset for offset in (64,48,32,16,0,80)])
             self.assertTrue(all(raw==bytes(len(raw)) for address,raw in erase[-6:]))
