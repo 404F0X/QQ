@@ -747,6 +747,13 @@
       "classification": "project_source"
     },
     {
+      "path": "src/qq_nt_replica/primary_authenticated_sdk_session.py",
+      "source_sha256": "3f72c50b36a3359f8ac4d63e401ba8b9e99377546e63f63c60598b34f9b5ceac",
+      "sha256": "b2f1ae85e9060ebe3dac0b2fdd683609621da38bff0053e302f4629ddef6a5fc",
+      "classification": "project_source",
+      "origin": "MAT-SIGN-AUTHENTICATED-SDK-INTEGRATION/a1 first retained authored snapshot: authenticated-sdk-integration-a1/first-retained-source/primary_authenticated_sdk_session.py"
+    },
+    {
       "path": "src/qq_nt_replica/primary_bootstrap_direct.py",
       "source_sha256": "cf2c18e9a85f5a5d2b73185593f4c51e365e17f97185c2ca13aaaa2211e1e550",
       "sha256": "aeb11dd697662a1a46a27c3ad1cd11ab3867ffff8b4b58eeb50ca0bb0fde2ca1",
