@@ -121,7 +121,7 @@ class OwnedCapi(unittest.TestCase):
                 if scenario=='acquire_false':
                     self.assertEqual(physical.capi_calls,[('CryptAcquireContextW','private'),('CryptAcquireContextW','blinding')])
                     self.assertEqual(p.handles,[])
-                    self.assertIn('native host RVA1d05120',str(stop.exception))
+                    self.assertIn('native host RVA1be2f90',str(stop.exception))
                 elif scenario=='generate_false':
                     self.assertEqual([name for name,phase in physical.capi_calls],['CryptAcquireContextW','CryptGenRandom','CryptReleaseContext'])
                     self.assertIn('unknown original caller scratch',str(stop.exception))
@@ -130,7 +130,7 @@ class OwnedCapi(unittest.TestCase):
                     self.assertFalse(any(buffer._known))
                     self.assertFalse(p.handles[0]['live'])
                 else:
-                    self.assertIn('native host RVA1d05120',str(stop.exception))
+                    self.assertIn('native host RVA1be2f90',str(stop.exception))
                     self.assertEqual([row['result'] for row in p.operations if row['operation']=='release'],[0,1])
                     self.assertEqual([phase for name,phase in physical.capi_calls if name=='CryptAcquireContextW'],['private','private','blinding'])
                     self.assertTrue(p.handles[0]['live']);self.assertFalse(p.handles[1]['live'])
@@ -139,14 +139,17 @@ class OwnedCapi(unittest.TestCase):
                     from qq_nt_replica.primary_client_configuration_scope import image_for
                     from qq_nt_replica.primary_memory import UnknownMemory
                     normal=next(value['normal_transport'] for kind,value in image_for(r).debts if kind=='producer')
-                    self.assertTrue(normal.lock_held);self.assertEqual(normal.phase,'presend')
+                    self.assertTrue(normal.lock_held);self.assertEqual(normal.phase,'sender')
                     self.assertEqual(r.locks[normal.gate+56],1)
                     self.assertEqual(r.memory.load(normal.gate+40,8),1)
                     self.assertIn(normal.manager,r._constructed_request_managers)
                     self.assertEqual(r.memory.load(r.image_base+0x677D1C0,8),normal.manager)
-                    scratch=normal.presend[1]-72
-                    self.assertEqual(r.memory.read(scratch,24),bytes.fromhex('0123456789abcdeffedcba9876543210')+bytes(8))
-                    with self.assertRaises(UnknownMemory):r.memory.read(scratch+24,8)
+                    node,digest=normal.records
+                    from qq_nt_replica.primary_logger import _String
+                    self.assertEqual(_String.read(r,node+32).value(),digest)
+                    self.assertEqual(_String.read(r,node+56).value(),_String.read(r,normal.values[-1]).value())
+                    self.assertEqual(normal.sender[0],r.image_base+0x1BE2F90)
+                    self.assertEqual(normal.sender[1][-1],r.memory.load(normal.values[1]+128,8))
                     self.assertFalse(any(e[0]=='request.pending_dispatch' for e in r.events))
                 self.assertIsNone(p.first_error)
                 self.assertFalse(p.tickets[0].active)

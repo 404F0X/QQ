@@ -10,6 +10,7 @@ from .primary_vm import PrimarySemanticUnavailable
 
 _FACTORY = object()
 _IMAGES = {}
+_PADDING_BIRTHS = {}
 _SERVICES = {}
 _OWNERS = {}
 
@@ -33,6 +34,9 @@ class _Image:
         self.debts, self.owners, self.rows = [], {}, []
         self.row_receipts = []
         self.receivers = []
+        padding=next(region for address,region,size in regions if address==self.base+0x618C920 and size==64)
+        self.padding=(padding,padding.data,padding.initialized)
+        _PADDING_BIRTHS[self]=self.padding
 
     def validate(self, runtime):
         from .primary_shared_locale import _SharedLocaleSource
@@ -61,7 +65,8 @@ def premap(signer, spans):
     if signer in _IMAGES or getattr(signer, '_client_configuration_image', None) is not None:
         raise InputError('client configuration repeated fresh image installation')
     memory, base = signer.memory, signer.image_base
-    spans=tuple(spans)+((0x3FEED30,bytes.fromhex('0123456789abcdeffedcba9876543210'),True),)
+    spans=tuple(spans)+((0x3FEED30,bytes.fromhex('0123456789abcdeffedcba9876543210'),True),
+                        (0x618C920,b'\x80'+bytes(63),False))
     # Check every interval before publishing even the first mapping.
     for rva, raw, readonly in spans:
         start, end = base + rva, base + rva + len(raw)
@@ -98,6 +103,18 @@ def image_for(runtime):
     if type(image) is not _Image:
         raise InputError('client configuration has no original fresh image receipt')
     return image.validate(runtime)
+
+
+def stream_padding(runtime):
+    image=image_for(runtime)
+    issued=_PADDING_BIRTHS.get(image)
+    if issued is None or image.padding is not issued:
+        raise InputError('presend padding original receipt replaced')
+    region,data,known=issued
+    actual,offset=runtime.memory._span(image.base+0x618C920,64)
+    if actual is not region or offset or region.data is not data or region.initialized is not known:
+        raise InputError('presend padding original backing/mask changed')
+    return image.base+0x618C920
 
 
 def bind_service(service):
@@ -525,6 +542,22 @@ def remember_clone(runtime, source, destination, pointer):
         if pointer != owner.row['task']:
             raise InputError('client callback clone changed its original raw owner')
         owner.image.debts.append(('callback_clone', (source, destination, pointer)))
+
+
+def sender_entry(runtime,receipt,target,args):
+    from .primary_request_transport import _normal_dispatch
+    receipt.validate(runtime)
+    caller=sys._getframe(1)
+    if caller.f_code is not _normal_dispatch.__code__ or caller.f_locals.get('receipt') is not receipt:
+        raise InputError('sender requires its actual normal source continuation')
+    transport,command,pointer,count,sequence=args
+    validate_receiver(runtime,transport)
+    memory,base=runtime.memory,runtime.image_base
+    if (target!=memory.load(memory.load(transport,8)+8,8) or target!=base+0x1BE2F90 or
+            command!=receipt.values[6]-64 or pointer!=memory.load(receipt.values[1]+120,8) or
+            count!=len(receipt.values[4].value())&0xFFFFFFFF or sequence!=memory.load(receipt.values[1]+128,8)):
+        raise InputError('sender original vtable/five-argument binding changed')
+    receipt.owner.image.debts.append(('source_sender',(receipt,target,args)))
 
 
 def stop_sender(runtime, transport, command, pointer, count, sequence, target):

@@ -387,6 +387,55 @@ def _scratch_initialize(runtime, address):
     return None
 
 
+
+def _records_reset(runtime,guard):
+    memory=runtime.memory;old=memory.load(guard,8)
+    memory.store(guard,0,8,source='43DD8.guard_reset')
+    if old:_invoke(runtime,0x43DEA,guard+8,old)
+
+
+def _records_emplace(runtime,table,output,key,static,key_tuple,unused_tuple):
+    memory=runtime.memory
+    frame,rbp=_frame(runtime,128,'1BF8AC.records_material_locals')
+    guard,parent=frame+32,frame+64
+    runtime.events.append(('source.1BF8AC.arguments',table,output,key,static,key_tuple,unused_tuple,guard))
+    root=memory.load(table+8,8)
+    if root:
+        # Actual first comparison from41FC; do not borrow signed32/25B trees.
+        return _invoke(runtime,0x4075,key,root+32)
+    memory.store(parent,table+8,8,source='41FC.records_parent')
+    node=_invoke(runtime,0xB75000,80)
+    memory.store(guard,node,8,source='1BF98F.guard_node')
+    memory.store(guard+8,table+16,8,source='1BF992.guard_allocator')
+    memory.store(guard+16,0,1,source='1BF99A.guard_unconstructed')
+    #90841/9084A pass the actual pointer slot and low address BYTE. No read of
+    #the unused tuple pointee is implied by that address projection.
+    local,unused=_frame(runtime,16,'9084A.key_pointer_locals')
+    unwrapped=memory.load(key_tuple,8)
+    memory.store(local,unwrapped,8,source='90866.local_key_pointer')
+    memory.store(local+8,unused_tuple&255,1,source='9086E.local_low_BYTE')
+    _invoke(runtime,0x75B810,node+32,memory.load(local,8))
+    _invoke(runtime,0x6270,node+56)
+    memory.unmap(local)
+    memory.store(guard+16,1,1,source='1BF9B5.guard_constructed')
+    memory.write(node,bytes(16),source='4307.records_children')
+    memory.store(node+16,memory.load(parent,8),8,source='430B.records_parent')
+    memory.store(table+8,node,8,source='430F.records_link')
+    begin=memory.load(table,8);left=memory.load(begin,8)
+    if left:memory.store(table,left,8,source='431D.records_begin')
+    root=memory.load(table+8,8)
+    if root!=node:return _invoke(runtime,0x4341,root,node)
+    memory.store(node+24,1,1,source='434C.records_root_black')
+    memory.store(table+16,(memory.load(table+16,8)+1)&_U64,8,source='432F.records_count')
+    memory.store(guard,0,8,source='1BF928.guard_clear')
+    _records_reset(runtime,guard)
+    memory.store(output,node,8,source='1BF936.records_out')
+    memory.store(output+8,1,1,source='1BF939.records_inserted')
+    runtime.events.append(('source.records_node',table,node,guard))
+    memory.unmap(frame)
+    return output
+
+
 def _presend(runtime, manager, selected, original, pointer, count):
     memory=runtime.memory
     frame,rbp=_frame(runtime,0x148,'1CE8160.presend_frame')
@@ -411,7 +460,18 @@ def _presend(runtime, manager, selected, original, pointer, count):
     _invoke(runtime,0x1D04800,rbp-0x48)
     _invoke(runtime,0x1D05120,rbp-0x48,pointer,count&0xFFFFFFFF)
     _invoke(runtime,0x1D05590,rbp+0x20,rbp-0x48)
-    raise PrimarySemanticUnavailable('1CE822D subsequent source emplace requires its typed arguments')
+    memory.store(rbp+0x40,0x20,1,source='1CE81F5.digest_String_tag')
+    digest=memory.read(rbp+0x20,16)
+    memory.write(rbp+0x41,digest,source='1CE81FD.digest_String_data')
+    memory.store(rbp+0x51,0,1,source='1CE8201.digest_String_NUL')
+    memory.store(rbp+0x38,rbp+0x40,8,source='1CE8209.digest_key_pointer')
+    _invoke(runtime,0x1BF8AC,manager+40,rbp+16,rbp+64,runtime.image_base+0x414AFA0,rbp+56,rbp+88)
+    node=memory.load(rbp+16,8)
+    _invoke(runtime,0x75CEC0,node+56,original)
+    if memory.load(rbp+64,1)&1:_invoke(runtime,0xB75029,memory.load(rbp+80,8))
+    if receipt is not None:receipt.records=(node,digest)
+    memory.unmap(frame)
+    return None
 
 
 def _normal_registration(runtime, receiver, record, function, rbp, journal=None):
@@ -472,7 +532,19 @@ def _normal_dispatch(runtime, receipt, status, packet):
         memory.store(base+0x677D1C0,manager,8,source='1CE7CAD.manager_publish')
     receipt.manager=manager;receipt.phase='presend'
     _invoke(runtime,0x1CE8160,manager,record+48,original,memory.load(record+120,8),len(packet.value())&0xFFFFFFFF)
-    raise PrimarySemanticUnavailable('1CE7CCD post-presend source continuation is outside this increment')
+    gate=_invoke(runtime,0xBA21A0)
+    transport=memory.load(gate+8,8)
+    from .primary_client_configuration_scope import sender_entry
+    target=memory.load(memory.load(transport,8)+8,8)
+    _invoke(runtime,0x75B810,rbp-64,record+48)
+    args=(transport,rbp-64,memory.load(record+120,8),len(packet.value())&0xFFFFFFFF,memory.load(record+128,8))
+    sender_entry(runtime,receipt,target,args)
+    receipt.phase='sender';receipt.sender=(target,args)
+    runtime.events.append(('source.1CE7D0A.arguments',target,*args))
+    _invoke(runtime,target-base,*args)
+    _invoke(runtime,0x75B0A0,receipt.gate+56);receipt.lock_held=False
+    packet.destroy();release_record(runtime,record);receipt.phase='returned'
+    return None
 
 
 def dispatch(runtime, receiver, record, function, metadata, status, packet, frame, rbp, *, original_command=None):
@@ -1124,6 +1196,8 @@ def _complete_enhanced(runtime, receiver, command, pointer, count, success, sequ
 
 
 def invoke(runtime, rva, values):
+    if rva == 0x1BF8AC and len(values) == 6:
+        return _records_emplace(runtime,*values)
     if rva == 0x1D04800 and len(values) == 1:
         return _scratch_initialize(runtime,*values)
     if rva == 0x1CF41A0 and len(values) == 3:

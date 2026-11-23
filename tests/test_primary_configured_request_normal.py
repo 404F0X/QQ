@@ -170,23 +170,17 @@ class Normal(unittest.TestCase):
             with self.assertRaises(ExceptionGroup):owner.close()
 
     def test_presend_real_children_keep_unknown_scratch_and_branch_effects(self):
-        for count,target in ((0,'1d05120'),(101,'c92ec4')):
-            with self.subTest(count=count),client_factory() as (owner,kernel,physical):
-                r=owner.signer.runtime;m=r.memory
-                with creator(owner):
-                    manager=_invoke(r,0xB75000,64);m.write(manager,bytes(64),source='explicit manager branch ABI')
-                    m.store(manager+56,count,8,source='explicit manager count ABI')
-                    frame,rbp=_frame(r,0x178,'explicit presend caller');_String.construct(r,b'original').write_to(frame)
-                    with self.assertRaisesRegex(PrimarySemanticUnavailable,'RVA'+target):_invoke(r,0x1CE8160,manager,frame+24,frame,1234,7)
-                    event=next(e for e in reversed(r.events) if e[0]=='source.1CE8160.arguments');presend_rbp=event[-1]
-                    if not count:
-                        self.assertEqual(m.read(presend_rbp-72,24),bytes.fromhex('0123456789abcdeffedcba9876543210')+bytes(8))
-                        with self.assertRaises(UnknownMemory):m.read(presend_rbp-48,8)
-                        self.assertEqual(m.read(presend_rbp+32,16),bytes(16))
-                    else:
-                        with self.assertRaises(UnknownMemory):m.read(presend_rbp-72,24)
-                        with self.assertRaises(UnknownMemory):m.read(presend_rbp+32,16)
-                with self.assertRaises(ExceptionGroup):owner.close()
+        with client_factory() as (owner,kernel,physical):
+            r=owner.signer.runtime;m=r.memory
+            with creator(owner):
+                manager=_invoke(r,0xB75000,64);m.write(manager,bytes(64),source='explicit manager branch ABI')
+                m.store(manager+56,101,8,source='explicit manager count ABI')
+                frame,rbp=_frame(r,0x178,'explicit presend caller');_String.construct(r,b'original').write_to(frame)
+                with self.assertRaisesRegex(PrimarySemanticUnavailable,'RVAc92ec4'):_invoke(r,0x1CE8160,manager,frame+24,frame,1234,7)
+                event=next(e for e in reversed(r.events) if e[0]=='source.1CE8160.arguments');presend_rbp=event[-1]
+                with self.assertRaises(UnknownMemory):m.read(presend_rbp-72,24)
+                with self.assertRaises(UnknownMemory):m.read(presend_rbp+32,16)
+            with self.assertRaises(ExceptionGroup):owner.close()
 
     def test_real_client_to_actual_presend_child(self):
         from qq_nt_replica.primary_client_configuration_startup import (
@@ -293,8 +287,18 @@ class Normal(unittest.TestCase):
                 self.fail(''.join(traceback.format_exception(owner._threads._failure)))
             child=next(row for row in owner._threads._secondary if row['_kind']=='client_loop')
             bridge.launches[0].gate.set()
-            with self.assertRaisesRegex(PrimarySemanticUnavailable,'native host RVA1d05120') as next_stop:
-                physical.join(bridge.launches[0].handle)
+            with self.assertRaisesRegex(PrimarySemanticUnavailable,'native host RVA1be2f90') as next_stop:
+                try:
+                    physical.join(bridge.launches[0].handle)
+                except PrimarySemanticUnavailable as thrown:
+                    # unittest clears captured tracebacks on context exit.
+                    tb=thrown.__traceback__;source_invoke_args=None
+                    while tb is not None:
+                        values=tb.tb_frame.f_locals
+                        if values.get('rva')==0x1BE2F90 and values.get('self') is r:
+                            source_invoke_args=tuple(values['vm'].cells.value(i) for i in values['cells'])
+                        tb=tb.tb_next
+                    raise
             self.assertEqual(physical.capi_calls,[
                 ('CryptAcquireContextW','private'),('CryptGenRandom','private'),('CryptReleaseContext','private'),
                 ('CryptAcquireContextW','blinding'),('CryptGenRandom','blinding'),('CryptReleaseContext','blinding')])
@@ -320,7 +324,7 @@ class Normal(unittest.TestCase):
             self.assertTrue(producers[0]['claimed'])
             self.assertFalse(producers[0]['completed'])
             normal=producers[0]['normal_transport'];m=r.memory
-            self.assertTrue(normal.lock_held);self.assertEqual(normal.phase,'presend')
+            self.assertTrue(normal.lock_held);self.assertEqual(normal.phase,'sender')
             self.assertEqual(r.locks[normal.gate+56],1)
             receiver,record,callback,metadata,packet,call_frame,rbp,original=normal.values
             self.assertNotEqual(original,record+24)
@@ -335,9 +339,20 @@ class Normal(unittest.TestCase):
             self.assertLess(labels.index('1CF3F0D.request_manager_tree_begin'),labels.index('1CE7CAD.manager_publish'))
             presend_frame,presend_rbp,manager,selected,actual_original,body,size=normal.presend
             self.assertEqual((selected,actual_original,body,size),(record+48,original,m.load(record+120,8),len(packet.value())))
-            self.assertEqual(m.read(presend_rbp+32,16),bytes(16))
-            self.assertEqual(m.read(presend_rbp-72,24),bytes.fromhex('0123456789abcdeffedcba9876543210')+bytes(8))
-            with self.assertRaises(UnknownMemory):m.read(presend_rbp-48,8)
+            records_node,digest=normal.records
+            self.assertEqual(_String.read(r,records_node+32).value(),digest)
+            self.assertEqual(_String.read(r,records_node+56).value(),_String.read(r,original).value())
+            self.assertEqual(digest,__import__('hashlib').md5(m.read(body,size)).digest())
+            with self.assertRaises(UnknownMemory):m.read(records_node+50,6)
+            target,args=normal.sender
+            self.assertEqual(target,r.image_base+0x1BE2F90)
+            self.assertEqual(args,(m.load(normal.gate+8,8),rbp-64,body,size,m.load(record+128,8)))
+            self.assertEqual(_String.read(r,args[1]).value(),_String.read(r,record+48).value())
+            self.assertNotEqual(m.load(args[1]+16,8),m.load(record+64,8))
+            self.assertEqual(source_invoke_args,args)
+            erase=[(address,raw) for address,raw,label in m.writes if label.startswith('1D05590.erase') or label=='1D0590D.erase_QWORD']
+            self.assertEqual([address for address,raw in erase[-6:]],[presend_rbp-72+offset for offset in (64,48,32,16,0,80)])
+            self.assertTrue(all(raw==bytes(len(raw)) for address,raw in erase[-6:]))
 
             self.assertEqual(producers[0]['audit_exit'],dict(stage='complete',status_completed=True,
                 status_wrapper_seen=True,material_wrapper_completed=True,material_used=False,normal_scope_return=True))
