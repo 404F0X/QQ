@@ -52,7 +52,9 @@ def handoff(runtime, receiver, tag, pointer, count, function, metadata, mode):
         try:
             send_enhanced(runtime, receiver, tag, rbp + 0x80, rbp - 40, metadata, mode)
         finally:
-            payload.destroy()
+            from .primary_client_configuration_scope import normal_cleanup
+            if normal_cleanup(runtime):
+                payload.destroy()
         active = 0
     else:
         gate = _invoke(runtime, 0xBA21A0)

@@ -343,6 +343,9 @@ def dispatch(runtime, receiver, record, function, metadata, status, packet, fram
         if not transport:
             return None
         target = memory.load(memory.load(transport, 8) + 16, 8)
+        from .primary_client_configuration_scope import current_request, transport_type as client_type
+        if current_request(runtime) is not None:
+            return client_type(runtime, transport, target)
         if binding is None or target != binding.type_address:
             raise PrimarySemanticUnavailable(f'encoded request requires current transport type callback {target:#x}')
         return binding.type(transport)
@@ -389,11 +392,15 @@ def dispatch(runtime, receiver, record, function, metadata, status, packet, fram
     _remember_digest(runtime, cache, tag, digest)
     transport = memory.load(_invoke(runtime, 0xBA21A0) + 8, 8)
     target = memory.load(memory.load(transport, 8) + 8, 8)
-    if binding is None or target != binding.send_address:
+    from .primary_client_configuration_scope import current_request, stop_sender
+    client = current_request(runtime)
+    if client is None and (binding is None or target != binding.send_address):
         raise PrimarySemanticUnavailable(f'configured request requires actual send callback {target:#x}')
     outgoing = _String.read(runtime, record + 48).clone()
     outgoing.write_to(rbp - 64)
     runtime.events.append(('request.pending_dispatch', sequence, record, command, digest))
+    if client is not None:
+        stop_sender(runtime, transport, rbp - 64, pointer, count, memory.load(record + 128, 8), target)
     binding.send(runtime, transport, rbp - 64, pointer, count, sequence)
     _invoke(runtime, 0x75B0A0, gate + 56)
     packet.destroy()
@@ -553,6 +560,9 @@ def _enhanced_duplicate(runtime, metadata, command, tag):
 
 
 def _enhanced_record(runtime, receiver, command, body, mode):
+    from .primary_client_configuration_scope import current_request
+    if current_request(runtime) is not None:
+        return _client_enhanced_record(runtime, receiver, command, body, mode)
     memory, base = runtime.memory, runtime.image_base
     record = runtime._operator_new(0xB8)
     memory.store(record, base + 0x414B4C8, 8, source='1CE4F3F.request_record_vtable')
@@ -581,6 +591,9 @@ def _enhanced_record(runtime, receiver, command, body, mode):
                 return None
             target = memory.load(memory.load(transport, 8) + 16, 8)
             binding = runtime.request_transport
+            from .primary_client_configuration_scope import current_request, transport_type as client_type
+            if current_request(runtime) is not None:
+                return client_type(runtime, transport, target)
             if binding is None or target != binding.type_address:
                 raise PrimarySemanticUnavailable('enhanced request requires its bound transport type callback')
             return binding.type(transport)
@@ -598,9 +611,65 @@ def _enhanced_record(runtime, receiver, command, body, mode):
         packet.clone().write_to(record + 96)
         return record
     finally:
-        if packet is not None:
-            packet.destroy()
-        memory.unmap(frame)
+        from .primary_client_configuration_scope import normal_cleanup
+        if normal_cleanup(runtime):
+            if packet is not None:
+                packet.destroy()
+            memory.unmap(frame)
+
+
+def _client_enhanced_record(runtime, receiver, command, body, mode):
+    """Literal 1CE4EF0 normal producer, retaining its frame on unsupported paths."""
+    from .primary_logger import log
+    from .primary_client_configuration_scope import current_request, transport_type
+    owner = current_request(runtime)
+    if owner is None:
+        raise InputError('literal enhanced producer requires its current source client request')
+    memory, base = runtime.memory, runtime.image_base
+    frame, rbp = _frame(runtime, 0x130, '1CE4EF0 source producer locals')
+    debt = dict(frame=frame, record=None, published=False)
+    owner.image.debts.append(('enhanced_producer', debt))
+    record = _invoke(runtime, 0xB75000, 0xB8)
+    debt['record'] = record
+    memory.store(record+8, 0, 4, source='1CE4F2A.request_owner_count')
+    memory.store(record+16, 0, 4, source='1CE4F31.request_weak_count')
+    memory.store(record, base+0x414B4C8, 8, source='1CE4F3F.request_record_vtable')
+    for site, offset in ((0x1CE4F49,0x18),(0x1CE4F4D,0x28),(0x1CE4F51,0x38),
+                         (0x1CE4F55,0x48),(0x1CE4F59,0x58),(0x1CE4F5D,0x68),
+                         (0x1CE4F61,0x78),(0x1CE4F65,0x88),(0x1CE4F6C,0x98)):
+        memory.write(record+offset, bytes(16), source=f'{site:X}.record_zero16')
+    memory.store(rbp-0x20, record, 8, source='1CE4F73.local_control_publication')
+    memory.write(record+0xA8, bytes(16), source='1CE4F77.record_zero16')
+    _invoke(runtime, 0x75CEC0, record+0x18, command)
+    memory.store(record+0x80, 0, 8, source='1CE4F93.source_sequence_zero')
+    if not mode & 255:
+        _invoke(runtime, 0x75B810, record+0x30, command)
+        _invoke(runtime, 0x75B810, record+0x60, body)
+    else:
+        _invoke(runtime, 0x1CC6E10, rbp-0x38, body, command, rbp-0x40, record+0x48, rbp-0x3C)
+        status, error = memory.load(rbp-0x40,4), memory.load(rbp-0x3C,4)
+        if error or status not in (0,1):
+            raise PrimarySemanticUnavailable('1CE4EF0 encoder non-normal producer branch requires its source cleanup path')
+        gate = _invoke(runtime, 0xBA21A0)
+        pointer = memory.load(gate+8,8)
+        if not pointer:
+            a2 = bool(memory.load(receiver,1)&1)
+        else:
+            target = memory.load(memory.load(pointer,8)+16,8)
+            first = transport_type(runtime,pointer,target)
+            a2 = bool(memory.load(receiver,1)&1) if first==0 else transport_type(runtime,pointer,target)==1
+        selected = base+0x677D160+24*(int(a2)*2+int(status==0))
+        _invoke(runtime, 0x75B810, record+0x30, selected)
+        # Source transfers the complete header, including unknown padding. Its old
+        # temporary is neither reset by 6270 nor destroyed on this normal path.
+        memory.copy_disjoint(record+0x60, rbp-0x38, 24, label='1CE5858.encoder_header_MOVE24')
+    first = memory.load(command+16,8) if memory.load(command,1)&1 else command+1
+    second = memory.load(record+0x40,8) if memory.load(record+0x30,1)&1 else record+0x31
+    log(runtime, rb'R:\devops\workspace\p-824b74756ad64e12838601ccde6ecefb\channel\src\channel_manager\ChannelManager.cpp',
+        0x74, b'o3cm@S: %s, %s', b'[FGESDK]', 2, first, second)
+    debt['logger_returned'] = True
+    # The actual output pair is published by invoke(), after this normal return.
+    return record
 
 
 def _register_enhanced(runtime, receiver, record, function):
@@ -623,7 +692,9 @@ def _register_enhanced(runtime, receiver, record, function):
             release_record(runtime, record)
             runtime._free_allocation(node)
     finally:
-        _invoke(runtime, 0x75B0A0, receiver + 56)
+        from .primary_client_configuration_scope import normal_cleanup
+        if normal_cleanup(runtime):
+            _invoke(runtime, 0x75B0A0, receiver + 56)
 
 
 def _business_callback(runtime, active, pointer, count, success, error):
@@ -641,7 +712,9 @@ def _business_callback(runtime, active, pointer, count, success, error):
         memory.store(frame + 16, error & 0xFFFFFFFF, 4, source='request.business_error')
         _invoke(runtime, target - base, active, frame, frame + 8, frame + 12, frame + 16)
     finally:
-        memory.unmap(frame)
+        from .primary_client_configuration_scope import normal_cleanup
+        if normal_cleanup(runtime):
+            memory.unmap(frame)
 
 
 def send_enhanced(runtime, receiver, command, body, function, metadata, mode):
@@ -653,7 +726,12 @@ def send_enhanced(runtime, receiver, command, body, function, metadata, mode):
         if not error and not _timed_admitted(runtime, receiver, command):
             error = 1999
         if not error:
-            record = _enhanced_record(runtime, receiver, command, body, mode)
+            from .primary_client_configuration_scope import current_request
+            if current_request(runtime) is not None:
+                _invoke(runtime,0x1CE4EF0,receiver,frame+24,command,body,mode)
+                record = memory.load(frame+32,8)
+            else:
+                record = _enhanced_record(runtime, receiver, command, body, mode)
             if not record:
                 error = 4
         if record:
@@ -669,10 +747,18 @@ def send_enhanced(runtime, receiver, command, body, function, metadata, mode):
         memory.write(registration, bytes(40), source='1CE4CDC.registration_callback_empty')
         try:
             _clone_function(runtime, function, registration + 8)
+            from .primary_client_configuration_scope import current_request
+            client = current_request(runtime)
+            if client is not None:
+                runtime.events.append(('configuration.enhanced_registration_unavailable',
+                    runtime.image_base + 0x1CE5D00, receiver, record + 24, record, registration))
+                raise PrimarySemanticUnavailable('1CE4D13 -> 1CE5D00 enhanced source registration helper is unavailable')
             _register_enhanced(runtime, receiver, record, registration)
         finally:
-            _destroy_function(runtime, registration + 8)
-            memory.unmap(registration)
+            from .primary_client_configuration_scope import normal_cleanup
+            if normal_cleanup(runtime):
+                _destroy_function(runtime, registration + 8)
+                memory.unmap(registration)
         transport = memory.load(receiver + 8, 8)
         target = memory.load(memory.load(transport, 8) + 8, 8)
         binding = runtime.request_transport
@@ -685,10 +771,12 @@ def send_enhanced(runtime, receiver, command, body, function, metadata, mode):
         runtime.events.append(('request.enhanced_pending_dispatch', sequence, record))
         binding.send(runtime, transport, frame, pointer, len(packet.value()) & 0xFFFFFFFF, sequence)
     finally:
-        if record:
-            release_record(runtime, record)
-        _destroy_function(runtime, function + 8)
-        memory.unmap(frame)
+        from .primary_client_configuration_scope import normal_cleanup
+        if normal_cleanup(runtime):
+            if record:
+                release_record(runtime, record)
+            _destroy_function(runtime, function + 8)
+            memory.unmap(frame)
 
 
 def _erase_enhanced(runtime, receiver, sequence):

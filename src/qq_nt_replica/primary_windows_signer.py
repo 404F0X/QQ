@@ -322,6 +322,9 @@ class WindowsSigner:
                 run_model_stage(self)
                 from .primary_login_model_attach import _run_login_model_attach
                 _run_login_model_attach(self)
+                with self._threads._creator_crt_context():
+                    from .primary_client_configuration_startup import run_request_model_stage
+                    run_request_model_stage(self)
         finally:
             self._threads.after_public_operation()
 
@@ -513,6 +516,12 @@ class WindowsSigner:
         return self._operation('complete_request', command, response, success=success, sequence=sequence, error=error)
 
     def _release_resources(self):
+        from .primary_client_configuration_scope import preflight_owner
+        try:
+            preflight_owner(self)
+        except BaseException as error:
+            self._cleanup_outcomes.append(dict(_error_summary(error), stage='client_configuration_early_debt', status='failed'))
+            return [error]
         errors = []
         from .primary_windows_mmkv_host_init import preflight_close
         try:preflight_close(self)

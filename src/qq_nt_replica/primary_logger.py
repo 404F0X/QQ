@@ -358,8 +358,13 @@ def feature(runtime, pointer, key):
 
 
 def _format(runtime, template, arguments):
-    if runtime.memory.load(runtime.image_base + 0x6749CC0, 8) or runtime.memory.load(runtime.image_base + 0x6D8E630, 4):
+    options = runtime.memory.load(runtime.image_base + 0x6749CC0, 8)
+    if options not in (0, 0x18, 0x24) or runtime.memory.load(runtime.image_base + 0x6D8E630, 4):
         raise PrimarySemanticUnavailable('logger nondefault CRT formatting options or thread locale effects are unavailable')
+    if options in (0x18, 0x24) and (not isinstance(template, bytes) or any(byte >= 128 or byte == 0 for byte in template)):
+        raise PrimarySemanticUnavailable('logger finite-options requires its finite ASCII narrow template domain')
+    if options in (0x18, 0x24) and len(template) > _LIMIT:
+        raise PrimaryProgramLimit('logger printf output exceeds the bounded offline domain')
     output, offset, index = bytearray(), 0, 0
     while offset < len(template):
         if template[offset] != 37:
@@ -370,6 +375,8 @@ def _format(runtime, template, arguments):
         if match is None:
             raise PrimarySemanticUnavailable('logger printf conversion requires unrecovered CRT formatting semantics')
         flags, width, precision, length, conversion = match.groups()
+        if options in (0x18, 0x24) and (flags or width or precision is not None or length or conversion not in (b'd', b'u', b's')):
+            raise PrimarySemanticUnavailable('logger finite-options supports only bare narrow d/u/s conversions')
         width, precision = int(width or b'0'), None if precision is None else int(precision)
         if width > _LIMIT or (precision is not None and precision > _LIMIT):
             raise PrimaryProgramLimit('logger printf field exceeds the bounded offline domain')
@@ -382,6 +389,11 @@ def _format(runtime, template, arguments):
                 raise UnknownMemory('logger printf reads an unobserved variadic argument')
             argument = arguments[index]
             index += 1
+            if options in (0x18, 0x24):
+                if conversion in (b'd', b'u') and type(argument) is not int:
+                    raise UnknownMemory('logger finite-options reads an unobserved integer variadic argument')
+                if conversion == b's' and type(argument) is int and argument == 0:
+                    raise PrimarySemanticUnavailable('logger finite-options NULL narrow CString is unsupported')
             if conversion == b's' and not length:
                 value = _cstring(runtime, argument)
                 if precision is not None:

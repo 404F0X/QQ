@@ -18,31 +18,16 @@ _FILE = rb'R:\devops\workspace\p-824b74756ad64e12838601ccde6ecefb\platforms\Wind
 _LIMIT = 1 << 20
 
 
-def install_image(memory, base):
+def install_image(signer):
+    from .primary_client_configuration_scope import premap
+    base = signer.image_base
     table = b''.join((base + rva).to_bytes(8, 'little') for rva in
                      (0x142A0, 0x1C513C0, 0x1C513E0, 0x28F0, 0x1FE0, 0x1C51410))
     constructor_table = b''.join((base + rva).to_bytes(8, 'little') for rva in
                                 (0x142A0, 0x1C41AE0, 0x1C41AF0, 0x28F0, 0x1FE0, 0x1C41B10))
-    for rva, raw in ((_VTABLE, table), (0x414A2C8, constructor_table),
-                     (0x677DDB0, bytes(0x78)), (0x6751690, bytes(8)),
-                     (0x6751DC0, bytes(8)), (0x677CE90, bytes(8)), (0x677CEA8, bytes(8))):
-        cursor = 0
-        while cursor < len(raw):
-            address = base + rva + cursor
-            present = next((region for region in memory._regions
-                            if region.address <= address < region.address + len(region.data)), None)
-            if present is not None:
-                size = min(len(raw) - cursor, present.address + len(present.data) - address)
-                if memory.read(address, size) != raw[cursor:cursor + size]:
-                    raise InputError('client configuration source image overlaps different bytes')
-            else:
-                boundary = min((region.address for region in memory._regions if region.address > address),
-                               default=base + rva + len(raw))
-                size = min(len(raw) - cursor, boundary - address)
-                payload = raw[cursor:cursor + size]
-                memory.map(address, payload if rva in (_VTABLE, 0x414A2C8) else bytearray(payload), initialized=True,
-                           name='fixed client configuration source image')
-            cursor += size
+    return premap(signer, ((_VTABLE, table, True), (0x414A2C8, constructor_table, True),
+        (0x677DDB0, bytes(0x78), False), (0x6751690, bytes(8), False),
+        (0x6751DC0, bytes(8), False), (0x677CE90, bytes(8), False), (0x677CEA8, bytes(8), False)))
 
 
 def _fixed_globals():
@@ -217,30 +202,70 @@ def _first_vector(runtime, aggregate, frame):
 
 
 def produce(runtime, owner):
+    from .primary_client_configuration_scope import require_producer_entry
+    require_producer_entry(runtime, owner)
     memory, base = runtime.memory, runtime.image_base
     frame, rbp = _frame(runtime, 0x110, '1C50FE0.configuration_producer_frame')
-    previous = memory.load(owner + 9, 1)
-    runtime.events.append(('configuration.inflight_compare_exchange', owner + 9, previous, 0, 1))
-    if previous:
+    from .primary_client_configuration_scope import producing
+    with producing(runtime, owner, frame, rbp):
+        previous = memory.load(owner + 9, 1)
+        runtime.events.append(('configuration.inflight_compare_exchange', owner + 9, previous, 0, 1))
+        if previous:
+            memory.unmap(frame)
+            return None
+        memory.store(owner + 9, 1, 1, source='1C5100B.configuration_inflight_claim')
+        for offset in (-0x20, -8, 0x10):
+            memory.store(rbp + offset, 0, 2, source='1C51016.configuration_empty_string')
+        memory.write(rbp + 0x40, bytes(48), source='1C5103A.configuration_empty_metadata')
+        for source, destination in ((rbp + 0x10, rbp + 0x40), (rbp - 8, rbp + 0x58)):
+            _invoke(runtime, 0x75CEC0, destination, source)
+        carrier = rbp - 0x48
+        memory.store(carrier + 8, base + _VTABLE, 8, source='1C5106E.configuration_inline_callback_vtable')
+        memory.store(carrier + 16, owner, 8, source='1C51072.configuration_inline_callback_owner')
+        memory.store(carrier + 32, carrier + 8, 8, source='1C51076.configuration_inline_callback_active')
+        _String.construct(runtime, b'GetSecConf').write_to(rbp + 0x28)
+        _invoke(runtime, 0x1CE6920, _invoke(runtime, 0xBA21A0), rbp + 0x28, rbp - 0x1F, 0,
+                carrier, rbp + 0x40, 1)
+        for offset in (0x58, 0x40, 0x10, -8, -0x20):
+            _String.read(runtime, rbp + offset).destroy()
         memory.unmap(frame)
         return None
-    memory.store(owner + 9, 1, 1, source='1C5100B.configuration_inflight_claim')
-    for offset in (-0x20, -8, 0x10):
-        memory.store(rbp + offset, 0, 2, source='1C51016.configuration_empty_string')
-    memory.write(rbp + 0x40, bytes(48), source='1C5103A.configuration_empty_metadata')
-    for source, destination in ((rbp + 0x10, rbp + 0x40), (rbp - 8, rbp + 0x58)):
-        _invoke(runtime, 0x75CEC0, destination, source)
-    carrier = rbp - 0x48
-    memory.store(carrier + 8, base + _VTABLE, 8, source='1C5106E.configuration_inline_callback_vtable')
-    memory.store(carrier + 16, owner, 8, source='1C51072.configuration_inline_callback_owner')
-    memory.store(carrier + 32, carrier + 8, 8, source='1C51076.configuration_inline_callback_active')
-    _String.construct(runtime, b'GetSecConf').write_to(rbp + 0x28)
-    _invoke(runtime, 0x1CE6920, _invoke(runtime, 0xBA21A0), rbp + 0x28, rbp - 0x1F, 0,
-            carrier, rbp + 0x40, 1)
-    for offset in (0x58, 0x40, 0x10, -8, -0x20):
-        _String.read(runtime, rbp + offset).destroy()
-    memory.unmap(frame)
+
+
+def loop(runtime, owner):
+    from .primary_client_configuration_scope import require_owner, validate_owner
+    current = require_owner(runtime, 'client_loop')
+    validate_owner(runtime, owner)
+    if current.row['task'] != owner:
+        raise InputError('configuration loop owner differs from its actual thread capture')
+    memory = runtime.memory
+    while not memory.load(owner + 24, 1) & 1:
+        if memory.load(owner + 4, 4, signed=True) > memory.load(owner, 1):
+            return None
+        _invoke(runtime, 0x1C50FE0, owner)
+        seconds = (memory.load(owner + 4, 4) * 60 + 60) & 0xFFFFFFFF
+        signed = seconds - (1 << 32) if seconds >> 31 else seconds
+        if signed > 0:
+            _invoke(runtime, 0x760050, signed * 1000000000)
+        previous = memory.load(owner + 4, 4)
+        memory.store(owner + 4, (previous + 1) & 0xFFFFFFFF, 4, source='1C50F90.configuration_count_lock_add')
     return None
+
+
+def duration_sleep(runtime, duration):
+    from .primary_client_configuration_scope import require_owner
+    require_owner(runtime)
+    duration &= (1 << 64) - 1
+    if duration >> 63 or duration == 0:
+        return None
+    return _invoke(runtime, 0x787A70, duration)
+
+
+def millisecond_sleep(runtime, duration):
+    from .primary_client_configuration_scope import require_owner
+    require_owner(runtime)
+    duration &= (1 << 64) - 1
+    return _host(runtime, 'Sleep', ((duration + 999999) // 1000000) & 0xFFFFFFFF)
 
 
 def respond(runtime, capture, pointer, count, success, extra):
@@ -306,6 +331,10 @@ def finish_local_thread(runtime, thread):
 
 
 def start_owner(runtime, owner):
+    from .primary_client_configuration_scope import require_owner, validate_owner
+    current = require_owner(runtime, 'client_startup')
+    if validate_owner(runtime, owner)[2] is not current.row:
+        raise InputError('client start owner belongs to another startup row')
     memory, base = runtime.memory, runtime.image_base
     frame, rbp = _frame(runtime, 0xE8, '1C29F90.configuration_owner_start_frame')
     log(runtime, _FILE, 0x67, b'UpdateConfiguration start', base + 0x48972C7, 2)
@@ -327,6 +356,9 @@ def start_owner(runtime, owner):
 
 
 def startup_entry(runtime, delay):
+    from .primary_client_configuration_scope import require_owner, register_owner, image_for
+    require_owner(runtime, 'client_startup')
+    image_for(runtime)
     from .primary_provider_init import _state
     from .primary_feature_notifications import _logger
 
@@ -355,9 +387,12 @@ def startup_entry(runtime, delay):
     owner = memory.load(base + 0x6751DC0, 8)
     if not owner:
         owner = runtime._operator_new(32)
+        register_owner(runtime, owner)
         for offset, value, width in ((0, 5, 1), (4, 0, 4), (8, 0, 2), (16, 0, 8), (24, 0, 1)):
             memory.store(owner + offset, value, width, source='1C23252.configuration_owner_construct')
         memory.store(base + 0x6751DC0, owner, 8, source='1C2326E.configuration_owner_publish')
+    from .primary_client_configuration_scope import validate_owner
+    validate_owner(runtime, owner)
     _invoke(runtime, 0x1C29F90, owner)
     after = _host(runtime, 'GetTickCount')
     log(runtime, source_file, 0x12C, b'thread2=%u', base + 0x48972C7, 1, (after - before) & 0xFFFFFFFF)
@@ -375,7 +410,11 @@ def invoke(runtime, rva, values):
         table = runtime.image_base + 0x414A2C8
         runtime.memory.store(destination, table, 8, source='1C41AE7.configuration_change_clone')
         return table if rva == 0x1C41AE0 else destination
-    if rva in (0x1C50F70, 0x1C41B10):
+    if rva == 0x1C50F70 and len(values) == 1:
+        return loop(runtime, values[0])
+    if rva in (0x760050, 0x787A70) and len(values) == 1:
+        return (duration_sleep if rva == 0x760050 else millisecond_sleep)(runtime, values[0])
+    if rva == 0x1C41B10:
         raise PrimarySemanticUnavailable('queued configuration retry or feature callback continuation is not implemented')
     if rva == 0x1C50FE0 and len(values) == 1:
         return produce(runtime, values[0])
@@ -384,6 +423,8 @@ def invoke(runtime, rva, values):
         runtime.memory.store(destination, runtime.image_base + _VTABLE, 8, source='1C513C7.configuration_inline_clone_vtable')
         owner = runtime.memory.load(source + 8, 8)
         runtime.memory.store(destination + 8, owner, 8, source='1C513CE.configuration_inline_clone_owner')
+        from .primary_client_configuration_scope import remember_clone
+        remember_clone(runtime, source, destination, owner)
         return owner
     if rva == 0x1C513E0 and len(values) == 1:
         result = runtime._operator_new(16)

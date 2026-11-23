@@ -179,34 +179,77 @@ def _destroy(runtime, table, pointer, heap):
         raise PrimarySemanticUnavailable("SDK functor current destruction target is unavailable")
 
 
-def construct_objects(runtime):
+def handles_swap(runtime, left, right):
     memory, base = runtime.memory, runtime.image_base
+    return any(active and memory.load(active, 8) in (base+0x433B1F8, base+0x433B2E8)
+               for active in (memory.load(left+24, 8), memory.load(right+24, 8)))
+
+
+def swap(runtime, left, right):
+    from .primary_worker_consumer import _invoke
+    from .primary_worker_response import _frame
+    if left == right:
+        return None
+    memory = runtime.memory
+    frame, unused = _frame(runtime, 0x40, 'BED870 SDK callback swap local')
+
+    def virtual(active, slot, *values):
+        table = memory.load(active, 8)
+        target = memory.load(table+slot, 8)
+        return _invoke(runtime, target-runtime.image_base, active, *values)
+
+    def destroy(inline):
+        active = memory.load(inline+24, 8)
+        if active:
+            virtual(active, 24 if active == inline else 32)
+
+    active_left, active_right = memory.load(left+24, 8), memory.load(right+24, 8)
+    if active_left != left:
+        if active_right != right:
+            memory.store(left+24, active_right, 8, source='BED8A5.SDK_left_owner')
+            memory.store(right+24, active_left, 8, source='BED8A9.SDK_right_owner')
+        else:
+            virtual(active_right, 8, left)
+            destroy(right)
+            memory.store(right+24, memory.load(left+24, 8), 8, source='BED8EC.SDK_right_owner')
+            memory.store(left+24, left, 8, source='BED8F4.SDK_left_inline')
+    elif active_right != right:
+        virtual(active_left, 8, right)
+        destroy(left)
+        memory.store(left+24, memory.load(right+24, 8), 8, source='BED8CB.SDK_left_owner')
+        memory.store(right+24, right, 8, source='BED952.SDK_right_inline')
+    else:
+        virtual(active_left, 8, frame+32)
+        destroy(left)
+        memory.store(left+24, 0, 8, source='BED90E.SDK_left_reset')
+        virtual(active_right, 8, left)
+        destroy(right)
+        memory.store(right+24, 0, 8, source='BED92D.SDK_right_reset')
+        memory.store(left+24, left, 8, source='BED935.SDK_left_inline')
+        virtual(frame+32, 8, right)
+        virtual(frame+32, 24)
+        memory.store(right+24, right, 8, source='BED952.SDK_right_inline')
+    memory.unmap(frame)
+
+
+def construct_objects(runtime):
+    from .primary_worker_consumer import _invoke
+    from .primary_worker_response import _frame
+    memory, base = runtime.memory, runtime.image_base
+    frame, unused = _frame(runtime, 32, '2C5C7F0 source inline functor temporary')
     for rva, table_rva, function in ((0x6D83BC8, 0x433B1F8, 0x2C5C8F0),
                                      (0x6D83BF0, 0x433B1F8, 0x2C5C9A0),
                                      (0x6D83C18, 0x433B2E8, 0xB8E60)):
         destination, table = base + rva, base + table_rva
-        previous = memory.load(destination + 24, 8)
-        old_clone = old_capture = None
-        if previous == destination:
-            previous_table = memory.load(previous, 8)
-            old_clone = _clone_table(runtime, previous_table)
-            old_capture = memory.load(previous + 8, 8)
-            _destroy(runtime, memory.load(previous, 8), previous, False)
-            memory.store(destination + 24, 0, 8, source="BED90E.inline_swap_clear")
-        new_table = _clone_table(runtime, table)
-        memory.store(destination, new_table, 8, source="2C5CA57.clone_vtable")
-        memory.store(destination + 8, base + function, 8, source="2C5CA5E.clone_capture")
-        _destroy(runtime, table, None, False)
-        memory.store(destination + 24, destination, 8,
-                     source="BED935.inline_object_publication" if old_clone is not None else "BED952.inline_object_publication")
-        if old_clone is not None:
-            restored_table = _clone_table(runtime, old_clone)
-            _destroy(runtime, old_clone, None, False)
-            _destroy(runtime, restored_table, None, False)
-            runtime.events.append(("SDK.inline_replaced", destination, old_capture))
-        elif previous:
-            _destroy(runtime, memory.load(previous, 8), previous, True)
+        memory.store(frame, table, 8, source='2C5C7F0.temporary_vtable')
+        memory.store(frame + 8, base + function, 8, source='2C5C7F0.temporary_capture')
+        memory.store(frame + 24, frame, 8, source='2C5C7F0.temporary_inline_owner')
+        _invoke(runtime, 0xBED870, frame, destination)
+        active = memory.load(frame + 24, 8)
+        if active:
+            _destroy(runtime, memory.load(active, 8), active, active != frame)
         runtime.events.append(("SDK.object_constructed", destination, base + function))
+    memory.unmap(frame)
     return 0
 
 
@@ -490,4 +533,4 @@ def invoke(runtime, rva, values):
     memory.store(destination, base + (0x433B1F8 if rva == 0x2C5CA50 else 0x433B2E8),
                  8, source="2C5CA57.clone_vtable")
     memory.store(destination + 8, memory.load(source + 8, 8), 8, source="2C5CA5E.clone_capture")
-    return None
+    return memory.load(source + 8, 8)

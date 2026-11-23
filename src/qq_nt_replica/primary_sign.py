@@ -2014,6 +2014,9 @@ class PrimaryRuntime:
             from .primary_configuration_callbacks import invoke
             return invoke(self, rva, tuple(arg(n) for n in range(len(cells))))
         if rva == 0xBED870 and len(cells) == 2:
+            from .primary_sdk import handles_swap as sdk_handles_swap, swap as sdk_swap
+            if sdk_handles_swap(self, arg(0), arg(1)):
+                return sdk_swap(self, arg(0), arg(1))
             from .primary_configuration_callbacks import handles_swap, swap
             if handles_swap(self, arg(0), arg(1)):
                 return swap(self, arg(0), arg(1))
@@ -2330,8 +2333,15 @@ class PrimaryRuntime:
         if rva in (0xBC2100, 0x1BE3F80, 0xB9F1D0, 0x1C56610):
             from .primary_logger import invoke
             return invoke(self, rva, tuple(arg(n) for n in range(len(cells))))
+        if rva == 0x4CC9 and len(cells)==7:
+            from .primary_native_logger import session_log
+            return session_log(self,*(arg(n) for n in range(7)))
+        if rva in (0x72B078, 0x72B018, 0x72B5B6, 0xB9E850, 0x75CB20, 0xBBA000, 0x1CE2BC0,
+                   0xBBB730,0x75AF50,0x75AFC0,0x7877A0,0x7877E0):
+            from .primary_client_configuration_startup import invoke
+            return invoke(self, rva, tuple(arg(n) for n in range(len(cells))))
         if rva in (0x1C50FE0, 0x1C513C0, 0x1C513E0, 0x1C51410, 0x1C514B0, 0xBE35C0, 0xBBDB00,
-                   0x1C22D50, 0x1C22D90, 0x1C29F90, 0x75FF40, 0x1C41AE0, 0x1C41AF0, 0x1C41B10, 0x1C50F70):
+                   0x1C22D50, 0x1C22D90, 0x1C29F90, 0x75FF40, 0x1C41AE0, 0x1C41AF0, 0x1C41B10, 0x1C50F70, 0x760050, 0x787A70):
             from .primary_client_configuration import invoke
             return invoke(self, rva, tuple(arg(n) for n in range(len(cells))))
         if rva in (0x1C52510, 0x1BE39B0):
@@ -2370,7 +2380,12 @@ class PrimaryRuntime:
                    0x75AD90, 0x75B000, 0x787720, 0x28F0, 0x1FE0, 0x63EC0, 0x1C1BA80,
                    0x2DE8CAF, 0x2DE8C9D, 0xBCEDF0, 0xBCEE60, 0xBCEED0):
             from .primary_sdk import invoke
-            return invoke(self, rva, tuple(arg(n) for n in range(len(cells))))
+            before_receiver = len(self.memory.writes) if rva == 0x1BE3060 else None
+            result = invoke(self, rva, tuple(arg(n) for n in range(len(cells))))
+            if rva == 0x1BE3060:
+                from .primary_client_configuration_scope import receiver_produced
+                receiver_produced(self, arg(0), before_receiver)
+            return result
         if self.create_thread_address is not None and rva + self.image_base == self.create_thread_address:
             if len(cells) != 6:
                 raise InputError("CreateThread takes six arguments")
@@ -2467,6 +2482,8 @@ class PrimaryRuntime:
             if len(cells) != 4:
                 raise InputError("SDK material-control wrapper requires value, bit, operation and byte selector")
             direct_scope = self.__dict__.get('_primary_direct_scope')
+            if direct_scope is not None and direct_scope.client_owner is not None:
+                direct_scope.client_handoff_setting(vm, rva, cells, completed=False)
             if direct_scope is not None and direct_scope.notification_owner is not None and not direct_scope.notification_handoff_setting(vm, rva, cells, completed=False):
                 direct_scope.notification_setting(vm, rva, cells, completed=False)
             self._register_provider_base(vm)
@@ -2493,6 +2510,8 @@ class PrimaryRuntime:
                 result = self.invoke(vm, target - self.image_base, cells)
             else:
                 result = None
+            if direct_scope is not None and direct_scope.client_owner is not None:
+                direct_scope.client_handoff_setting(vm, rva, cells, completed=True)
             if direct_scope is not None and direct_scope.notification_owner is not None and not direct_scope.notification_handoff_setting(vm, rva, cells, completed=True):
                 direct_scope.notification_setting(vm, rva, cells, completed=True)
             return result

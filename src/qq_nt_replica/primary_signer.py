@@ -1399,11 +1399,9 @@ class PrimarySigner:
 
                             name="fixed source fresh-image zero fill", initialized=True)
 
-        for rva in (0x6D83BC8, 0x6D83BF0, 0x6D83C18):
+        from .primary_client_configuration_startup import install_fresh_globals
 
-            self.memory.map(self.image_base + rva, bytearray(24),
-
-                            name="SDK inline object before construction", initialized=False)
+        install_fresh_globals(self)
 
         from .primary_command_classification import install_image as install_command_image
 
@@ -1439,7 +1437,7 @@ class PrimarySigner:
 
         from .primary_client_configuration import install_image as install_configuration_image
 
-        install_configuration_image(self.memory, self.image_base)
+        install_configuration_image(self)
 
         from .primary_feature_notifications import install_image as install_notification_image
 
@@ -1636,6 +1634,8 @@ class PrimarySigner:
 
         from .primary_shared_locale import install_fresh_image as install_shared_locale_image
         self._shared_locale_image = install_shared_locale_image(self)
+        from .primary_client_configuration_scope import bind_image as bind_client_image
+        bind_client_image(self)
         from .primary_module_sync import install_fresh_image as install_module_sync
         self._module_sync_image = install_module_sync(self)
         from .primary_msf_selection import install_fresh_image as install_msf_selection

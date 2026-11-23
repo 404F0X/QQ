@@ -230,3 +230,137 @@ def device_handoff_audit(runtime):
             scope._request_audit = None
         elif sys.exception() is None:
             raise PrimarySemanticUnavailable('device handoff audit ownership changed before exit')
+
+
+class _ClientHandoffAuditClaim(_RequestAuditClaim):
+    _arguments = (1, 61, 1, 0)
+    _seed_flag = 0
+
+    def __init__(self, scope, source, producer, factory):
+        if factory is not _FACTORY:
+            raise InputError('client handoff requires its original source factory')
+        self.scope, self.runtime, self.owner = scope, scope.runtime, scope.client_owner
+        self.source, self.producer = source, producer
+        self.handoff_region = self.runtime.memory._span(source.f_locals['frame'], 0x178)[0]
+        self.completion = self.public = None
+        self.thread, self.generation, self.serial = get_ident(), self.runtime._main_generation, self.owner.serial
+        self.active, self.stage, self.status_completed, self.material_used = True, 'created', False, False
+        self.write_start = None
+        self.status_wrapper_seen = self.material_wrapper_completed = False
+        self.material_wrapper = None
+
+        from .primary_client_configuration_scope import validate_receiver
+        pointer=self.runtime.memory.load(self.runtime.image_base+0x6751AC0,8)
+        self.receiver=None if not pointer else validate_receiver(self.runtime,pointer)
+
+    def valid(self):
+        from .primary_client_configuration import produce
+        from .primary_client_configuration_scope import _frame, require_owner
+        from .primary_direct_scopes import PrimaryDirectScope
+        from .primary_logger import _String
+        from .primary_notification_handoff_audit import _empty_source_metadata
+        from .primary_sign import PrimaryRuntime
+        from .primary_worker_handoff import handoff, invoke
+        from .primary_worker_consumer import _invoke
+        runtime, scope, source, producer = self.runtime, self.scope, self.source, self.producer
+        if (not self.active or get_ident() != self.thread or type(scope) is not PrimaryDirectScope or
+                scope.runtime is not runtime or scope.client_owner is not self.owner or not scope._valid_client() or
+                self.owner.producer is not producer or not producer['claimed'] or
+                not any(kind == 'producer' and issued is producer for kind, issued in self.owner.image.debts) or
+                scope._request_audit is not self or
+                runtime.__dict__.get('_primary_direct_scope') is not scope or self.owner.serial is not self.serial or
+                runtime._main_generation != self.generation or runtime._active_main is not None or runtime._active_failed or
+                _frame(handoff.__code__, runtime) is not source or source is None):
+            return False
+        from .primary_client_configuration_scope import validate_receiver
+        pointer=runtime.memory.load(runtime.image_base+0x6751AC0,8)
+        if self.receiver is None:
+            if pointer:return False
+        elif pointer!=self.receiver[0] or validate_receiver(runtime,pointer) is not self.receiver:
+            return False
+        original = producer['source']
+        dispatch, wrapper = source.f_back, source.f_back.f_back
+        worker = wrapper.f_back
+        if (original is not _frame(produce.__code__, runtime) or dispatch.f_code is not invoke.__code__ or
+                wrapper.f_code is not PrimaryRuntime.invoke.__code__ or worker.f_code is not _invoke.__code__ or
+                worker.f_back is not original or require_owner(runtime, 'client_loop') is not self.owner):
+            return False
+        values = tuple(source.f_locals.get(key) for key in ('receiver','tag','pointer','count','function','metadata','mode'))
+        memory, base, rbp = runtime.memory, runtime.image_base, producer['rbp']
+        frame = producer['frame']
+        parent, offset = memory._span(frame, 0x110)
+        local, offset2 = memory._span(source.f_locals.get('frame'), 0x178)
+        actual = (base + 0x6751AB8, rbp + 0x28, rbp - 0x1F, 0, rbp - 0x48, rbp + 0x40, 1)
+        if (values != actual or parent is not producer['region'] or local is not self.handoff_region or
+                parent.address != frame or len(parent.data) != 0x110 or offset or
+                parent.name != '1C50FE0.configuration_producer_frame' or
+                local.name != '1CE6920.device_handoff_frame' or len(local.data) != 0x178 or offset2 or
+                source.f_locals.get('rbp') != local.address + 0x80 or
+                worker.f_locals.get('values') != values or dispatch.f_locals.get('values') != values or
+                wrapper.f_locals.get('rva') != 0x1CE6920 or wrapper.f_locals.get('cells') != tuple(range(7)) or
+                worker.f_locals.get('vm') is not wrapper.f_locals.get('vm') or
+                memory.load(rbp - 0x20, 2) != 0 or not _empty_source_metadata(memory, rbp + 0x40, parent) or
+                memory.load(rbp - 0x40, 8) != base + 0x414ABD8 or
+                memory.load(rbp - 0x38, 8) != self.owner.row['task'] or
+                memory.load(rbp - 0x28, 8) != rbp - 0x40 or
+                _String.read(runtime, rbp + 0x28).value() != b'GetSecConf'):
+            return False
+        return True
+
+    def setting(self, carrier, rva, cells, *, completed):
+        # These two callers have the same finite setting ABI, not the same issuer.
+        from .primary_notification_handoff_audit import _NotificationHandoffAuditClaim
+        result=_NotificationHandoffAuditClaim.setting(self, carrier, rva, cells, completed=completed)
+        if rva==0x1BF8090 and completed:
+            from .primary_client_configuration_scope import _frame
+            from .primary_sign import PrimaryRuntime
+            source=_frame(PrimaryRuntime.invoke.__code__,self.runtime)
+            writes=self.runtime.memory.writes[self.write_start:]
+            seed=self.runtime.image_base+0x6D88430+0x841
+            self.update_observed=dict(first=source.f_locals['first'],second=source.f_locals['second'],
+                target=source.f_locals['target'],seed_writes=sum(address==seed and label=='2DE8E75.material_control_seed' for address,raw,label in writes),
+                index_writes=sum(label in ('2DE8F19.material_encoded_index','2DE8F41.material_encoded_index') for address,raw,label in writes))
+        return result
+
+    def program(self, name):
+        from .primary_notification_handoff_audit import _NotificationHandoffAuditClaim
+        return _NotificationHandoffAuditClaim.program(self, name)
+
+
+@contextmanager
+def client_handoff_audit(runtime):
+    from .primary_client_configuration_scope import require_owner
+    from .primary_worker_handoff import handoff
+    owner = require_owner(runtime, 'client_loop')
+    scope = runtime.__dict__.get('_primary_direct_scope')
+    source = sys._getframe(2)
+    producer = owner.producer
+    if (getattr(runtime, 'primary_backend', 'reference') != 'direct' or scope is None or not scope._valid_client() or
+            scope.client_owner is not owner or source.f_code is not handoff.__code__ or producer is None or
+            producer['claimed'] or scope._request_audit is not None or scope._caller is not None or
+            scope._status_host is not None or scope._audit is not None or runtime._program_calls):
+        raise PrimarySemanticUnavailable('client handoff requires its actual current producer and independent audit')
+    claim = _ClientHandoffAuditClaim(scope, source, producer, _FACTORY)
+    producer['claimed'] = True
+    scope._request_audit = claim
+    try:
+        claim.require()
+        yield claim
+        claim.require()
+        if (claim.stage != 'complete' or not claim.status_completed or not claim.status_wrapper_seen or
+                not claim.material_wrapper_completed or claim.material_wrapper is not None):
+            raise PrimarySemanticUnavailable('client handoff did not finish its actual status/material pair')
+        scope.report['clientConfigurationAudit'] = dict(completed=True, materialInitialized=claim.material_used)
+        producer['audit_completed'] = True
+        producer['material_initialized'] = claim.material_used
+    finally:
+        producer['audit_exit']=dict(stage=claim.stage,status_completed=claim.status_completed,
+            status_wrapper_seen=claim.status_wrapper_seen,material_wrapper_completed=claim.material_wrapper_completed,
+            material_used=claim.material_used,normal_scope_return=sys.exception() is None)
+        producer['material_update_observed']=getattr(claim,'update_observed',None)
+        claim.active = False
+        claim.source = claim.producer = None
+        if scope._request_audit is claim:
+            scope._request_audit = None
+        elif sys.exception() is None:
+            raise PrimarySemanticUnavailable('client handoff audit instance was replaced')

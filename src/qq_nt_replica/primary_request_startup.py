@@ -54,6 +54,21 @@ def _command(runtime, rbp, item):
 
 def construct(runtime):
     memory, base, data = runtime.memory, runtime.image_base, _image()
+    from .primary_client_configuration_startup import constructor_enter
+    journal=constructor_enter(runtime)
+    def register(callback):
+        stage=journal['private_stage']
+        registrar=None if stage is None else stage['registrar']
+        before=() if registrar is None else tuple(registrar._records)
+        row=dict(callback=callback,returned=False,result=None,registered_record=None)
+        journal['registrations'].append(row)
+        result=_invoke(runtime,0x3E680B4,callback)
+        row['returned'],row['result']=True,result
+        if registrar is not None:
+            added=[entry for entry in registrar._records if not any(entry is old for old in before)]
+            if len(added)==1 and added[0].address==callback and added[0].status=='pending':
+                row['registered_record']=added[0]
+        return result
     frame, rbp = _frame(runtime, 0x100, '1CF4360.request_startup_frame')
     for item in data['global_writes']:
         memory.write(base + item['rva'], bytes.fromhex(item['hex']),
@@ -76,16 +91,17 @@ def construct(runtime):
     for offset in reversed(data['key_offsets']):
         _String.read(runtime, rbp + offset + 8).destroy()
     callbacks = [base + item['callback_rva'] for item in data['registrations']]
-    _invoke(runtime, 0x3E680B4, callbacks[0])
+    register(callbacks[0])
     _invoke(runtime, 0x75B000, base + 0x677D048)
-    _invoke(runtime, 0x3E680B4, callbacks[1])
+    register(callbacks[1])
     memory.write(base + 0x677D070, bytes(24), source='1CF4DB2.request_archive_vector')
-    _invoke(runtime, 0x3E680B4, callbacks[2])
+    register(callbacks[2])
     for index, item in enumerate(data['commands']):
         _command(runtime, rbp, item)
-        result = _invoke(runtime, 0x3E680B4, callbacks[index + 3])
+        result = register(callbacks[index + 3])
     runtime.events.append(('request.startup_constructed',))
     memory.unmap(frame)
+    journal['normal_return']=True
     return result
 
 

@@ -145,7 +145,9 @@ def _nt_format_records(runtime,view,array,count,output_address):
     # A fixed source-literal view and actual40B variants are the formatter inputs.
     memory=runtime.memory
     pointer=memory.load(view,8);length=memory.load(view+8,8)
-    choices={(runtime.image_base+0x45d2964,43,3):_NT_FORMAT,(runtime.image_base+0x4604ab6,35,2):_NT_MISSING}
+    choices={(runtime.image_base+0x45d2964,43,3):_NT_FORMAT,(runtime.image_base+0x4604ab6,35,2):_NT_MISSING,
+             (runtime.image_base+0x46629B0,15,1):b'SetSessionId:{}',
+             (runtime.image_base+0x45D1E46,8,2):b'[{}]->{}'}
     template=choices.get((pointer,length,count))
     if template is None:raise InputError('NT formatter requires exact fixed literal view/count')
     output=_String.construct(runtime,b'');output.write_to(output_address)
@@ -227,7 +229,7 @@ def _emit_cold(runtime,message,level,line,*,source_file=b'login_service.cc',func
         raise PrimarySemanticUnavailable('D3AB8F nonempty filter shared-pair predicate unavailable')
     if memory.load(base+0x6753530+0x78,8) or memory.load(base+0x6753530+0x28,8):
         raise PrimarySemanticUnavailable('D3A81F nonempty holder source terminal unavailable')
-    if (source_file,function)!=(b'login_service.cc',b'initConfig') and (level,line,source_file,function) not in ((2,0x73c,b'nt_wrapper_engine.cc',b''),(4,0x767,b'nt_wrapper_engine.cc',b'')):raise PrimarySemanticUnavailable('D3 source metadata outside finite supported calls')
+    if (source_file,function)!=(b'login_service.cc',b'initConfig') and (level,line,source_file,function) not in ((2,0x73c,b'nt_wrapper_engine.cc',b''),(4,0x767,b'nt_wrapper_engine.cc',b''),(2,0x21,b'msf_security_sign_callback.cc',b'SetSessionId')):raise PrimarySemanticUnavailable('D3 source metadata outside finite supported calls')
     output=_format_fixed(runtime,b'[{}] {}({})::{} {}',(('cstring',b'I' if level==2 else b'E'),('cstring',source_file),('integer',line),('cstring',function),('String',message)))
     if memory.load(base+0x6753530,8) or memory.load(base+0x6753530+0x50,8):
         raise PrimarySemanticUnavailable('D3A81F unbound actual output callback unavailable')
@@ -251,3 +253,83 @@ def empty_msf_path(runtime):
         message=_String.construct(runtime,b' path: get msf save path failed!!!')
         _emit_cold(runtime,message,4,0x122)
         message.destroy()
+
+
+def session_log(runtime,metadata,level,source_file,line,function,template,owned_copy):
+    from .primary_client_configuration_startup import validate_image
+    from .primary_logger import _cstring
+    validate_image(runtime)
+    base,memory=runtime.image_base,runtime.memory
+    if (metadata!=base+0x3F6DE00 or level!=2 or line!=0x21 or function!=base+0x4849C07 or
+            template!=base+0x46629B0 or _cstring(runtime,source_file)!=b'msf_security_sign_callback.cc' or
+            _cstring(runtime,metadata)!=b'MSFSecuritySignCallback' or _cstring(runtime,function)!=b'SetSessionId'):
+        raise InputError('4CC9 metadata differs from the finite SetSessionId source call')
+    frame,unused=_frame(runtime,0x60,'4CC9 source formatting locals')
+    rbp=frame+0x40
+    pending=dict(frame=frame,rbp=rbp,metadata=metadata,owned_copy=owned_copy)
+    runtime._client_session_log_pending=pending
+    memory.store(rbp-0x10,metadata,8,source='4CE8.metadata_CString_pointer')
+    if enabled(runtime,level):
+        memory.store(rbp-0x28,template,8,source='4CFF.format_pointer')
+        length=_invoke(runtime,0x3EB2C10,template)
+        memory.store(rbp-0x20,length,8,source='4D07.actual_strlen_length')
+        pending.update(stage='4D16',format_view=rbp-0x28)
+        _session_one(runtime,rbp-0x40,rbp-0x28,owned_copy,pending)
+        pending['stage']='4D2D'
+        _session_two(runtime,rbp-0x28,base+0x3EB8678,rbp-0x10,rbp-0x40,pending)
+        pending['stage']='4D43'
+        _emit_cold(runtime,_String.read(runtime,rbp-0x28),level,line,
+                   source_file=_cstring(runtime,source_file),function=_cstring(runtime,function))
+        for site,address in ((0x4D4C,rbp-0x28),(0x4D55,rbp-0x40)):
+            runtime.events.append(('source.4CC9.normal_dtor',site,address))
+            _String.read(runtime,address).destroy()
+    runtime.events.append(('source.4CC9.normal_dtor',0x4D5E,owned_copy))
+    _String.read(runtime,owned_copy).destroy()
+    memory.unmap(frame)
+    runtime._client_session_log_pending=None
+
+
+def _session_one(runtime,output,view,argument,pending):
+    memory=runtime.memory
+    frame,unused=_frame(runtime,56,'2F11 single borrowed String variant and format view')
+    pending['one_adapter']=frame
+    memory.store(frame+8,0,1,source='2F11.initial_BYTE8')
+    memory.store(frame+0x20,0,4,source='2F11.initial_tag0')
+    memory.copy_disjoint(frame+40,view,16,label='2F11.copied_format_view')
+    value=_String.read(runtime,argument);tag=value.get(0,1)
+    pointer=value.get(16,8) if tag&1 else argument+1
+    memory.store(frame+0x20,0xFFFFFFFF,4,source='2896.tag0_RET')
+    memory.store(frame+8,pointer,8,source='2F93.borrowed_String_CString')
+    memory.store(frame+0x20,11,4,source='2F93.variant11')
+    runtime.events.append(('source.2F51.D3BE4F',output,frame+40,frame,1))
+    _nt_format_records(runtime,frame+40,frame,1,output)
+    memory.store(frame+0x20,0xFFFFFFFF,4,source='2F5A.2896_variant11_RET')
+    memory.unmap(frame)
+    pending['one_adapter']=None
+
+
+def _session_two(runtime,output,view,metadata_pointer,first,pending):
+    memory=runtime.memory
+    frame,unused=_frame(runtime,96,'3A12 two native argument records and copied view')
+    pending.update(two_adapter=frame,two_output=output,metadata_pointer=metadata_pointer,first_formatted=first)
+    for index in (0,1):
+        memory.store(frame+40*index+8,0,1,source='3A12.initial_payload_BYTE')
+        memory.store(frame+40*index+0x20,0,4,source='3A12.initial_tag0')
+    memory.copy_disjoint(frame+80,view,16,label='3A12.copied_format_view')
+    # 3AC2/3AEB/3AFD dereference the metadata CString pointer and use the
+    # already recovered 3028 pointer-borrow producer. No String is cloned.
+    pointer=memory.load(metadata_pointer,8)
+    memory.store(frame+0x20,0xFFFFFFFF,4,source='2896.tag0_RET')
+    memory.store(frame+8,pointer,8,source='3028.metadata_CString_pointer')
+    memory.store(frame+0x20,11,4,source='308A.metadata_variant11')
+    value=_String.read(runtime,first);tag=value.get(0,1)
+    pointer=value.get(16,8) if tag&1 else first+1
+    memory.store(frame+40+0x20,0xFFFFFFFF,4,source='2896.tag0_RET')
+    memory.store(frame+40+8,pointer,8,source='2F93.borrowed_String_CString')
+    memory.store(frame+40+0x20,11,4,source='2F93.variant11')
+    runtime.events.append(('source.3A60.D3BE4F',output,frame+80,frame,2))
+    _nt_format_records(runtime,frame+80,frame,2,output)
+    for index in (1,0):
+        memory.store(frame+40*index+0x20,0xFFFFFFFF,4,source='3A12.2896_variant11_RET')
+    memory.unmap(frame)
+    pending['two_adapter']=None

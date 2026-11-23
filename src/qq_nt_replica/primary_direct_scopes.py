@@ -422,7 +422,7 @@ class StartupPolicyDirectScope:
 
 
 class PrimaryDirectScope:
-    def __init__(self, runtime, *, public_owner=None, close_owner=None, initialization_owner=None, worker_owner=None, secondary_owner=None, notification_owner=None, device_owner=None, execution_report=None):
+    def __init__(self, runtime, *, public_owner=None, close_owner=None, initialization_owner=None, worker_owner=None, secondary_owner=None, notification_owner=None, device_owner=None, client_owner=None, execution_report=None):
         self.runtime, self.public_owner, self.thread = runtime, public_owner, get_ident()
         self.close_owner = close_owner
         self.initialization_owner = initialization_owner
@@ -430,7 +430,9 @@ class PrimaryDirectScope:
         self.secondary_owner = secondary_owner
         self.notification_owner = notification_owner
         self.device_owner = device_owner
+        self.client_owner = client_owner
         self._request_audit = None
+        self._client_ctor = None
         self.installed = self.closed = self.had = False
         self.prior = None
         self.driver = None
@@ -486,6 +488,19 @@ class PrimaryDirectScope:
         owner = self.device_owner
         return (type(owner) is _DeviceRequestOwner and owner.runtime is self.runtime and
                 owner.thread == self.thread == get_ident() and owner.valid())
+
+    def _valid_client(self):
+        from .primary_client_configuration_scope import _ClientOwner
+        owner = self.client_owner
+        return (type(owner) is _ClientOwner and owner.runtime is self.runtime and
+                owner.thread == self.thread == get_ident() and owner.valid())
+
+    def client_handoff_setting(self, carrier, rva, cells, *, completed):
+        from .primary_request_audit_scope import _ClientHandoffAuditClaim
+        claim = self._request_audit
+        if type(claim) is not _ClientHandoffAuditClaim:
+            raise PrimarySemanticUnavailable('client material wrapper requires its original handoff claim')
+        claim.setting(carrier, rva, cells, completed=completed)
 
     def _valid_notification(self):
         from .primary_sign_lifecycle import _NotificationWorkerOwner
@@ -953,7 +968,8 @@ class PrimaryDirectScope:
                 self.worker_owner is not None and not self._valid_worker() or
                 self.secondary_owner is not None and not self._valid_secondary() or
                 self.notification_owner is not None and not self._valid_notification() or
-                self.device_owner is not None and not self._valid_device()):
+                self.device_owner is not None and not self._valid_device() or
+                self.client_owner is not None and not self._valid_client()):
             raise PrimarySemanticUnavailable('direct scope lost its actual instance, thread or public owner')
 
     def install(self):
@@ -975,13 +991,19 @@ class PrimaryDirectScope:
                     not self._valid_notification()) or
                 self.device_owner is not None and (any(owner is not None for owner in (self.public_owner, self.close_owner,
                     self.initialization_owner, self.worker_owner, self.secondary_owner, self.notification_owner)) or
-                    not self._valid_device())):
+                    not self._valid_device()) or
+                self.client_owner is not None and (any(owner is not None for owner in (self.public_owner, self.close_owner,
+                    self.initialization_owner, self.worker_owner, self.secondary_owner, self.notification_owner, self.device_owner)) or
+                    not self._valid_client())):
             raise PrimarySemanticUnavailable('direct scope rejects replay, a competing scope or invalid public owner')
         self.had = '_primary_direct_scope' in runtime.__dict__
         self.prior = runtime.__dict__.get('_primary_direct_scope')
         runtime._primary_direct_scope = self
         self.installed = True
         self.report['scopeRestored'] = False
+        if self.client_owner is not None:
+            self.report['clientConfiguration'] = dict(serial=id(self.client_owner.serial), sourceProgramsOnly=True)
+            return self
         if self.device_owner is not None:
             self.report['deviceRequest'] = dict(serial=self.device_owner.serial, deviceProgramsOnly=True)
             return self
@@ -1380,6 +1402,16 @@ class PrimaryDirectScope:
             self._notification_claim()
             if name not in ('status-audit', 'material-state'):
                 raise PrimarySemanticUnavailable('notification worker does not authorize this program: ' + name)
+        if self.client_owner is not None:
+            from .primary_request_audit_scope import _ClientHandoffAuditClaim
+            claim = self._request_audit
+            if name in ('singleton-init', 'buffer-init'):
+                from .primary_client_configuration_scope import authorize_bootstrap
+                authorize_bootstrap(self, vm, name, backend=False)
+            else:
+                if name not in ('status-audit', 'material-state') or type(claim) is not _ClientHandoffAuditClaim or not claim.valid():
+                    raise PrimarySemanticUnavailable('client configuration does not authorize this program: ' + name)
+                claim.program(name)
         if self.device_owner is not None:
             from .primary_request_audit_scope import _DeviceHandoffAuditClaim
             handoff_audit = type(self._request_audit) is _DeviceHandoffAuditClaim
@@ -1598,7 +1630,7 @@ class PrimaryDirectScope:
                 self.worker_owner.material_reuse = None
             self._material_reuse = None
         self.closed, self.installed = True, False
-        self.runtime = self.public_owner = self.close_owner = self.initialization_owner = self.worker_owner = self.secondary_owner = self.notification_owner = self.device_owner = self.prior = self.driver = None
+        self.runtime = self.public_owner = self.close_owner = self.initialization_owner = self.worker_owner = self.secondary_owner = self.notification_owner = self.device_owner = self.client_owner = self.prior = self.driver = None
         self.children.clear()
         self._caller = self._status_host = self._audit = None
         self._status_transition = None

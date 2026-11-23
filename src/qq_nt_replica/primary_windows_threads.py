@@ -1,6 +1,7 @@
 from contextlib import contextmanager, nullcontext
 import ctypes
 import os
+import sys
 import threading
 from types import SimpleNamespace
 
@@ -15,7 +16,7 @@ _HOST_FAILURE = 0xE0001025
 _EXECUTION_DOMAIN = ('_primary_direct_scope', '_primary_public_direct_owner',
     '_primary_close_direct_owner', '_primary_provider_initialization_owner',
     '_primary_sdk_worker_owner', '_primary_secondary_postfetch_owner',
-    '_primary_notification_worker_owner', '_primary_device_request_owner',
+    '_primary_notification_worker_owner', '_primary_device_request_owner', '_primary_client_configuration_owner',
     '_execute_thread', '_execute_depth', '_program_calls')
 
 
@@ -103,6 +104,8 @@ class WindowsSDKThreadService(WorkerObservations):
         registrar.authorize_thread(self._owner[1], self._close_token)
         runtime.worker_resident_checkpoint = self.resident_checkpoint
         runtime.worker_stop_checkpoint = self.stop_checkpoint
+        from .primary_client_configuration_scope import bind_service
+        bind_service(self)
 
     def observations(self, fallback):
         return _WorkerServiceObservations(self, fallback)
@@ -129,13 +132,15 @@ class WindowsSDKThreadService(WorkerObservations):
             return True
         if runtime is not self._runtime:
             return False
+        if name == 'Sleep':
+            return runtime.__dict__.get('_primary_client_configuration_owner') is not None
         if name == 'GetModuleHandleExW':
             return arguments == (4, runtime.image_base + 0x7879A0)
         if name == 'CreateThread':
             return True
         if name == 'CloseHandle':
             return len(arguments) == 1 and any(
-                row.get('_kind') == 'notification' and not row['source_handle_closed'] and
+                row.get('_kind') in ('notification', 'client_startup') and not row['source_handle_closed'] and
                 row['source_handle'] == arguments[0] for row in self._threads)
         if name == 'GetThreadId':
             return any(row['handle'] == arguments[0] for row in self._secondary) if len(arguments) == 1 else False
@@ -148,6 +153,69 @@ class WindowsSDKThreadService(WorkerObservations):
         if name == 'GetLastError':
             return arguments == () and threading.get_native_id() in self._holder_errors
         return False
+
+    def _client_srw_api(self,runtime,name,native,port):
+        from .primary_client_configuration_startup import _SourceSRW
+        source=sys._getframe(1)
+        if (source.f_code is not _SourceSRW.call.__code__ or source.f_locals.get('self') is not port or
+                type(port) is not _SourceSRW or port.service is not self or self._runtime is not runtime or
+                getattr(self,'_client_source_srw',None) is not port or port.pin is None or port.pin[2] is not native or
+                name not in ('AcquireSRWLockExclusive','ReleaseSRWLockExclusive')):
+            raise InputError('SOURCE_SRW native ABI requires its original issued port and live pin')
+        port.identity()
+        function=getattr(self._kernel,name)
+        function.restype=None
+        function.argtypes=(ctypes.c_void_p,)
+        port._entered(name)
+        return function(ctypes.c_void_p(ctypes.addressof(native)))
+
+    def _client_sleep(self, runtime, arguments):
+        from .primary_client_configuration import _host
+        from .primary_client_configuration_scope import require_owner, _frame
+        owner = require_owner(runtime)
+        if (owner.service is not self or _frame(_host.__code__, runtime) is None or
+                len(arguments) != 1 or type(arguments[0]) is not int or not 0 <= arguments[0] <= 0xFFFFFFFF):
+            raise InputError('client Sleep requires its exact source import, owner and DWORD duration')
+        tid = threading.get_native_id()
+        domain = self._crt_domains.get(tid)
+        if domain is None:
+            raise PrimarySemanticUnavailable('client Sleep requires its retained original CRT/TLS domain')
+        lease = self._registrar.current_lease()
+        source_state = self._save_domain()
+        domain['state'] = source_state
+        self._restore_domain(domain['owner_state'])
+        owner.row['state'] = 'client_sleeping'
+        owner.image.debts.append(('sleep', (owner.row, arguments[0], lease)))
+        function = self._kernel.Sleep
+        function.restype, function.argtypes = None, (ctypes.c_uint32,)
+        try:
+            with lease.suspend():
+                self._execution_tid = None
+                self._execution.release()
+                try:
+                    result = function(arguments[0])
+                    if result is not None:
+                        raise InputError('physical client Sleep must return void')
+                finally:
+                    self._execution.acquire()
+                    self._execution_tid = tid
+        finally:
+            domain['owner_state'] = self._save_domain()
+            self._restore_retained_domain(source_state, tid)
+            owner.row['state'] = 'running'
+        require_owner(runtime)
+        self._validate_execution_domain()
+        return None, b''
+
+    def _restore_retained_domain(self, state, tid):
+        from .primary_client_configuration_scope import retain_domain
+        primary = sys.exception()
+        try:
+            self._restore_domain(state)
+        except BaseException as failure:
+            if primary is None or not retain_domain(self, tid):
+                raise
+            primary.add_note('client retained-domain restore failed: ' + type(failure).__name__)
 
     def _secondary_row(self):
         tid = threading.get_native_id()
@@ -178,26 +246,39 @@ class WindowsSDKThreadService(WorkerObservations):
             crt is not None and tid in crt.snapshot()['pending_thread_ids'])
 
     def source_start(self, *arguments):
-        self._check_owner()
+        client = arguments == (0, 0, self._runtime.image_base + 0x1C22D90, 0, 0, 0) if self._runtime is not None else False
+        if not client:
+            self._check_owner()
         if self._runtime is None or self._closed or self._closing or self._draining:
             raise InputError('SDK source thread creation requires its live bound owner')
         if arguments == (0, 0, self._runtime.image_base + 0x1C1BB80, 0, 0, 0):
             return self.bootstrap_start(*arguments)
-        expected = (0, 0, self._runtime.image_base + 0x1C29910, 3000, 0, 0)
+        receipt = None
+        if client:
+            from .primary_client_configuration_scope import startup_creation
+            receipt = startup_creation(self)
+        expected = (0, 0, self._runtime.image_base + (0x1C22D90 if client else 0x1C29910), 0 if client else 3000, 0, 0)
         if arguments != expected or any(type(value) is not int for value in arguments):
             raise InputError('SDK source thread requires a supported exact six-argument entry')
-        row = {'_kind': 'notification', 'declared_parameter': arguments[3], 'state': 'creating', 'handle': 0, 'thread_id': 0,
+        row = {'_kind': 'client_startup' if client else 'notification', 'declared_parameter': arguments[3], 'state': 'creating', 'handle': 0, 'thread_id': 0,
                'callback_thread_id': None, 'source_handle': 0, 'source_handle_closed': False,
                'source_close_result': None, 'create_error': 0, 'host_failure': None,
                'source_completed': False, 'signaled': False, 'joined': False,
                'handle_closed': False, 'exit_code': None, 'crt_fls_cleanup': 'not_observed'}
+        if client:
+            row['_client_receipt'] = receipt
+            receipt['row'] = row
+            receipt['image'].rows.append(row)
+            receipt['image'].row_receipts.append((row, receipt))
         self._threads.append(row)
         callback = self._callback_type(lambda parameter: self._notification_entry(row, parameter))
         row['_callback'] = callback
+        if client:
+            receipt['callback'] = callback
         identifier = ctypes.c_uint32()
         _LIVE_SERVICES.add(self)
         ctypes.set_last_error(0)
-        source = int(self._kernel.CreateThread(None, 0, callback, ctypes.c_void_p(3000), 0,
+        source = int(self._kernel.CreateThread(None, 0, callback, ctypes.c_void_p(arguments[3]), 0,
                                               ctypes.byref(identifier)) or 0)
         row['source_handle'], row['thread_id'] = source, identifier.value
         if not source:
@@ -257,6 +338,8 @@ class WindowsSDKThreadService(WorkerObservations):
             raise InputError('SDK thread observation requires its bound runtime and process')
         if not isinstance(arguments, tuple):
             raise InputError('SDK source observation requires tuple arguments')
+        if name == 'Sleep':
+            return self._client_sleep(runtime, arguments)
         if name == 'WakeConditionVariable':
             return self._wake_condition(runtime, arguments)
         if name == 'GetModuleHandleExW' and arguments == (4, runtime.image_base + 0x7879A0):
@@ -272,8 +355,13 @@ class WindowsSDKThreadService(WorkerObservations):
         if name == 'CreateThread':
             return self._create_secondary(arguments)
         if name == 'CloseHandle' and self.handles(runtime, name, arguments):
-            self._check_owner()
-            row = next(row for row in self._threads if row.get('_kind') == 'notification' and
+            client = any(row.get('_kind') == 'client_startup' and row.get('source_handle') == arguments[0] for row in self._threads)
+            if client:
+                from .primary_client_configuration_scope import require_creator
+                require_creator(self)
+            else:
+                self._check_owner()
+            row = next(row for row in self._threads if row.get('_kind') in ('notification', 'client_startup') and
                        not row['source_handle_closed'] and row['source_handle'] == arguments[0])
             result = int(self._kernel.CloseHandle(arguments[0]))
             row['source_close_result'] = result
@@ -353,7 +441,7 @@ class WindowsSDKThreadService(WorkerObservations):
                 runtime._active_main is not None):
             raise InputError('resident execution stack differs from its current native domain')
         scope = runtime.__dict__.get('_primary_direct_scope')
-        owners = tuple(runtime.__dict__.get(name) for name in _EXECUTION_DOMAIN[1:8])
+        owners = tuple(runtime.__dict__.get(name) for name in _EXECUTION_DOMAIN[1:9])
         if scope is None:
             if any(owner is not None for owner in owners):
                 raise InputError('resident lifecycle owner has no paired direct scope')
@@ -362,7 +450,7 @@ class WindowsSDKThreadService(WorkerObservations):
         if type(scope) is not PrimaryDirectScope or scope.runtime is not runtime:
             raise InputError('resident execution requires its exact direct scope')
         paired = (scope.public_owner, scope.close_owner, scope.initialization_owner,
-                  scope.worker_owner, scope.secondary_owner, scope.notification_owner, scope.device_owner)
+                  scope.worker_owner, scope.secondary_owner, scope.notification_owner, scope.device_owner, scope.client_owner)
         if any(owner is not expected for owner, expected in zip(owners, paired)) or sum(owner is not None for owner in owners) != 1:
             raise InputError('resident direct scope and lifecycle owner differ')
         scope._require_live()
@@ -379,8 +467,14 @@ class WindowsSDKThreadService(WorkerObservations):
         start = memory.load(context + 8, 8)
         control = memory.load(start + 8, 8)
         task = memory.load(control + 16, 8)
-        if (memory.load(context, 8) != base + 0x7879A0 or memory.load(start, 8) != base + 0xBD55C0 or
-                memory.load(control + 8, 8) != base + 0xBD4B00 or memory.load(task + 0xD8, 4) != 2 or
+        client = memory.load(control + 8, 8) == base + 0x1C50F70
+        client_receipt = None
+        if memory.load(context, 8) != base + 0x7879A0 or memory.load(start, 8) != base + 0xBD55C0:
+            raise PrimarySemanticUnavailable('secondary creation requires its actual source CRT/control chain')
+        if client:
+            from .primary_client_configuration_scope import secondary_creation
+            client_receipt = secondary_creation(self, context, start, control, task)
+        elif (memory.load(control + 8, 8) != base + 0xBD4B00 or memory.load(task + 0xD8, 4) != 2 or
                 not memory.load(task + 32, 1) & 1):
             raise PrimarySemanticUnavailable('secondary creation requires the source mode2 worker control chain')
         tid = threading.get_native_id()
@@ -395,9 +489,14 @@ class WindowsSDKThreadService(WorkerObservations):
                'joined': False, 'handle_closed': False, 'exit_code': None, 'host_failure': None,
                'crt_fls_cleanup': 'not_observed', 'holder_fls_cleanup': 'not_observed',
                '_reference': reference if reference.result else None, '_checkpoint': threading.Event(),
-               '_resume': threading.Event(), '_kind': 'secondary',
+               '_resume': threading.Event(), '_kind': 'client_loop' if client else 'secondary',
                '_source_chain': (context, start, control, task),
                '_start_gate': threading.Event() if task == base + 0x6751C58 else self._gate}
+        if client:
+            row['_client_receipt'] = client_receipt
+            client_receipt['row'] = row
+            client_receipt['image'].rows.append(row)
+            client_receipt['image'].row_receipts.append((row, client_receipt))
         self._secondary.append(row)
         self._threads.append(row)
         _LIVE_SERVICES.add(self)
@@ -405,6 +504,9 @@ class WindowsSDKThreadService(WorkerObservations):
             launch = self._worker_bridge.launch(lambda ignored: self._secondary_entry(row), context,
                 module_reference=row['_reference'], quiescence_check=lambda: self._secondary_quiescent(row))
         row['_launch'] = launch
+        if client:
+            client_receipt['launch'] = launch
+            client_receipt['bridge'] = self._worker_bridge
         row['handle'], row['thread_id'], row['create_error'] = launch.handle, launch.thread_id, launch.creation_error
         if launch.handle:
             self._registrar.authorize_thread(launch.thread_id, self._close_token)
@@ -423,10 +525,15 @@ class WindowsSDKThreadService(WorkerObservations):
                     self._execution_tid = threading.get_native_id()
                     row['state'] = 'running'
                     try:
+                        if row.get('_kind') == 'client_loop':
+                            from .primary_client_configuration_scope import entry_preflight
+                            entry_preflight(self, row)
                         domain = self._context()
                         with domain:
                             from .primary_sign_lifecycle import secondary_postfetch_call
-                            with (nullcontext() if row['task'] == self._runtime.image_base + 0x6751C58 else
+                            from .primary_client_configuration_scope import worker_call as client_call
+                            with (client_call(self, row, domain) if row['_kind'] == 'client_loop' else
+                                  nullcontext() if row['task'] == self._runtime.image_base + 0x6751C58 else
                                   secondary_postfetch_call(self, row, domain)):
                                 vm = SimpleNamespace(cells=SimpleNamespace(value=lambda index: row['context']))
                                 try:
@@ -759,7 +866,8 @@ class WindowsSDKThreadService(WorkerObservations):
                         domain['holder_fls_completed'] = True
                     crt = runtime.crt_startup_observations.snapshot()
                     other_pending = tid in self._holder_values if kind == 'crt' else tid in crt['pending_thread_ids']
-                    if not other_pending:
+                    from .primary_client_configuration_scope import retain_domain
+                    if not other_pending and not retain_domain(self, tid):
                         domain['services'].__exit__(None, None, None)
                         domain['services_closed'] = True
                 finally:
@@ -904,7 +1012,8 @@ class WindowsSDKThreadService(WorkerObservations):
             try:
                 if tid in self._crt_domains:
                     self._crt_domains[tid]['state'] = self._save_domain()
-                    if not self._pending_fls(tid):
+                    from .primary_client_configuration_scope import retain_domain
+                    if not self._pending_fls(tid) and not retain_domain(self, tid):
                         self._release_crt_domain(tid)
                         for row in self._threads:
                             if row['thread_id'] == tid:
@@ -912,7 +1021,7 @@ class WindowsSDKThreadService(WorkerObservations):
                 elif entered:
                     services.__exit__(None, None, None)
             finally:
-                self._restore_domain(saved)
+                self._restore_retained_domain(saved, tid)
 
     @contextmanager
     def _context(self):
@@ -979,19 +1088,24 @@ class WindowsSDKThreadService(WorkerObservations):
                     self._execution_tid = threading.get_native_id()
                     row['state'] = 'running'
                     try:
+                        if row.get('_kind') == 'client_startup':
+                            from .primary_client_configuration_scope import entry_preflight
+                            entry_preflight(self, row, parameter)
                         domain = self._context()
                         with domain:
                             argument = int(parameter or 0)
                             row['callback_matches_declared'] = argument == row.get('declared_parameter')
+                            client = row.get('_kind') == 'client_startup'
                             if (type(row.get('declared_parameter')) is not int or
-                                    row['declared_parameter'] != 3000 or argument != row['declared_parameter']):
+                                    row['declared_parameter'] != (0 if client else 3000) or argument != row['declared_parameter']):
                                 error = InputError('notification callback parameter differs from its retained source declaration')
                                 error.callback_matches_declared = row['callback_matches_declared']
                                 raise error
                             from .primary_sign_lifecycle import notification_worker_call
-                            with notification_worker_call(self, row, parameter, domain):
+                            from .primary_client_configuration_scope import worker_call as client_call
+                            with (client_call(self, row, domain) if client else notification_worker_call(self, row, parameter, domain)):
                                 vm = SimpleNamespace(cells=SimpleNamespace(value=lambda index: argument))
-                                result = self._runtime.invoke(vm, 0x1C29910, (0,))
+                                result = self._runtime.invoke(vm, 0x1C22D90 if client else 0x1C29910, (0,))
                                 if type(result) is not int or result != 1:
                                     raise PrimarySemanticUnavailable('notification callback did not return source DWORD one')
                     finally:
@@ -1072,7 +1186,7 @@ class WindowsSDKThreadService(WorkerObservations):
         for row in self._secondary:
             row.get('_start_gate', self._gate).set()
         for ordinal, row in enumerate(self._threads):
-            if row.get('_kind') == 'secondary':
+            if row.get('_kind') in ('secondary', 'client_loop'):
                 self._drain_secondary(row, consume=consume)
                 continue
             if not row['handle'] or row['handle_closed']:
@@ -1092,7 +1206,7 @@ class WindowsSDKThreadService(WorkerObservations):
             if not self._kernel.CloseHandle(row['handle']):
                 raise PrimarySemanticUnavailable('SDK native thread handle close failed: ' + str(ctypes.get_last_error()))
             row['handle_closed'] = True
-            if row.get('_kind') == 'notification' and not row['source_handle_closed']:
+            if row.get('_kind') in ('notification', 'client_startup') and not row['source_handle_closed']:
                 if row['source_handle'] == row['handle']:
                     row['source_handle_closed'] = True
                 elif row['source_handle']:
@@ -1179,6 +1293,8 @@ class WindowsSDKThreadService(WorkerObservations):
         row['state'] = 'joined'
 
     def prepare_close(self):
+        from .primary_client_configuration_scope import preflight_close
+        preflight_close(self)
         self._check_owner()
         if self._active_owner:
             raise InputError('secondary close preparation requires released owner execution')
@@ -1247,7 +1363,10 @@ class WindowsSDKThreadService(WorkerObservations):
         if crt is None:
             return
         snapshot = crt.snapshot()
+        from .primary_client_configuration_scope import retain_domain
         for tid, domain in tuple(self._crt_domains.items()):
+            if retain_domain(self, tid):
+                continue
             joined = any(row['thread_id'] == tid and row['joined'] for row in self._threads)
             if (joined and domain['services_closed'] and not self._pending_fls(tid) and
                     not snapshot['callbacks_active'] and snapshot['callback_failure'] is None and
@@ -1273,7 +1392,7 @@ class WindowsSDKThreadService(WorkerObservations):
         if (self._active_owner or self._execution.locked() or self._draining or
                 any(row['handle'] and row['thread_id'] not in resident_ids and
                     (not row['joined'] or not row['handle_closed']) for row in self._threads) or
-                any(row.get('_kind') == 'notification' and row['source_handle'] and
+                any(row.get('_kind') in ('notification', 'client_startup') and row['source_handle'] and
                     not row['source_handle_closed'] for row in self._threads) or
                 any(row['thread_id'] not in resident_ids and not row['_launch'].retired for row in self._secondary) or
                 set(self._crt_domains) - resident_ids - (creator_ids if allow_creator else set()) or self._module_pending or

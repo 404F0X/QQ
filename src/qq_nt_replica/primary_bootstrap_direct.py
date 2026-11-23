@@ -30,6 +30,10 @@ def _authorize(vm, name):
     from .primary_sign_lifecycle import _PublicDirectOwner
     runtime = vm.runtime
     scope = getattr(runtime, '_primary_direct_scope', None)
+    if type(scope) is PrimaryDirectScope and scope.client_owner is not None:
+        from .primary_client_configuration_scope import authorize_bootstrap
+        authorize_bootstrap(scope, vm, name, backend=True)
+        return
     if type(scope) is PrimaryDirectScope and scope.initialization_owner is not None:
         scope._authorize_initialization_bootstrap(vm, name)
         return

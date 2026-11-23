@@ -184,6 +184,9 @@ def notification_handoff_audit(runtime):
 def handoff_audit(runtime):
     from .primary_request_audit_scope import device_handoff_audit
     scope = runtime.__dict__.get('_primary_direct_scope')
+    if scope is not None and scope.client_owner is not None:
+        from .primary_request_audit_scope import client_handoff_audit
+        return client_handoff_audit(runtime)
     if getattr(runtime, 'primary_backend', 'reference') == 'direct' and scope is not None and scope.notification_owner is not None:
         return notification_handoff_audit(runtime)
     return device_handoff_audit(runtime)
