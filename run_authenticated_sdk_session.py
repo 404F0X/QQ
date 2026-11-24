@@ -235,15 +235,16 @@ class _Discard(io.TextIOBase):
 
 
 @contextlib.contextmanager
-def _private_output():
+def _private_output(path=None):
     # Python redirects do not cover a source CRT writing file descriptors.
     saved = []
     try:
-        with open(os.devnull, 'w') as sink:
+        with open(path if path is not None else os.devnull, 'a', encoding='utf-8') as sink:
             for descriptor in (1, 2):
                 saved.append((descriptor, os.dup(descriptor)))
                 os.dup2(sink.fileno(), descriptor)
-            with contextlib.redirect_stdout(_Discard()), contextlib.redirect_stderr(_Discard()):
+            python_sink = sink if path is not None else _Discard()
+            with contextlib.redirect_stdout(python_sink), contextlib.redirect_stderr(python_sink):
                 yield
     finally:
         for descriptor, original in reversed(saved):
@@ -365,6 +366,7 @@ def _checked_inputs(path, login_root):
     required = {ROOT / 'run_authenticated_sdk_session.py', ROOT / 'signature_core.py',
         ROOT / 'source-manifest.json', ROOT / 'source-manifest.sha256',
         ROOT / 'src/qq_nt_replica/primary_authenticated_sdk_session.py',
+        ROOT / 'trusted_login_capture.py',
         login_root / 'registration_overlay/resident_run.py',
         login_root / 'resident_core_composition.py', login_root / 'mode1_binding.py',
         login_root / 'binding.py'}
@@ -411,7 +413,7 @@ def _require_online(result, captured):
         raise error
 
 
-def _login_phase(options, network, notify, sleep, timing=None):
+def _login_phase(options, network, notify, sleep, timing=None, local_capture=None):
     global _STAGE
     _STAGE = 'login_inputs'
     import mode1_binding as binding
@@ -419,7 +421,8 @@ def _login_phase(options, network, notify, sleep, timing=None):
     from https_once import GetFaceOnce
     from network_guard import NetworkGuard
     from resident import Policy
-    from resident_core_composition import run_session
+    from resident_core_composition import run_session, login_diagnostics
+    from public_events import exception_origin
     from core_result_r10 import CoreObservedSigner
 
     core = activation = owner = signer = transport = G = None
@@ -431,6 +434,8 @@ def _login_phase(options, network, notify, sleep, timing=None):
         if timing is not None:
             timing('login.factory.begin')
         Q, T, G, W, adapter = binding.load_all()
+        if local_capture is not None:
+            local_capture.configure(Q, T, G)
         core = adapter.load_core()
         dependency = json.loads((options.login_root / 'DEPENDENCY-U.json').read_bytes())
         for pin in dependency['sources'].values():
@@ -445,6 +450,9 @@ def _login_phase(options, network, notify, sleep, timing=None):
         from qq_nt_replica.primary_signature_result import PrimarySignatureResult
 
         identity = adapter.FreshIdentity.create()
+        if local_capture is not None:
+            local_capture.dto_types.update((type(identity), PrimarySignatureResult))
+            local_capture.record('login.identity', identity=identity)
         factory_options = dict(bridge_path=options.bridge, worker_bridge_path=options.worker_bridge,
             ownimage_spec=OwnImageModuleSpec.for_loader_profile(options.loader_profile))
         plan = (adapter.plan_factory(core, identity, **factory_options) if ctor_adapter is None else
@@ -461,8 +469,8 @@ def _login_phase(options, network, notify, sleep, timing=None):
         device = Q.QrDevice(identity.guid, 'Windows', platform.node(),
             Q.EcdhKeys.from_private_scalar(secrets.randbelow(
                 0xFFFFFFFFFFFFFFFFFFFFFFFE26F2FC170F69466A74DEFD8D - 1) + 1))
-        signer = CoreObservedSigner(Q, G, identity, owner, PrimarySignatureResult, plan.queue, policy)
-        transport = resident_transport(W, Q, Envelope(Q, G), clock=policy.clock, guard=guard)
+        signer = CoreObservedSigner(Q, G, identity, owner, PrimarySignatureResult, plan.queue, policy, capture=local_capture)
+        transport = resident_transport(W, Q, Envelope(Q, G), clock=policy.clock, guard=guard, capture=local_capture)
         guard.begin_startup()
 
         def capture(material, profile):
@@ -471,14 +479,26 @@ def _login_phase(options, network, notify, sleep, timing=None):
             captured.append((material, profile))
 
         _STAGE = 'login_protocol'
-        result = run_session(Q, T, G, W, device=device, signer=signer, transport=transport,
-            https=GetFaceOnce(G, guard), confirm_uin=owner.confirm_uin, policy=policy,
-            entropy=os.urandom, unix_seconds=lambda: int(time.time()), notify=notify,
-            system_kernel=platform.version(), sleep=sleep, on_authenticated=capture, timing=timing)
+        # Match the existing normal resident worker's parser composition.
+        diagnostics = []
+        with login_diagnostics(G.LoginContinuation, diagnostics, exception_origin):
+            if local_capture is not None:
+                local_capture.effective_parser(G.LoginContinuation.accept_ticket_exchange)
+            try:
+                result = run_session(Q, T, G, W, device=device, signer=signer, transport=transport,
+                    https=GetFaceOnce(G, guard), confirm_uin=owner.confirm_uin, policy=policy,
+                    entropy=os.urandom, unix_seconds=lambda: int(time.time()), notify=notify,
+                    system_kernel=platform.version(), sleep=sleep, on_authenticated=capture,
+                    timing=timing, capture=local_capture)
+            finally:
+                if local_capture is not None:
+                    local_capture.record('normal.login_diagnostics', records=diagnostics)
         _require_online(result, captured)
     except BaseException as error:
         _remember_failure(error)
         _remember_glue_failure(error, G, core.binding if core is not None else None, options.login_root)
+        if local_capture is not None:
+            local_capture.exception('login.exception', error)
         captured.clear()
         raise
     finally:
@@ -497,7 +517,7 @@ def _login_phase(options, network, notify, sleep, timing=None):
     return captured.pop()
 
 
-def run(options, notify, sleep=time.sleep, *, timing=None):
+def run(options, notify, sleep=time.sleep, *, timing=None, local_capture=None):
     global _STAGE, _FAILURE
     _STAGE, _FAILURE = 'inputs', None
     if (type(options.timeout) not in (int, float) or not math.isfinite(options.timeout) or
@@ -513,7 +533,7 @@ def run(options, notify, sleep=time.sleep, *, timing=None):
     sys.path.insert(0, str(options.login_root))
     core = activation = phase = None
     try:
-        material, profile = _login_phase(options, network, notify, sleep, timing)
+        material, profile = _login_phase(options, network, notify, sleep, timing, local_capture)
         _STAGE = 'sdk_core'
         import signature_core
         if Path(signature_core.__file__).resolve() != ROOT / 'signature_core.py':
@@ -568,6 +588,8 @@ def main(argv=None):
     parser.add_argument('--timeout', type=float, default=600)
     parser.add_argument('--sdk-timeout', type=float, default=60)
     parser.add_argument('--qr-timing-events', type=Path, help='owned fixed-label monotonic JSONL diagnostic')
+    parser.add_argument('--trusted-capture-root', type=Path, required=True,
+        help='authorized private local capture root; contains credentials, never publish')
     options = parser.parse_args(argv)
     if not options.run:
         parser.error('--run is required; this entry has no synthetic success mode')
@@ -643,22 +665,36 @@ def main(argv=None):
         pump()
         time.sleep(min(seconds, .1))
 
+    local_capture = None
     try:
+        _checked_inputs(options.inputs, options.login_root.resolve())
+        from trusted_login_capture import LoginCapture
+        local_capture = LoginCapture(options.trusted_capture_root, login_root=options.login_root,
+            inputs=options.inputs, parameters={key: str(value) if isinstance(value, Path) else value
+                for key, value in vars(options).items()})
         # Source loggers may format private material. Neither stream is a
         # credential transport, including on exceptions or close refusal.
-        with _private_output():
-            result = run(options, notify, sleep, timing=timing)
+        with _private_output(local_capture.log_path):
+            result = run(options, notify, sleep, timing=timing, local_capture=local_capture)
+        local_capture.close()
         print(json.dumps(dict(profile=result.profile, verified_install=result.verified_install,
-            next_sign_consumed=result.next_sign_consumed)))
+            next_sign_consumed=result.next_sign_consumed, capture_directory=str(local_capture.path),
+            capture_available=local_capture.available)))
         return 0
     except BaseException as error:
         _remember_failure(error)
         public = dict(status='AUTHENTICATED_SDK_SESSION_NOT_COMPLETED', **_FAILURE)
+        if local_capture is not None:
+            local_capture.exception('entry.exception', error)
+            local_capture.close()
+            public.update(capture_directory=str(local_capture.path), capture_available=local_capture.available)
         if timing is not None:
             public['timing_available'] = timing.available
         print(json.dumps(public), file=sys.stderr)
         return 1
     finally:
+        if local_capture is not None:
+            local_capture.close()
         clear_attention()
         if timing is not None:
             timing.close()
