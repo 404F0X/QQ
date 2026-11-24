@@ -2993,6 +2993,34 @@
       "sha256": "7dba6b4f69dfb63d532998f84f6d52ede5dfaf45d033653d8521a016da1639e3",
       "source_key": "resolver_replay",
       "dependencies": []
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_kind2_process_tree.py",
+      "source_sha256": "dedc14444bd9b4b3c6511b99a822462b91e9685ac2d8cc12fca00aad285932a5",
+      "sha256": "dedc14444bd9b4b3c6511b99a822462b91e9685ac2d8cc12fca00aad285932a5",
+      "classification": "project_source",
+      "origin": "QIMEI-TREEB-IMPLEMENT/a1 first-retained-source/primary_qimei_kind2_process_tree.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_windows_qimei_process_tree.py",
+      "source_sha256": "c0672c4bc5c5439855cdb2ede253e4e5b8befe4dddfc59f1c6948e127cd4408f",
+      "sha256": "c0672c4bc5c5439855cdb2ede253e4e5b8befe4dddfc59f1c6948e127cd4408f",
+      "classification": "project_source",
+      "origin": "QIMEI-TREEB-IMPLEMENT/a1 first-retained-source/primary_windows_qimei_process_tree.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_kind2_module_tree.py",
+      "source_sha256": "bfef5131b0ebc62897adc567a2f1597118c2d4b84f7fee7a9b070661a48d6202",
+      "sha256": "bfef5131b0ebc62897adc567a2f1597118c2d4b84f7fee7a9b070661a48d6202",
+      "classification": "project_source",
+      "origin": "QIMEI-TREEA-IMPLEMENT/a1 first-retained-source/primary_qimei_kind2_module_tree.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_windows_qimei_module_tree.py",
+      "source_sha256": "42a42ab120cce5b2eb94630fa68ad6559c2d843c58f578e5a9cbb5c0d896931c",
+      "sha256": "42a42ab120cce5b2eb94630fa68ad6559c2d843c58f578e5a9cbb5c0d896931c",
+      "classification": "project_source",
+      "origin": "QIMEI-TREEA-IMPLEMENT/a1 first-retained-source/primary_windows_qimei_module_tree.py"
     }
   ],
   "excluded_pending_assets": [
