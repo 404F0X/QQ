@@ -208,6 +208,43 @@ class Lifecycle(unittest.TestCase):
             self.assertTrue(leaf.is_dir())
             self.assertFalse((storage_root / 'sdk').exists())
 
+    def test_refresh_selector_reads_source_feature_without_changing_guards(self):
+        from qq_nt_replica.primary_signer import PrimarySigner
+        from qq_nt_replica import primary_sign_lifecycle, primary_logger, primary_worker_consumer
+        from contextlib import nullcontext
+        signer = SimpleNamespace(runtime=object())
+        with patch.object(primary_sign_lifecycle, 'public_call', side_effect=lambda owner: nullcontext()), \
+                patch.object(primary_worker_consumer, '_logger', return_value=object()), \
+                patch.object(primary_logger, 'feature') as feature:
+            for value, expected in ((1, True), (0, False)):
+                feature.return_value = value
+                self.assertIs(PrimarySigner.device_refresh_is_async(signer), expected)
+                feature.assert_called_with(signer.runtime, unittest.mock.ANY, 0x25)
+                from qq_nt_replica import primary_response_refresh
+                from qq_nt_replica.primary_vm import PrimarySemanticUnavailable
+                with patch.object(primary_response_refresh, 'refresh') as refresh:
+                    selected = PrimarySigner.request_device_refresh_async if expected else PrimarySigner.request_device_refresh
+                    rejected = PrimarySigner.request_device_refresh if expected else PrimarySigner.request_device_refresh_async
+                    selected(signer)
+                    refresh.assert_called_once_with(signer.runtime)
+                    with self.assertRaises(PrimarySemanticUnavailable):
+                        rejected(signer)
+                    refresh.assert_called_once_with(signer.runtime)
+
+    def test_session_dispatches_existing_api_for_both_source_modes(self):
+        run = ast.parse(__import__('inspect').getsource(subject).strip())
+        dispatch = next(n for n in ast.walk(run) if isinstance(n, ast.If) and
+            isinstance(n.test, ast.Call) and isinstance(n.test.func, ast.Attribute) and
+            n.test.func.attr == 'device_refresh_is_async')
+        for mode in (False, True):
+            owner = Mock()
+            owner.device_refresh_is_async.return_value = mode
+            exec(compile(ast.Module(body=[dispatch], type_ignores=[]), '<dispatch>', 'exec'),
+                {'self': SimpleNamespace(_owner=owner)})
+            (owner.request_device_refresh_async if mode else owner.request_device_refresh).assert_called_once_with()
+            (owner.request_device_refresh if mode else owner.request_device_refresh_async).assert_not_called()
+
+
     def test_private_single_use_and_no_session_serialization(self):
         phase = self.session()
         self.assertEqual(repr(phase), '<AuthenticatedSdkSession private>')

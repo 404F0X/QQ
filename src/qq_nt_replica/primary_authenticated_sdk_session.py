@@ -159,7 +159,10 @@ class AuthenticatedSdkSession:
                 construction_setup=self._transport.construction_setup)
             self._runtime = self._owner.signer.runtime
             self.diagnostic_stage = 'sdk_refresh'
-            self._owner.request_device_refresh()
+            if self._owner.device_refresh_is_async():
+                self._owner.request_device_refresh_async()
+            else:
+                self._owner.request_device_refresh()
             return self._receive_and_sign()
         except BaseException as error:
             if self._owner is None:

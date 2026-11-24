@@ -702,6 +702,14 @@ class PrimarySigner:
 
 
 
+    def device_refresh_is_async(self) -> bool:
+        """Read the source refresh selector without changing feature flags."""
+        from .primary_sign_lifecycle import public_call
+        from .primary_logger import feature
+        from .primary_worker_consumer import _logger
+        with public_call(self):
+            return feature(self.runtime, _logger(self.runtime), 0x25) == 1
+
     def request_device_refresh(self) -> None:
         from .primary_sign_lifecycle import public_call
         from .primary_logger import feature

@@ -749,7 +749,7 @@
     {
       "path": "src/qq_nt_replica/primary_authenticated_sdk_session.py",
       "source_sha256": "3f72c50b36a3359f8ac4d63e401ba8b9e99377546e63f63c60598b34f9b5ceac",
-      "sha256": "b2f1ae85e9060ebe3dac0b2fdd683609621da38bff0053e302f4629ddef6a5fc",
+      "sha256": "5c4b396578cef8b1454d745472d6e3a507ce3f325bd5825e2cfcc9f00dd74500",
       "classification": "project_source",
       "origin": "MAT-SIGN-AUTHENTICATED-SDK-INTEGRATION/a1 first retained authored snapshot: authenticated-sdk-integration-a1/first-retained-source/primary_authenticated_sdk_session.py"
     },
@@ -2343,7 +2343,7 @@
     {
       "path": "src/qq_nt_replica/primary_signer.py",
       "source_sha256": "3284517ba2f38548e60b440ebf13003b40a38c09e8db23d11039efe823e55745",
-      "sha256": "329b7ad74b89bd65abe5b6690dec633591a832d431f12f8801b2f22f2bc58da4",
+      "sha256": "ebe3472b4532a20df40756cd29645d4a2475769eed4fe2330dc6e633c75b3e56",
       "classification": "project_source"
     },
     {
@@ -2826,7 +2826,7 @@
     {
       "path": "src/qq_nt_replica/primary_windows_signer.py",
       "source_sha256": "9bda5a58bbdde36c7cb526a64b572810f9a918fbbea72652d4df34d8253bdda0",
-      "sha256": "30fb74c9196cc5d729932024a065f32b87fb4db2f48a8f349532fcb57d323027",
+      "sha256": "d941f7a45ebbd93179a062fbfcf68b787050b4ec0ec191e94a553f15b640a02c",
       "classification": "project_source"
     },
     {

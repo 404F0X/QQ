@@ -487,6 +487,9 @@ class WindowsSigner:
     def sign_result(self, command, payload, *, now=None):
         return self._operation('sign_result', command, payload, now=now)
 
+    def device_refresh_is_async(self) -> bool:
+        return self._operation('device_refresh_is_async')
+
     def request_device_refresh_async(self) -> None:
         return self._operation('request_device_refresh_async')
 
@@ -572,11 +575,12 @@ class WindowsSigner:
                 snapshot = self._registrar.snapshot()
                 if snapshot['bound']:
                     from .primary_sign_lifecycle import close_call
-                    with close_call(self._signer, self, self._registrar):
-                        if self._threads is not None:
-                            with self._threads.closing_context():
+                    if self._threads is not None:
+                        with self._threads.closing_context():
+                            with close_call(self._signer, self, self._registrar):
                                 self._registrar.close()
-                        else:
+                    else:
+                        with close_call(self._signer, self, self._registrar):
                             self._registrar.close()
                 elif snapshot['records']:
                     raise PrimarySemanticUnavailable('unbound Windows signer registrar retains unresolved guest callbacks')
