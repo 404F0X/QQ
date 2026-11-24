@@ -91,7 +91,8 @@ class _WideString(_String):
             result.set(2, value + b'\0\0')
         else:
             units = (required | 7) + 1
-            pointer = runtime._operator_new(2 * units)
+            from .primary_worker_consumer import _invoke
+            pointer = _invoke(runtime, 0xB75000, 2 * units)
             result.set(0, (units | 1).to_bytes(8, 'little'))
             result.set(8, size.to_bytes(8, 'little'))
             result.set(16, pointer.to_bytes(8, 'little'))
