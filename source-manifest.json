@@ -3105,6 +3105,13 @@
       "sha256": "5677de1ec25d84923fb8085ff1bc667585fc9a03571690f56c5626150dd11905",
       "classification": "project_source",
       "origin": "OWN-SDK-FEATURE46-ISOLATED-CIPHER-IMPLEMENT/a1 first-retained-source/primary_device_record_adapter.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_device_mix_producer.py",
+      "source_sha256": "dc3c5d45e5ad9392e0c2bf19862598e3228527178ce8109d689b83f5aff400c1",
+      "sha256": "dc3c5d45e5ad9392e0c2bf19862598e3228527178ce8109d689b83f5aff400c1",
+      "classification": "project_source",
+      "origin": "OWN-DEVICE-MIX-INDEPENDENT-PRODUCER-IMPLEMENT/a1 first-retained-source/primary_device_mix_producer.py"
     }
   ],
   "excluded_pending_assets": [
