@@ -282,6 +282,7 @@ def device_record_values(runtime, snapshot, *, version, device_value, sdk_fields
         raise InputError('device records require SDK source strings at30,48,78')
     if not callable(ansi_to_utf8):
         raise InputError('device record ANSI conversion requires its external OS observation adapter')
+    sdk_values = dict(sdk_field_record_values(sdk_fields))
     memory, values = runtime.memory, []
     for field in _schema()['fields']:
         kind = field['kind']
@@ -296,7 +297,7 @@ def device_record_values(runtime, snapshot, *, version, device_value, sdk_fields
         elif kind == 'device_value':
             value = device_value
         elif kind.startswith('sdk'):
-            value = sdk_fields[int(kind[3:], 16)]
+            value = sdk_values[field['key']]
         else:
             address = snapshot + field['offset']
             value = (_cstring(memory, address) if kind in ('cstring', 'ansi_cstring')
@@ -307,3 +308,29 @@ def device_record_values(runtime, snapshot, *, version, device_value, sdk_fields
                     raise InputError('device ANSI conversion must return its complete NUL-free source String value')
         values.append((field['key'], value))
     return tuple(values)
+
+
+def sdk_field_record_values(sdk_fields):
+    """Shared source schema projection, including empty-value records."""
+    if not isinstance(sdk_fields,dict) or set(sdk_fields)!={0x30,0x48,0x78} or any(not isinstance(v,bytes) for v in sdk_fields.values()):
+        raise InputError('SDK record inputs require owned byte Strings at30/48/78')
+    return tuple((f['key'],bytes(memoryview(sdk_fields[int(f['kind'][3:],16)])))
+                 for f in _schema()['fields'] if f['kind'].startswith('sdk'))
+
+
+def sdk_fields_from_qimei_owner(owner,machine_id,*,previous=None):
+    """Own getter -> nonempty-only config update -> raw SDK record fields.
+
+    previous is explicit existing SDK field state, never reset by a cold owner.
+    """
+    from .primary_qimei_getter import QimeiGetterOwner
+    from .primary_provider_init import _VERSION as SDK_VERSION
+    if type(owner)is not QimeiGetterOwner or type(machine_id)is not bytes:
+        raise InputError('own Qimei owner and explicit public machineId bytes required')
+    fields={0x30:b'',0x48:b'',0x78:b''} if previous is None else dict(previous)
+    sdk_field_record_values(fields)
+    qimei=owner.get().split(b'\0',1)[0]
+    machine_id=machine_id.split(b'\0',1)[0]
+    for offset,value in ((0x30,qimei),(0x48,machine_id),(0x78,SDK_VERSION)):
+        if value:fields[offset]=bytes(memoryview(value))
+    return fields

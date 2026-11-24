@@ -1072,7 +1072,7 @@
     {
       "path": "src/qq_nt_replica/primary_device_records.py",
       "source_sha256": "ad4691e18820f9a69990a21cbc3af5e385b3603392178a7581884f4f9e7ce44e",
-      "sha256": "79c7e0e9baa8bdc68297a7e579d97a7f2ce8cf330eaca098309ad570320f9cb7",
+      "sha256": "f6c3542b60509d413df27325691663c9c3ec9dc1839cf0f7a74d7f52eccec816",
       "classification": "project_source"
     },
     {
@@ -3119,6 +3119,13 @@
       "sha256": "e3df51ee8fb51cdb2a2978c1a73805d912655f53ea9f894bd0891fd9f56c8cb6",
       "classification": "project_source",
       "origin": "OWN-KEY25-INDEPENDENT-PRODUCER-IMPLEMENT/a1 first-retained-source/primary_device_value_producer.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_getter.py",
+      "source_sha256": "531684f4d4bc4f008a68026d7b3da8701aaf550ae30ade137463c68b49315bf8",
+      "sha256": "531684f4d4bc4f008a68026d7b3da8701aaf550ae30ade137463c68b49315bf8",
+      "classification": "project_source",
+      "origin": "OWN-QIMEI-COLD-RECORD-INPUT-IMPLEMENT/a1 first-retained-source/primary_qimei_getter.py"
     }
   ],
   "excluded_pending_assets": [
