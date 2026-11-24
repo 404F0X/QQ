@@ -2825,14 +2825,14 @@
     },
     {
       "path": "src/qq_nt_replica/primary_windows_signer.py",
-      "source_sha256": "9bda5a58bbdde36c7cb526a64b572810f9a918fbbea72652d4df34d8253bdda0",
-      "sha256": "d941f7a45ebbd93179a062fbfcf68b787050b4ec0ec191e94a553f15b640a02c",
+      "source_sha256": "483f5d9bd3301d8f974f628b98d4b7cba2bc72627ab2ac8f18daffeb31b9923a",
+      "sha256": "483f5d9bd3301d8f974f628b98d4b7cba2bc72627ab2ac8f18daffeb31b9923a",
       "classification": "project_source"
     },
     {
       "path": "src/qq_nt_replica/primary_windows_signer_setup.py",
-      "source_sha256": "0477b527053bf1b70eebe24feee3edd328415c834f99d4e2dd08d9fe0fcaad32",
-      "sha256": "98ff867e85f1852637486915cad261f1877966f13252016e5a173ff58f5eb013",
+      "source_sha256": "c58901b9bc2b3f74c8fb4ab5cd6a958b4cdc80a801b64d0525c10aed2bb5528b",
+      "sha256": "c58901b9bc2b3f74c8fb4ab5cd6a958b4cdc80a801b64d0525c10aed2bb5528b",
       "classification": "project_source"
     },
     {

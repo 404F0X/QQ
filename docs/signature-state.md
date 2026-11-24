@@ -170,6 +170,19 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
   尚无该137 actualIO 授权；不执行原 HKCU Tencent QQProtect 删除或写入。
   XML 声明/comment 等未支持输入保留 Boundary，不伪装为空。
 
+### 本方 cold provider/bootstrap 入口
+
+- `open_windows_signer(..., own_business_config={'uin': uint64_int, 'machine_id': persistent_bytes})`
+  显式选择本方 cold profile；`host_profile_string` 必须为 `b'V1_WIN_NQ_9.9.33_52230_GW_B'`，
+  必须使用 direct backend 与 owned worker bridge；与 outer login、diagnostic metadata 互斥；可选 construction hook 保留在业务初始化前执行。
+- 从本方 UNINITIALIZED Qimei getter 取得合法 empty，固定源默认 QUA、规范 UIN ASCII、
+  required 非空 NUL-free machine_id 构建既有 ProviderInitializationMetadata；不恢复原 QQ effective profile。
+  machine_id 是本方持久 caller 配置，provider 与后续 SDK27/login handoff 须保持同值。
+- 业务及 diagnostic 分别调用共有 provider-init/Host129 primitive，保留公共 owner operation fencing、
+  pending bootstrap 检查及失败清理；不调用 diagnostic prepare 后重标状态。
+  当前仅有受控 pure 检查，不证明 actual provider/bootstrap、SDKReady、材料安装或 actual SIGN。
+  refresh/complete 仍用原公共入口；notify/update 公开映射仍未证明。
+
 ### SDK、异步消费者与登录
 
 - 四 SDK 命令均消费完整 payload；status0 也加密 payload，没有纯握手空 body 捷径。

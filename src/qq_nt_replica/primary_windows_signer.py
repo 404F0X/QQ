@@ -127,7 +127,16 @@ def open_windows_signer(*, bridge_path, storage_root, host_profile_string, initi
                     host2252_pair_m_retry=False, host2252_pair_m_read_budget=4096,
                     host2252_control_m=False, independent_provider_metadata=None, common_guid=None,
                     allow_qqprotect_registry=False, allow_capi_creation=False,
-                    request_transport=None, construction_setup=None, display_environment='independent_windows', outer_login_config=None, outer_sync_permit=None):
+                    request_transport=None, construction_setup=None, display_environment='independent_windows', outer_login_config=None, outer_sync_permit=None, own_business_config=None):
+    business = None
+    if own_business_config is not None:
+        from .primary_windows_signer_setup import business_metadata, validate_independent
+        if any(value is not None for value in (outer_login_config, independent_provider_metadata)):
+            raise InputError('choose one business, diagnostic or outer initialization mode')
+        if type(own_business_config) is not dict or set(own_business_config) != {'uin', 'machine_id'}:
+            raise InputError('business configuration requires explicit uin and machine_id')
+        business = business_metadata(**own_business_config)
+        validate_independent(business, host_profile_string, primary_backend, worker_bridge_path)
     if outer_login_config is not None and construction_setup is not None:
         raise InputError('source outer entry cannot run an unrelated construction hook first')
     if outer_sync_permit is not None and (outer_login_config is None or not callable(outer_sync_permit)):
@@ -245,6 +254,10 @@ def open_windows_signer(*, bridge_path, storage_root, host_profile_string, initi
             from .primary_windows_signer_setup import IndependentWindowsSetup
             owner._independent_setup = IndependentWindowsSetup(owner)
             owner._independent_setup.prepare_outer_prefix(outer_login_config)
+        elif business is not None:
+            from .primary_windows_signer_setup import IndependentWindowsSetup
+            owner._independent_setup = IndependentWindowsSetup(owner)
+            owner._independent_setup.prepare_business(**own_business_config)
         elif independent_provider_metadata is not None:
             from .primary_windows_signer_setup import IndependentWindowsSetup
             owner._independent_setup = IndependentWindowsSetup(owner)
@@ -258,7 +271,7 @@ def open_windows_signer(*, bridge_path, storage_root, host_profile_string, initi
         except BaseException as cleanup:
             failure = BaseExceptionGroup('Windows signer construction and cleanup failed', [original, cleanup])
             failure.windows_signer_diagnostics = owner.diagnostics
-            if independent_provider_metadata is not None:
+            if independent_provider_metadata is not None or business is not None:
                 failure.independent_windows_owner = owner
             failure.add_note('Windows signer storage is retained: ' + str(storage))
             raise failure

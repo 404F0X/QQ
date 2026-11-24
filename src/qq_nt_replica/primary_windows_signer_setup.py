@@ -27,7 +27,14 @@ class IndependentWindowsSetup:
         self.state = 'preparing'
         self.bootstrap_state = 'not_observed'
 
+    def prepare_business(self, *, uin, machine_id):
+        metadata = business_metadata(uin=uin, machine_id=machine_id)
+        self._prepare_provider(metadata)
+
     def prepare(self, metadata):
+        self._prepare_provider(metadata)
+
+    def _prepare_provider(self, metadata):
         """Diagnostic direct-inner initialization; does not execute source outer init."""
         owner = self.owner
         if self.state != 'preparing' or owner._state != 'open' or owner._busy:
@@ -159,3 +166,15 @@ class IndependentWindowsSetup:
         finally:
             if self.delegate is not None:
                 self.delegate.close()
+
+
+BUSINESS_QUA = b'V1_WIN_NQ_9.9.33_52230_GW_B'
+
+def business_metadata(*, uin, machine_id):
+    """Explicit own cold profile; caller retains its persistent machine identity."""
+    from .primary_qimei_getter import QimeiGetterOwner
+    if type(uin) is not int or not 0 <= uin < 1 << 64:
+        raise InputError('business UIN requires uint64')
+    if type(machine_id) is not bytes or not machine_id or b'\0' in machine_id:
+        raise InputError('business machine_id requires nonempty NUL-free own persistent bytes')
+    return ProviderInitializationMetadata(QimeiGetterOwner().get(), BUSINESS_QUA, str(uin).encode('ascii'), machine_id)
