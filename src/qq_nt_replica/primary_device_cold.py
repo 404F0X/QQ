@@ -4,11 +4,11 @@ from pathlib import Path
 
 from .errors import InputError
 from .primary_device_collector import _terminated
-from .primary_logger import _cstring, _format, _String, log
+from .primary_logger import _cstring, _format as _source_format, _String, log
 from .primary_memory import PrimaryMemoryLimit, UnknownMemory
 from .primary_vm import PrimaryProgramLimit, PrimarySemanticUnavailable
-from .primary_worker_consumer import _invoke
-from .primary_worker_response import _frame
+from .primary_worker_consumer import _invoke as _source_invoke
+from .primary_worker_response import _frame as _source_frame
 
 
 _IMAGE_SHA256 = 'b21264ac06c8a16c1220ab76444ac2793281b8d72de1bee1842ef40a9be6fe14'
@@ -40,7 +40,10 @@ def install_image(memory, image_base):
                    name='fixed device cold collector image', initialized=True)
 
 
-def _observe(runtime, name, arguments):
+def _observe(runtime, name, arguments, _operations=None):
+    if _operations is not None:
+        _operations.require_data(runtime)
+        return _operations.observe(name, arguments)
     expected = runtime.worker_imports.get(name)
     if expected is None or runtime.memory.load(runtime.image_base + (_IMPORTS | _FINALIZE_IMPORTS)[name], 8) != expected:
         raise PrimarySemanticUnavailable('device cold collector current import is not bound: ' + name)
@@ -49,14 +52,17 @@ def _observe(runtime, name, arguments):
     return runtime.worker_observations.take(runtime, name, arguments)
 
 
-def _plain(runtime, name, arguments):
-    result, effects = _observe(runtime, name, arguments)
+def _plain(runtime, name, arguments, _operations=None):
+    if _operations is not None:
+        _operations.require_data(runtime)
+        return _operations.plain(name, arguments)
+    result, effects = _observe(runtime, name, arguments, _operations=_operations)
     if effects != b'':
         raise InputError('device cold collector operation has no output buffer: ' + name)
     return result & 0xFFFFFFFF
 
 
-def _output(runtime, address, effects, capacity, source):
+def _output(runtime, address, effects, capacity, source, _operations=None):
     if isinstance(effects, tuple) and len(effects) == 1 and isinstance(effects[0], tuple) and len(effects[0]) == 2:
         raw, known = effects[0]
         if (not isinstance(raw, bytes) or not isinstance(known, bytes) or len(raw) != len(known) or
@@ -79,7 +85,7 @@ def _output(runtime, address, effects, capacity, source):
             runtime.memory.write(address, effects, source=source)
 
 
-def _foreign_output(runtime, effects):
+def _foreign_output(runtime, effects, _operations=None):
     if not isinstance(effects, tuple) or len(effects) != 2:
         raise InputError('device COM output requires a pointer and explicit foreign memory images')
     pointer, images = effects
@@ -98,41 +104,44 @@ def _foreign_output(runtime, effects):
     return pointer
 
 
-def _com(runtime, receiver, slot, name, arguments):
+def _com(runtime, receiver, slot, name, arguments, _operations=None):
     target = runtime.memory.load(runtime.memory.load(receiver, 8) + slot, 8)
     if not target or runtime.worker_observations is None:
         raise PrimarySemanticUnavailable('device COM current virtual target or OS observations are missing: ' + name)
     return runtime.worker_observations.take(runtime, name, (target, receiver, *arguments))
 
 
-def _release(runtime, receiver):
-    result, effects = _com(runtime, receiver, 16, 'IUnknown.Release', ())
+def _release(runtime, receiver, _operations=None):
+    result, effects = _com(runtime, receiver, 16, 'IUnknown.Release', (), _operations=_operations)
     if effects != b'':
         raise InputError('device COM Release requires its explicit empty output effects')
     return result & 0xFFFFFFFF
 
 
-def _log(runtime, line, *values):
+def _log(runtime, line, *values, _operations=None):
+    if _operations is not None:
+        _operations.require_data(runtime)
+        return _operations.source_log(line, *values)
     item = _image()['logs'][str(line)]
     runtime.events.append(('device.cold_log', line))
     return log(runtime, bytes.fromhex(item['source_file_hex']), line,
                bytes.fromhex(item['template_hex']), bytes.fromhex(item['tag_hex']), item['severity'], *values)
 
 
-def connect_wmi(runtime):
+def connect_wmi(runtime, _operations=None):
     memory, base, image = runtime.memory, runtime.image_base, _image()
-    frame, rbp = _frame(runtime, 0x120, '2E123C0.WMI_connection_frame')
-    initialized = _plain(runtime, 'CoInitializeEx', (0, 0))
-    _log(runtime, 44, initialized)
+    frame, rbp = _frame(runtime, 0x120, '2E123C0.WMI_connection_frame', _operations=_operations)
+    initialized = _plain(runtime, 'CoInitializeEx', (0, 0), _operations=_operations)
+    _log(runtime, 44, initialized, _operations=_operations)
     memory.store(rbp - 0x38, 0, 8, source='2E1274A.empty_WMI_locator')
     result, effects = _observe(runtime, 'CoCreateInstance',
                                (memory.read(base + image['class_rva'], 16), 0, 1,
-                                memory.read(base + image['interface_rva'], 16)))
-    locator = _foreign_output(runtime, effects)
+                                memory.read(base + image['interface_rva'], 16)), _operations=_operations)
+    locator = _foreign_output(runtime, effects, _operations=_operations)
     memory.store(rbp - 0x38, locator, 8, source='2E12771.WMI_locator_output')
     if result & 0x80000000:
-        _log(runtime, 63, result & 0xFFFFFFFF)
-        _plain(runtime, 'CoUninitialize', ())
+        _log(runtime, 63, result & 0xFFFFFFFF, _operations=_operations)
+        _plain(runtime, 'CoUninitialize', (), _operations=_operations)
         memory.unmap(frame)
         return 0
     memory.store(rbp - 0x30, 0, 8, source='2E1277F.empty_WMI_services')
@@ -140,7 +149,7 @@ def connect_wmi(runtime):
     memory.store(wrapper + 8, 0, 8, source='2E12795.BSTR_empty_ansi')
     memory.store(wrapper + 16, 1, 4, source='2E127A1.BSTR_refcount')
     namespace = _terminated(runtime, base + image['namespace_rva'], 2)
-    bstr, raw = _observe(runtime, 'SysAllocString', (namespace,))
+    bstr, raw = _observe(runtime, 'SysAllocString', (namespace,), _operations=_operations)
     if not isinstance(raw, bytes) or len(raw) > 4096 or type(bstr) is not int or not 0 <= bstr <= _MASK64:
         raise InputError('device BSTR requires an unsigned pointer and bounded raw UTF16 output')
     memory.store(wrapper, bstr, 8, source='2E127B9.BSTR_pointer')
@@ -150,51 +159,51 @@ def connect_wmi(runtime):
         raise UnknownMemory('successful device BSTR allocation requires its actual character bytes')
     memory.map(bstr, bytearray(raw), name='observed device BSTR buffer', initialized=True)
     result, effects = _com(runtime, locator, 24, 'IWbemLocator.ConnectServer',
-                           (bstr, 0, 0, 0, 0, 0, 0))
-    services = _foreign_output(runtime, effects)
+                           (bstr, 0, 0, 0, 0, 0, 0), _operations=_operations)
+    services = _foreign_output(runtime, effects, _operations=_operations)
     memory.store(rbp - 0x30, services, 8, source='2E127FA.WMI_services_output')
     references = (memory.load(wrapper + 16, 4) - 1) & 0xFFFFFFFF
     memory.store(wrapper + 16, references, 4, source='2E12802.BSTR_release')
     if references == 0:
         current = memory.load(wrapper, 8)
         if current:
-            _plain(runtime, 'SysFreeString', (current,))
+            _plain(runtime, 'SysFreeString', (current,), _operations=_operations)
             memory.unmap(current)
             memory.store(wrapper, 0, 8, source='2E12817.BSTR_cleared')
         if memory.load(wrapper + 8, 8):
             raise PrimarySemanticUnavailable('device BSTR cached ANSI ownership requires its actual array effects')
         runtime._free_allocation(wrapper)
-    _release(runtime, memory.load(rbp - 0x38, 8))
+    _release(runtime, memory.load(rbp - 0x38, 8), _operations=_operations)
     if result & 0x80000000:
-        _log(runtime, 72, result & 0xFFFFFFFF)
-        _plain(runtime, 'CoUninitialize', ())
+        _log(runtime, 72, result & 0xFFFFFFFF, _operations=_operations)
+        _plain(runtime, 'CoUninitialize', (), _operations=_operations)
         memory.unmap(frame)
         return 0
     services = memory.load(rbp - 0x30, 8)
-    result = _plain(runtime, 'CoSetProxyBlanket', (services, 10, 0, 0, 3, 3, 0, 0))
+    result = _plain(runtime, 'CoSetProxyBlanket', (services, 10, 0, 0, 3, 3, 0, 0), _operations=_operations)
     if result & 0x80000000:
-        _log(runtime, 80, result)
-        _release(runtime, memory.load(rbp - 0x30, 8))
-        _plain(runtime, 'CoUninitialize', ())
+        _log(runtime, 80, result, _operations=_operations)
+        _release(runtime, memory.load(rbp - 0x30, 8), _operations=_operations)
+        _plain(runtime, 'CoUninitialize', (), _operations=_operations)
         memory.unmap(frame)
         return 0
-    _log(runtime, 85)
+    _log(runtime, 85, _operations=_operations)
     services = memory.load(rbp - 0x30, 8)
     memory.unmap(frame)
     return services
 
 
-def cleanup_wmi(runtime, receiver):
-    _log(runtime, 90)
+def cleanup_wmi(runtime, receiver, _operations=None):
+    _log(runtime, 90, _operations=_operations)
     if receiver:
-        _release(runtime, receiver)
-    _plain(runtime, 'CoUninitialize', ())
+        _release(runtime, receiver, _operations=_operations)
+    _plain(runtime, 'CoUninitialize', (), _operations=_operations)
 
 
-def architecture(runtime):
-    frame, rbp = _frame(runtime, 0x60, '1BEE390.system_architecture_frame')
+def architecture(runtime, _operations=None):
+    frame, rbp = _frame(runtime, 0x60, '1BEE390.system_architecture_frame', _operations=_operations)
     runtime.memory.write(frame + 0x20, bytes(48), source='1BEE3A4.zero_SYSTEM_INFO')
-    ignored, effects = _observe(runtime, 'GetNativeSystemInfo', ())
+    ignored, effects = _observe(runtime, 'GetNativeSystemInfo', (), _operations=_operations)
     if isinstance(effects, tuple) and len(effects) == 1 and isinstance(effects[0], tuple) and len(effects[0]) == 2:
         raw, known = effects[0]
         if (not isinstance(raw, bytes) or not isinstance(known, bytes) or len(raw) != len(known) or
@@ -222,7 +231,7 @@ def architecture(runtime):
     return result
 
 
-def cpu_identifier(runtime, destination):
+def cpu_identifier(runtime, destination, _operations=None):
     if runtime.worker_observations is None:
         raise UnknownMemory('device CPU identifier requires CPUID leaf1 observations')
     ignored, registers = runtime.worker_observations.take(runtime, 'CPUID', (1,))
@@ -230,7 +239,7 @@ def cpu_identifier(runtime, destination):
             any(type(value) is not int or not 0 <= value <= 0xFFFFFFFF for value in registers)):
         raise InputError('device CPUID requires four explicit DWORD register outputs')
     raw = _format(runtime, _cstring(runtime, runtime.image_base + _image()['cpu_format_rva']),
-                  (registers[3], registers[0]))
+                  (registers[3], registers[0]), _operations=_operations)
     if len(raw) >= 260:
         raise PrimarySemanticUnavailable('device CPU identifier current format exceeds its bounded stack buffer')
     value = _String.construct(runtime, raw)
@@ -254,37 +263,46 @@ def _display_maxima(environment):
     return width, height
 
 
-def _independent_display(runtime, owner):
+def _independent_display(runtime, owner, _operations=None):
     from .primary_windows_display_environment import WindowsDisplayEnvironment
     with WindowsDisplayEnvironment() as environment:
         width, height = _display_maxima(environment)
     memory = runtime.memory
     memory.store(owner + 0x460, width, 4, source='2E241E8.display_width')
     memory.store(owner + 0x464, height, 4, source='2E241F2.display_height')
-    first = _plain(runtime, 'GetSystemMetrics', (0,))
-    second = _plain(runtime, 'GetSystemMetrics', (1,))
+    first = _plain(runtime, 'GetSystemMetrics', (0,), _operations=_operations)
+    second = _plain(runtime, 'GetSystemMetrics', (1,), _operations=_operations)
     memory.store(owner + 0x58, first, 4, source='2E2420C.screen_width')
     memory.store(owner + 0x5C, second, 4, source='2E2420F.screen_height')
 
 
-def display(runtime, owner):
+def display(runtime, owner, _operations=None):
+    if _operations is not None:
+        _operations.require_data(runtime)
+        with _operations.port.display_environment() as environment:
+            width,height=_display_maxima(environment)
+        runtime.memory.store(owner+0x460,width,4,source='own display maximum width')
+        runtime.memory.store(owner+0x464,height,4,source='own display maximum height')
+        for index,offset in ((0,0x58),(1,0x5C)):
+            runtime.memory.store(owner+offset,_plain(runtime,'GetSystemMetrics',(index,),_operations=_operations),4,source='own display system metrics')
+        return
     from .primary_device_provider import DeviceFactory
     factory = getattr(getattr(runtime, 'provider_profile', None), 'device_factory', None)
     if factory is not None:
         if not isinstance(factory, DeviceFactory):
             raise InputError('display environment requires the configured device factory')
         if factory.display_environment == 'independent_windows':
-            return _independent_display(runtime, owner)
+            return _independent_display(runtime, owner, _operations=_operations)
         if factory.display_environment != 'source_frame':
             raise InputError('display environment selection is outside the explicit supported modes')
     memory = runtime.memory
-    frame, rbp = _frame(runtime, 0x128, '2E24080.display_modes_frame')
+    frame, rbp = _frame(runtime, 0x128, '2E24080.display_modes_frame', _operations=_operations)
     width, height = 0, 0
     for index in range(4096):
         region, offset = memory._span(frame + 0x40, 220)
         preimage = bytes(region.data[offset:offset + 220]), bytes(region.initialized[offset:offset + 220])
-        result, effects = _observe(runtime, 'EnumDisplaySettingsW', (0, index, preimage))
-        _output(runtime, frame + 0x40, effects, 220, '2E24106.DEVMODEW_output')
+        result, effects = _observe(runtime, 'EnumDisplaySettingsW', (0, index, preimage), _operations=_operations)
+        _output(runtime, frame + 0x40, effects, 220, '2E24106.DEVMODEW_output', _operations=_operations)
         if not result & 0xFFFFFFFF:
             break
         width = max(width, memory.load(frame + 0xEC, 4))
@@ -293,24 +311,25 @@ def display(runtime, owner):
         raise PrimaryProgramLimit('device display enumeration exceeds the bounded offline domain')
     memory.store(owner + 0x460, width, 4, source='2E241E8.display_width')
     memory.store(owner + 0x464, height, 4, source='2E241F2.display_height')
-    first = _plain(runtime, 'GetSystemMetrics', (0,))
-    second = _plain(runtime, 'GetSystemMetrics', (1,))
+    first = _plain(runtime, 'GetSystemMetrics', (0,), _operations=_operations)
+    second = _plain(runtime, 'GetSystemMetrics', (1,), _operations=_operations)
     memory.store(owner + 0x58, first, 4, source='2E2420C.screen_width')
     memory.store(owner + 0x5C, second, 4, source='2E2420F.screen_height')
     memory.unmap(frame)
 
 
-def capture_snapshot(runtime, owner, destination):
+def capture_snapshot(runtime, owner, destination, _operations=None):
     if not runtime.memory.load(owner + 0x42A8, 1):
         from .primary_device_system import _image as system_image, hardware_profile, user_name
         from .primary_logger import _decode
         from .primary_worker_loop import _initialize
 
         memory, base = runtime.memory, runtime.image_base
-        frame, rbp = _frame(runtime, 0x2D0, '2E15490.initial_collector_frame')
-        services = connect_wmi(runtime)
-        memory.store(owner, services, 8, source='2E154C8.collector_WMI_services')
-        _invoke(runtime, 0x1BED930, rbp + 0xB8)
+        frame, rbp = _frame(runtime, 0x2D0, '2E15490.initial_collector_frame', _operations=_operations)
+        services = connect_wmi(runtime) if _operations is None else None
+        if _operations is not None:_operations.open_wmi()
+        if _operations is None:memory.store(owner, services, 8, source='2E154C8.collector_WMI_services')
+        _invoke(runtime, 0x1BED930, rbp + 0xB8, _operations=_operations)
         buffer, capacity = rbp - 0x50, rbp + 0x244
         memory.write(buffer, bytes(260), source='2E154E3.zero_version_format_buffer')
         memory.store(capacity, 260, 4, source='2E154E8.initial_name_capacity')
@@ -321,89 +340,110 @@ def capture_snapshot(runtime, owner, destination):
         pattern = _decode(format_image)
         memory.write(rbp + 0xE0, bytes([0, format_image['seed']]) + pattern + b'\0\0',
                      source='2E15572.decoded_version_format')
-        formatted = _format(runtime, pattern, numbers)
+        formatted = _format(runtime, pattern, numbers, _operations=_operations)
         if len(formatted) >= 260:
             raise PrimarySemanticUnavailable('device version format exceeds the actual bounded CRT buffer')
         memory.write(buffer, formatted + b'\0', source='2E15616.formatted_version')
-        _invoke(runtime, 0x75BEB0, owner + 0xA0, buffer, len(_cstring(runtime, buffer)))
-        value = _invoke(runtime, 0x1BEE390)
+        _invoke(runtime, 0x75BEB0, owner + 0xA0, buffer, len(_cstring(runtime, buffer)), _operations=_operations)
+        value = _invoke(runtime, 0x1BEE390, _operations=_operations)
         memory.store(owner + 0x48, value, 4, source='2E1562F.owner_architecture')
         for name, offset in (('GetComputerNameA', 0x100), ('GetUserNameA', 0x148)):
             memory.write(buffer, bytes(260), source='2E15490.zero_name_buffer')
-            if user_name(runtime, name, buffer, capacity):
-                _invoke(runtime, 0x75BEB0, owner + offset, buffer, len(_cstring(runtime, buffer)))
-        if hardware_profile(runtime, rbp + 0xE0):
+            if user_name(runtime, name, buffer, capacity, _operations=_operations):
+                _invoke(runtime, 0x75BEB0, owner + offset, buffer, len(_cstring(runtime, buffer)), _operations=_operations)
+        if hardware_profile(runtime, rbp + 0xE0, _operations=_operations):
             for offset, source in ((0xD0, rbp + 0x10B), (0xE8, rbp + 0xE4)):
-                _invoke(runtime, 0x75BEB0, owner + offset, source, len(_cstring(runtime, source)))
-        _initialize(runtime, 1)
-        _invoke(runtime, 0x75CEC0, owner + 0x88, base + 0x6751720)
+                _invoke(runtime, 0x75BEB0, owner + offset, source, len(_cstring(runtime, source)), _operations=_operations)
+        if _operations is None:
+            _initialize(runtime, 1)
+            _invoke(runtime, 0x75CEC0, owner + 0x88, base + 0x6751720)
+        else:_operations.copy_machine_id(owner + 0x88)
         temporaries = tuple(rbp + offset for offset in (0x1A0, 0x1C0, 0x1E0))
         for address in temporaries:
             memory.write(address, bytes(24), source='2E15490.initial_system_capture_String')
-        if _invoke(runtime, 0x2E11020, owner + 0x78, *temporaries) & 0xFFFFFFFF:
+        if _invoke(runtime, 0x2E11020, owner + 0x78, *temporaries, _operations=_operations) & 0xFFFFFFFF:
             for offset, source in zip((0x118, 0xB8, 0x130), temporaries):
-                _invoke(runtime, 0x75CEC0, owner + offset, source)
+                _invoke(runtime, 0x75CEC0, owner + offset, source, _operations=_operations)
         from .primary_device_refresh import _observe as refresh_observe
 
-        result, raw = refresh_observe(runtime, 'GetCursorPos', ())
+        result, raw = refresh_observe(runtime, 'GetCursorPos', (), _operations=_operations)
         if not isinstance(raw, bytes) or len(raw) > 8:
             raise InputError('cold collector cursor requires bounded raw POINT effects')
         memory.write(rbp + 0x220, raw, source='2E1579A.cursor_output')
         if result & 0xFFFFFFFF:
             memory.copy_disjoint(owner + 0x4C, rbp + 0x220, 8, label='2E157AA.owner_cursor')
-        memory.store(owner + 0x54, _plain(runtime, 'GetKeyboardType', (0,)), 4, source='2E157BE.owner_keyboard_type')
-        _invoke(runtime, 0x3E8ED3C, rbp + 0x198)
+        memory.store(owner + 0x54, _plain(runtime, 'GetKeyboardType', (0,), _operations=_operations), 4, source='2E157BE.owner_keyboard_type')
+        _invoke(runtime, 0x3E8ED3C, rbp + 0x198, _operations=_operations)
         memory.store(owner + 0x60, memory.load(rbp + 0x198, 4), 4, source='2E157D3.owner_time64_low_DWORD')
-        memory.store(owner + 0x6C, _plain(runtime, 'IsDebuggerPresent', ()), 4, source='2E157DC.owner_debugger_state')
+        memory.store(owner + 0x6C, _plain(runtime, 'IsDebuggerPresent', (), _operations=_operations), 4, source='2E157DC.owner_debugger_state')
         memory.copy_disjoint(rbp + 0x160, base + _image()['hypervisor_initial_rva'], 16,
                              label='2E1585E.initial_hypervisor_scratch')
         from .primary_device_hardware import _cpuid, _move
 
-        registers = _cpuid(runtime, 1)
+        registers = _cpuid(runtime, 1, _operations=_operations)
         hypervisor = int.from_bytes(registers[8:12], 'little') >> 31
         memory.store(rbp + 0x228, hypervisor, 4, source='2E15873.hypervisor_bit')
         if hypervisor:
             memory.store(owner + 0x68, 1, 4, source='2E158DB.owner_hypervisor_present')
         memory.store(owner + 0x64, 3 if hypervisor else 0, 4, source='2E15908.owner_hypervisor_class')
-        memory.store(owner + 0x70, _plain(runtime, 'GetSystemDefaultLCID', ()), 4, source='2E15911.owner_system_LCID')
-        ignored, raw = _observe(runtime, 'GetSystemInfo', ())
-        _output(runtime, rbp + 0x160, raw, 48, '2E1591B.SYSTEM_INFO_output')
+        memory.store(owner + 0x70, _plain(runtime, 'GetSystemDefaultLCID', (), _operations=_operations), 4, source='2E15911.owner_system_LCID')
+        ignored, raw = _observe(runtime, 'GetSystemInfo', (), _operations=_operations)
+        _output(runtime, rbp + 0x160, raw, 48, '2E1591B.SYSTEM_INFO_output', _operations=_operations)
         memory.store(owner + 0x74, memory.load(rbp + 0x180, 4), 4, source='2E15927.owner_processor_count')
-        _invoke(runtime, 0x2E15CA0, 0, rbp + 0x200)
-        _move(runtime, owner + 0x160, rbp + 0x200)
+        _invoke(runtime, 0x2E15CA0, 0, rbp + 0x200, _operations=_operations)
+        _move(runtime, owner + 0x160, rbp + 0x200, _operations=_operations)
         for entry in (0x2E15D90, 0x2E18240, 0x2E191B0, 0x2E1A7C0,
                       0x2E1D1B0, 0x2E1E160, 0x2E1F6D0, 0x2E20C10, 0x2E24080, 0x2E24240):
-            _invoke(runtime, entry, owner)
-        _invoke(runtime, 0x35E9640, owner + 0x730)
-        _invoke(runtime, 0x35ECC50, owner + 0x19A0)
-        result, raw = _observe(runtime, 'CallNtPowerInformation', (5, 0, 0, 32))
-        _output(runtime, rbp + 0x200, raw, 32, '2E159E8.power_information_output')
+            _invoke(runtime, entry, owner, _operations=_operations)
+        _invoke(runtime, 0x35E9640, owner + 0x730, _operations=_operations)
+        _invoke(runtime, 0x35ECC50, owner + 0x19A0, _operations=_operations)
+        result, raw = _observe(runtime, 'CallNtPowerInformation', (5, 0, 0, 32), _operations=_operations)
+        _output(runtime, rbp + 0x200, raw, 32, '2E159E8.power_information_output', _operations=_operations)
         if not result & 0xFFFFFFFF:
             for index, offset in enumerate((0x698, 0x6B0, 0x6C8), 1):
-                _invoke(runtime, 0x75E7B0, rbp + 0x228, memory.load(rbp + 0x200 + index, 1))
-                _move(runtime, owner + offset, rbp + 0x228)
-        services = memory.load(owner, 8)
+                _invoke(runtime, 0x75E7B0, rbp + 0x228, memory.load(rbp + 0x200 + index, 1), _operations=_operations)
+                _move(runtime, owner + offset, rbp + 0x228, _operations=_operations)
+        services = memory.load(owner, 8) if _operations is None else None
+        if _operations is not None:_operations.close_wmi()
         if services:
-            cleanup_wmi(runtime, services)
+            cleanup_wmi(runtime, services, _operations=_operations)
         memory.store(owner + 0x42A8, 1, 1, source='2E15ACE.initial_collection_complete')
         for address in reversed(temporaries):
             _String.read(runtime, address).destroy()
         memory.unmap(frame)
-    _invoke(runtime, 0x2E252A0, owner)
-    return _invoke(runtime, 0x2E25B70, destination, owner + 8)
+    _invoke(runtime, 0x2E252A0, owner, _operations=_operations)
+    return _invoke(runtime, 0x2E25B70, destination, owner + 8, _operations=_operations)
 
 
-def invoke(runtime, rva, values):
+def invoke(runtime, rva, values, _operations=None):
     if rva == 0x2E123C0 and not values:
-        return connect_wmi(runtime)
+        return connect_wmi(runtime, _operations=_operations)
     if rva == 0x2E137F0 and len(values) == 2:
-        return cleanup_wmi(runtime, values[1])
+        return cleanup_wmi(runtime, values[1], _operations=_operations)
     if rva == 0x1BEE390 and not values:
-        return architecture(runtime)
+        return architecture(runtime, _operations=_operations)
     if rva == 0x2E15CA0 and len(values) == 2:
-        return cpu_identifier(runtime, values[1])
+        return cpu_identifier(runtime, values[1], _operations=_operations)
     if rva == 0x2E24080 and len(values) == 1:
-        return display(runtime, values[0])
+        return display(runtime, values[0], _operations=_operations)
     if rva == 0x2E15490 and len(values) == 2:
-        return capture_snapshot(runtime, *values)
+        return capture_snapshot(runtime, *values, _operations=_operations)
     raise InputError('cold device collector source interface argument count mismatch')
+
+
+def _invoke(runtime,*values,_operations=None):
+    if _operations is None:return _source_invoke(runtime,*values)
+    _operations.require_data(runtime)
+    return _operations.invoke(*values)
+
+
+def _format(runtime,template,values,_operations=None):
+    if _operations is None:return _source_format(runtime,template,values)
+    _operations.require_data(runtime)
+    return _operations.format(template,values)
+
+
+def _frame(runtime,size,name,_operations=None):
+    if _operations is None:return _source_frame(runtime,size,name)
+    _operations.require_data(runtime)
+    return _operations.frame(size,name)

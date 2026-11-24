@@ -5,10 +5,10 @@ from pathlib import Path
 from .errors import InputError
 from .primary_device_collector import _append_material, _terminated
 from .primary_device_provenance import collect_identifiers
-from .primary_logger import _cstring, _String, construct, feature, log
+from .primary_logger import _cstring, _String, construct, feature as _source_feature, log
 from .primary_memory import UnknownMemory
 from .primary_vm import PrimaryProgramLimit, PrimarySemanticUnavailable
-from .primary_worker_response import _frame
+from .primary_worker_response import _frame as _source_frame
 
 
 _IMAGE_SHA256 = '65cc25c49da6b89011fa77fa536da6f193469bc7b33c072085df4d6c164702dc'
@@ -38,14 +38,20 @@ def install_image(memory, image_base):
                    name='fixed device refresh image', initialized=True)
 
 
-def _log(runtime, kind, line, *values):
+def _log(runtime, kind, line, *values, _operations=None):
+    if _operations is not None:
+        _operations.require_data(runtime)
+        return _operations.source_log(kind, line, *values)
     item = _image()['logs'][kind + ':' + str(line)]
     runtime.events.append(('device.identifier_log', kind, line))
     return log(runtime, bytes.fromhex(item['source_file_hex']), line,
                bytes.fromhex(item['template_hex']), bytes.fromhex(item['tag_hex']), item['severity'], *values)
 
 
-def _observe(runtime, name, arguments):
+def _observe(runtime, name, arguments, _operations=None):
+    if _operations is not None:
+        _operations.require_data(runtime)
+        return _operations.observe(name, arguments)
     expected = runtime.worker_imports.get(name)
     if expected is None or runtime.memory.load(runtime.image_base + _IMPORTS[name], 8) != expected:
         raise PrimarySemanticUnavailable('device refresh current import is not bound: ' + name)
@@ -60,11 +66,17 @@ def _no_output(result, effects, name):
     return result
 
 
-def _plain(runtime, name, arguments):
-    return _no_output(*_observe(runtime, name, arguments), name)
+def _plain(runtime, name, arguments, _operations=None):
+    if _operations is not None:
+        _operations.require_data(runtime)
+        return _operations.plain(name, arguments)
+    return _no_output(*_observe(runtime, name, arguments, _operations=_operations), name)
 
 
-def _dynamic(runtime, targets, name, arguments):
+def _dynamic(runtime, targets, name, arguments, _operations=None):
+    if _operations is not None:
+        _operations.require_data(runtime)
+        return _operations.dynamic(targets, name, arguments)
     target = targets[name]
     if not target:
         raise PrimarySemanticUnavailable('device WLAN function target is null: ' + name)
@@ -73,18 +85,18 @@ def _dynamic(runtime, targets, name, arguments):
     return runtime.worker_observations.take(runtime, name, (target, *arguments))
 
 
-def _dynamic_plain(runtime, targets, name, arguments):
-    return _no_output(*_dynamic(runtime, targets, name, arguments), name)
+def _dynamic_plain(runtime, targets, name, arguments, _operations=None):
+    return _no_output(*_dynamic(runtime, targets, name, arguments, _operations=_operations), name)
 
 
-def _load_wlan(runtime, detailed):
+def _load_wlan(runtime, detailed, _operations=None):
     memory, base = runtime.memory, runtime.image_base
-    result, raw = _observe(runtime, 'GetSystemDirectoryW', (260,))
+    result, raw = _observe(runtime, 'GetSystemDirectoryW', (260,), _operations=_operations)
     if not isinstance(raw, bytes) or len(raw) > 520 or len(raw) & 1:
         raise InputError('device WLAN system directory requires bounded raw UTF16 effects')
     result &= 0xFFFFFFFF
     if not 1 <= result <= 260:
-        _log(runtime, 'wifi_info.cpp', 49 if detailed else 141)
+        _log(runtime, 'wifi_info.cpp', 49 if detailed else 141, _operations=_operations)
         return None
     if memory.load(base + 0x6749CC0, 8) or memory.load(base + 0x6D8E630, 4):
         raise PrimarySemanticUnavailable('device WLAN path requires actual nondefault printf/locale semantics')
@@ -97,21 +109,21 @@ def _load_wlan(runtime, detailed):
     path = pattern.replace('%s', ''.join(chr(value) for value in raw[:narrow_end]))
     if len(path) >= 260:
         raise PrimarySemanticUnavailable('device WLAN wide format overflow requires its actual CRT effects')
-    library = _plain(runtime, 'LoadLibraryExW', (path.encode('utf-16-le') + b'\0\0', 0, 0x808))
+    library = _plain(runtime, 'LoadLibraryExW', (path.encode('utf-16-le') + b'\0\0', 0, 0x808), _operations=_operations)
     if not library:
-        _log(runtime, 'wifi_info.cpp', 49 if detailed else 141)
+        _log(runtime, 'wifi_info.cpp', 49 if detailed else 141, _operations=_operations)
         return None
-    targets = {name: _plain(runtime, 'GetProcAddress', (library, name.encode('ascii'))) for name in _NAMES}
+    targets = {name: _plain(runtime, 'GetProcAddress', (library, name.encode('ascii')), _operations=_operations) for name in _NAMES}
     required = _NAMES if detailed else ('WlanOpenHandle', 'WlanEnumInterfaces', 'WlanFreeMemory', 'WlanCloseHandle')
     if any(not targets[name] for name in required):
-        _log(runtime, 'wifi_info.cpp', 66 if detailed else 157)
-        _plain(runtime, 'FreeLibrary', (library,))
+        _log(runtime, 'wifi_info.cpp', 66 if detailed else 157, _operations=_operations)
+        _plain(runtime, 'FreeLibrary', (library,), _operations=_operations)
         return None
     return library, targets
 
 
-def _open_wlan(runtime, targets):
-    result, effects = _dynamic(runtime, targets, 'WlanOpenHandle', (2, 0))
+def _open_wlan(runtime, targets, _operations=None):
+    result, effects = _dynamic(runtime, targets, 'WlanOpenHandle', (2, 0), _operations=_operations)
     if result & 0xFFFFFFFF:
         return None
     if (not isinstance(effects, tuple) or len(effects) != 2 or type(effects[0]) is not int or
@@ -120,7 +132,7 @@ def _open_wlan(runtime, targets):
     return effects[1]
 
 
-def _output_buffer(runtime, effects, extent=0):
+def _output_buffer(runtime, effects, extent=0, _operations=None):
     if (not isinstance(effects, tuple) or len(effects) != 2 or type(effects[0]) is not int or
             not 0 <= effects[0] < 1 << 64 or not isinstance(effects[1], bytes) or len(effects[1]) > _LIMIT):
         raise InputError('device WLAN query requires actual pointer and bounded raw output bytes')
@@ -143,29 +155,29 @@ def _output_buffer(runtime, effects, extent=0):
     return pointer
 
 
-def _free_wlan(runtime, targets, pointer):
-    _dynamic_plain(runtime, targets, 'WlanFreeMemory', (pointer,))
+def _free_wlan(runtime, targets, pointer, _operations=None):
+    _dynamic_plain(runtime, targets, 'WlanFreeMemory', (pointer,), _operations=_operations)
     buffers = getattr(runtime, '_device_wlan_buffers', set())
     if pointer in buffers:
         buffers.remove(pointer)
         runtime.memory.unmap(pointer)
 
 
-def has_interfaces(runtime):
-    loaded = _load_wlan(runtime, False)
+def has_interfaces(runtime, _operations=None):
+    loaded = _load_wlan(runtime, False, _operations=_operations)
     if loaded is None:
         return 0
     library, targets = loaded
-    handle = _open_wlan(runtime, targets)
+    handle = _open_wlan(runtime, targets, _operations=_operations)
     present = 0
     if handle is not None:
-        result, effects = _dynamic(runtime, targets, 'WlanEnumInterfaces', (handle, 0))
-        pointer = _output_buffer(runtime, effects)
+        result, effects = _dynamic(runtime, targets, 'WlanEnumInterfaces', (handle, 0), _operations=_operations)
+        pointer = _output_buffer(runtime, effects, _operations=_operations)
         if not result & 0xFFFFFFFF:
             present = int(bool(runtime.memory.load(pointer, 4)))
-            _free_wlan(runtime, targets, pointer)
-        _dynamic_plain(runtime, targets, 'WlanCloseHandle', (handle, 0))
-    _plain(runtime, 'FreeLibrary', (library,))
+            _free_wlan(runtime, targets, pointer, _operations=_operations)
+        _dynamic_plain(runtime, targets, 'WlanCloseHandle', (handle, 0), _operations=_operations)
+    _plain(runtime, 'FreeLibrary', (library,), _operations=_operations)
     return present
 
 
@@ -205,17 +217,17 @@ class _StringVector:
             self.runtime._free_allocation(self.begin)
 
 
-def read_wlan(runtime, output, vector):
-    loaded = _load_wlan(runtime, True)
+def read_wlan(runtime, output, vector, _operations=None):
+    loaded = _load_wlan(runtime, True, _operations=_operations)
     if loaded is None:
         return 0
     library, targets = loaded
-    handle = _open_wlan(runtime, targets)
+    handle = _open_wlan(runtime, targets, _operations=_operations)
     if handle is None:
-        _plain(runtime, 'FreeLibrary', (library,))
+        _plain(runtime, 'FreeLibrary', (library,), _operations=_operations)
         return 0
-    result, effects = _dynamic(runtime, targets, 'WlanEnumInterfaces', (handle, 0))
-    interfaces = _output_buffer(runtime, effects)
+    result, effects = _dynamic(runtime, targets, 'WlanEnumInterfaces', (handle, 0), _operations=_operations)
+    interfaces = _output_buffer(runtime, effects, _operations=_operations)
     succeeded = not result & 0xFFFFFFFF
     if succeeded:
         count = runtime.memory.load(interfaces, 4, signed=True)
@@ -224,11 +236,11 @@ def read_wlan(runtime, output, vector):
         values = _StringVector(runtime, vector)
         for index in range(max(0, count)):
             guid = runtime.memory.read(interfaces + 8 + 532 * index, 16)
-            status, effects = _dynamic(runtime, targets, 'WlanQueryInterface', (handle, guid, 7, 0, 604, 3))
+            status, effects = _dynamic(runtime, targets, 'WlanQueryInterface', (handle, guid, 7, 0, 604, 3), _operations=_operations)
             if (not isinstance(effects, tuple) or len(effects) != 4 or type(effects[2]) is not int or
                     not 0 <= effects[2] < 1 << 32 or type(effects[3]) is not int or not 0 <= effects[3] < 1 << 32):
                 raise InputError('device WLAN connection requires pointer,bytes,size and opcode-type effects')
-            connection = _output_buffer(runtime, effects[:2], effects[2])
+            connection = _output_buffer(runtime, effects[:2], effects[2], _operations=_operations)
             if not status & 0xFFFFFFFF and runtime.memory.load(connection, 4) == 1:
                 size = runtime.memory.load(connection + 520, 4)
                 if size > _LIMIT:
@@ -237,9 +249,9 @@ def read_wlan(runtime, output, vector):
                 _String.read(runtime, output).destroy()
                 replacement.write_to(output)
             if connection:
-                _free_wlan(runtime, targets, connection)
-            status, effects = _dynamic(runtime, targets, 'WlanGetAvailableNetworkList', (handle, guid, 0, 0))
-            networks = _output_buffer(runtime, effects)
+                _free_wlan(runtime, targets, connection, _operations=_operations)
+            status, effects = _dynamic(runtime, targets, 'WlanGetAvailableNetworkList', (handle, guid, 0, 0), _operations=_operations)
+            networks = _output_buffer(runtime, effects, _operations=_operations)
             if not status & 0xFFFFFFFF:
                 available = runtime.memory.load(networks, 4, signed=True)
                 if available > 4096:
@@ -253,14 +265,14 @@ def read_wlan(runtime, output, vector):
                     values.append(value)
                     value.destroy()
             if networks:
-                _free_wlan(runtime, targets, networks)
-        _free_wlan(runtime, targets, interfaces)
-    _dynamic_plain(runtime, targets, 'WlanCloseHandle', (handle, 0))
-    _plain(runtime, 'FreeLibrary', (library,))
+                _free_wlan(runtime, targets, networks, _operations=_operations)
+        _free_wlan(runtime, targets, interfaces, _operations=_operations)
+    _dynamic_plain(runtime, targets, 'WlanCloseHandle', (handle, 0), _operations=_operations)
+    _plain(runtime, 'FreeLibrary', (library,), _operations=_operations)
     return int(succeeded)
 
 
-def format_networks(runtime, output, vector):
+def format_networks(runtime, output, vector, _operations=None):
     value = _String.construct(runtime, b'[')
     values = _StringVector(runtime, vector)
     for address in range(values.begin, values.end, 24):
@@ -280,7 +292,7 @@ def format_networks(runtime, output, vector):
     return output
 
 
-def decimal_string(runtime, output, value, unsigned=False):
+def decimal_string(runtime, output, value, unsigned=False, _operations=None):
     value &= 0xFFFFFFFF
     if not unsigned and value >= 1 << 31:
         value -= 1 << 32
@@ -288,7 +300,8 @@ def decimal_string(runtime, output, value, unsigned=False):
     return output
 
 
-def _logger(runtime):
+def _logger(runtime, _operations=None):
+    if _operations is not None:return _operations.logger
     pointer = runtime.memory.load(runtime.image_base + 0x67516A8, 8)
     if not pointer:
         pointer = runtime._operator_new(120)
@@ -297,14 +310,14 @@ def _logger(runtime):
     return pointer
 
 
-def refresh(runtime, owner):
+def refresh(runtime, owner, _operations=None):
     memory = runtime.memory
-    frame, _ = _frame(runtime, 128, '2E252A0.dynamic_refresh_frame')
+    frame, _ = _frame(runtime, 128, '2E252A0.dynamic_refresh_frame', _operations=_operations)
     for name, arguments, size in (('GlobalMemoryStatusEx', (64,), 64), ('GetCursorPos', (), 8), ('GetSystemPowerStatus', (), 12)):
         memory.forget(frame, size, source='2E252A0.OS_output_unobserved')
         if name == 'GlobalMemoryStatusEx':
             memory.store(frame, 64, 4, source='2E252C1.MEMORYSTATUSEX_length')
-        result, raw = _observe(runtime, name, arguments)
+        result, raw = _observe(runtime, name, arguments, _operations=_operations)
         if name == 'GetSystemPowerStatus' and not result & 0xFFFFFFFF and raw is None:
             raw = b''
         if not isinstance(raw, bytes) or len(raw) > size:
@@ -320,38 +333,50 @@ def refresh(runtime, owner):
             else:
                 for index in range(6):
                     value = memory.load(frame + index, 1) if index < 4 else memory.load(frame + 4 * (index - 3), 4)
-                    decimal_string(runtime, frame + 64, value, index >= 4)
+                    decimal_string(runtime, frame + 64, value, index >= 4, _operations=_operations)
                     _String.read(runtime, owner + 0x600 + 24 * index).destroy()
                     _String.read(runtime, frame + 64).write_to(owner + 0x600 + 24 * index)
                 if memory.load(frame + 1, 1) not in (0x80, 0xFF):
                     memory.store(owner + 0x690, 1, 1, source='2E258FB.battery_seen')
         elif name == 'GlobalMemoryStatusEx':
-            _log(runtime, 'computer_info.cpp', 325, _plain(runtime, 'GetLastError', ()))
-    if feature(runtime, _logger(runtime), 22) == 1:
-        memory.store(owner + 0x710, has_interfaces(runtime), 1, source='2E25947.WLAN_interface_flag')
+            _log(runtime, 'computer_info.cpp', 325, _plain(runtime, 'GetLastError', (), _operations=_operations), _operations=_operations)
+    if feature(runtime, _logger(runtime, _operations=_operations), 22, _operations=_operations) == 1:
+        memory.store(owner + 0x710, has_interfaces(runtime, _operations=_operations), 1, source='2E25947.WLAN_interface_flag')
         memory.write(frame, bytes(48), source='2E25950.empty_WLAN_String_and_vector')
-        read_wlan(runtime, frame, frame + 24)
+        read_wlan(runtime, frame, frame + 24, _operations=_operations)
         source = _String.read(runtime, frame)
         replacement = source.clone() if source.value() else _String.construct(runtime, b'none')
         _String.read(runtime, owner + 0x6E0).destroy()
         replacement.write_to(owner + 0x6E0)
         if source.value():
             memory.store(owner + 0x711, 1, 1, source='2E259FB.WLAN_connection_seen')
-        format_networks(runtime, frame + 48, frame + 24)
+        format_networks(runtime, frame + 48, frame + 24, _operations=_operations)
         _String.read(runtime, owner + 0x6F8).destroy()
         _String.read(runtime, frame + 48).write_to(owner + 0x6F8)
         _StringVector(runtime, frame + 24).destroy()
         source.destroy()
-    collect_identifiers(runtime, owner)
+    collect_identifiers(runtime, owner) if _operations is None else _operations.identifiers(owner)
     memory.unmap(frame)
     return None
 
 
-def invoke(runtime, rva, values):
+def invoke(runtime, rva, values, _operations=None):
     definitions = {0x2E252A0: (refresh, 1), 0x35F0A70: (has_interfaces, 0), 0x35EF600: (read_wlan, 2),
                    0x2E09B80: (format_networks, 2), 0x75E7B0: (decimal_string, 2),
-                   0x75E9F0: (lambda r, out, value: decimal_string(r, out, value, True), 2)}
+                   0x75E9F0: (lambda r, out, value, _operations=None: decimal_string(r, out, value, True, _operations=_operations), 2)}
     function, count = definitions[rva]
     if len(values) != count:
         raise InputError('device refresh source interface argument count mismatch')
-    return function(runtime, *values)
+    return function(runtime, *values, _operations=_operations)
+
+
+def feature(runtime,logger,identifier,_operations=None):
+    if _operations is None:return _source_feature(runtime,logger,identifier)
+    _operations.require_data(runtime)
+    return _operations.feature(logger,identifier)
+
+
+def _frame(runtime,size,name,_operations=None):
+    if _operations is None:return _source_frame(runtime,size,name)
+    _operations.require_data(runtime)
+    return _operations.frame(size,name)

@@ -443,3 +443,23 @@ def invoke(runtime, rva, values):
     if len(values) != count:
         raise InputError('device cache source interface argument count mismatch')
     return function(runtime, *values)
+
+
+def serialize_owned_cache_xml(values):
+    """Source root/config/key/value format on owning Strings."""
+    if type(values)is not dict or any(type(k)is not bytes or type(v)is not bytes for k,v in values.items()):raise InputError('cache XML requires owned byte pairs')
+    def encode(raw):
+        result=bytearray();index=0;entities={38:b'&amp;',60:b'&lt;',62:b'&gt;',34:b'&quot;',39:b'&apos;'}
+        while index<len(raw):
+            if raw[index:index+3]==b'&#x':
+                end=raw.find(b';',index+3)
+                if end>=0:result.extend(raw[index:end+1]);index=end+1;continue
+            byte=raw[index];result.extend(entities.get(byte,('&#x%02X;'%byte).encode() if byte<32 else bytes([byte])));index+=1
+        return bytes(result)
+    output=b'<root>'+b'\n' if values else b'<root />\n'
+    for key,value in sorted(values.items()):
+        output+=b'    <config'
+        for name,raw in ((b'key',key),(b'value',value.split(b'\0',1)[0])):
+            quote=b"'" if b'"'in raw else b'"';output+=b' '+name+b'='+quote+encode(raw)+quote
+        output+=b' />\n'
+    return output+(b'</root>\n' if values else b'')

@@ -15,7 +15,7 @@ COORDINATION 只记录调度和操作，不另立业务状态机。
 SDK、Token、Qimei、通知回调、protocolTokenHex 异步消费者和空值语义、UIN、
 配置、刷新、失败、取消、关闭及所有权均在签名验收范围内。
 
-- 代码基线：`99611c569deb1688a248734ec7d3b31e7f9cb8c7`；后续 doc-only HEAD 不改变此源码基线。
+- 137之前的代码基线：`99611c569deb1688a248734ec7d3b31e7f9cb8c7`；本次137实现的输入与证据见 [W]。
 - 完整137正常域候选已冻结；CORE 10 pure 与4项 legacy、WMI 5项与 Windows 5项检查按绑定证据复用 [W]。
 - wrapper SHA256：`63112ab9161e127f5f7e17998a7196e143808923fb54cbbf7b4e21426187a5f0`。
 - qimei SHA256：`a6100bce0de79ea52fe80a85acce2c24c615306fd3c2dedd119b51b0f26ebcc6`。
@@ -152,11 +152,11 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 - 全新 SDK metadata cache pair24 由真实源 ctor 清空；成功解析且 token 非空才更新。
   失败或 empty 不清 warm metadata；它不等同 Qimei、17B 或 protocolTokenHex [S]。
 
-### 完整137与 Windows composition（正常域候选已冻结）
+### 完整137与 Windows composition（正常域源码及受控集成已通过独立 review）
 
 - CORE 最新执行者报告：受控 normal cold 8 WMI row/longString、
   真实 parser 选择非空 adapter、WLAN22 cold 默认1、ordered137 到既有 encoder 已贯穿。
-  warm 仍 refresh；正常域候选已冻结，CORE 10 pure 与4项 legacy 检查成立 [W]。
+  warm 仍 refresh；正常域源码及受控集成已通过独立 review，CORE 10 pure 与4项 legacy 检查成立 [W]。
   这些受控结果不是 genuine137 或真实 OS 采集证据。
 - Windows composition 已接入既有 random_device/ANSI helpers，5项纯检查成立 [W]；
   真实端口尚无 actual 证据，未取得真实137 snapshot。
@@ -203,9 +203,11 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 
 ## 7. 最早断点、下一步与完成标准
 
-当前本方正常请求的最早断点是完整137尚无真实 OS 输入执行证据；
+当前优先核实四 SDK 命令所需 policy2 SIGN 能否由本方同一 owner 自产；
+外部输入或未知项须先精确定位，不能预先判为外部依赖。该事实核对后再安排真实137采集。
+完整137正常域源码及受控集成已通过独立 review，但 actualOS 仍未运行；
 受控编码贯穿不能跳过实际采集资格、持久副作用授权及必需 SIGN 路径。
-在已冻结正常域候选及绑定证据上，确认真实输入及允许的副作用，再安排适用实际检查。
+准备支持 `A/own-full-device-records-a1/live-prep/PREPARED.json` 仍为 `prepared=false`，不能用于真实 GO。
 尚无真实 OS137、完整 SIGN 或真实发送回包后 next SIGN 的闭环证据。
 不以空载荷、免签、假 adapter、默认 token 或不同 runtime 拼接绕过此断点。
 
@@ -225,7 +227,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 - [Q] `A/OWN-QIMEI-GETTER-CONTRACT-20261124.md` 与
   `A/own-qimei-cold-record-input-a1/{RESULT.json,checks.txt}`：源语义与3项受控检查。
 - [S] `A/OWN-SDK-GENUINE-PAYLOAD-DEPENDENCIES-20261124.md`：载荷、SIGN依赖及缓存语义。
-- [W] `A/own-full-device-records-a1/{core,windows,wmi}`：仅按已冻结阶段绑定复用，
-  进行中报告不能升级为当前整体候选通过；不得读取或发布 raw 捕获补正文。
+- [W] `A/own-full-device-records-a1/{core,windows,wmi}`：正常域源码及受控集成已通过独立 review；
+  检查仅按冻结输入及各报告覆盖复用，不代表 actualOS 已运行；不得读取或发布 raw 捕获补正文。
 
 本次文档修订仅核对现行契约与执行者证据，不执行代码、native、网络或旧测试。

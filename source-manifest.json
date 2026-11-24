@@ -952,25 +952,25 @@
     {
       "path": "src/qq_nt_replica/primary_device_adapter_details.py",
       "source_sha256": "629bb805f532c6a8b86469a3eae5d20a807504d1f86835e30ffa62404437a592",
-      "sha256": "629bb805f532c6a8b86469a3eae5d20a807504d1f86835e30ffa62404437a592",
+      "sha256": "6426944aa0302e45f33ce04aad5880352ab2029c951c7a0c40ea69df1ca83496",
       "classification": "project_source"
     },
     {
       "path": "src/qq_nt_replica/primary_device_adapters.py",
       "source_sha256": "19b18ef84d7851cc69511c1da8fd6e4c35b119ff20ca58cd8c48fcd3ea0a2806",
-      "sha256": "98f702a17404dc8c22e8b04c808bc8511e2bb71658205d91c3b94c70344f7bdc",
+      "sha256": "ba23dc986d362ac8ead6f3471b4868683b0333159d83e43f476a21aabb5e2bf3",
       "classification": "project_source"
     },
     {
       "path": "src/qq_nt_replica/primary_device_cache.py",
       "source_sha256": "cad1f83314b8106c75b43255c0c7065da0a9f1d3e0188135762e9d7fad24ad0a",
-      "sha256": "72869b6e62df39f476bd2d26722148b5b1fa51fceaa7fcd433c4550569325b8a",
+      "sha256": "a858e76f62d1f737533ffe9df943e81090b6e0ba9e654a51c9914abb1938b2f9",
       "classification": "project_source"
     },
     {
       "path": "src/qq_nt_replica/primary_device_cache_xml.py",
       "source_sha256": "137e56592c3d579988f94eff10cb61f9ead237cce76858d494f5dec8eafed5c0",
-      "sha256": "137e56592c3d579988f94eff10cb61f9ead237cce76858d494f5dec8eafed5c0",
+      "sha256": "bc668f031fc9847a1a9f154ac3a3002ad1c9d84b127c325a87958c48fda11aab",
       "classification": "project_source"
     },
     {
@@ -982,13 +982,13 @@
     {
       "path": "src/qq_nt_replica/primary_device_cold.py",
       "source_sha256": "d9f88b28bdbc4778c2ac5389d6a5cd9252a9de08a9687a745dad3c4084f4d515",
-      "sha256": "bb3e21d727aa5ee778a06c39b418f300ed39d69040dceffd83d12164ab325c86",
+      "sha256": "7921c5edc9ce0be75df03844fb5d4eb6ea5845da93da1af98eef8d33cfd469b7",
       "classification": "project_source"
     },
     {
       "path": "src/qq_nt_replica/primary_device_collector.py",
       "source_sha256": "a2b1955585608cd71236fa0344930d4f666d36447953ceb1a3238d1f7cdd5334",
-      "sha256": "a2b1955585608cd71236fa0344930d4f666d36447953ceb1a3238d1f7cdd5334",
+      "sha256": "ab07080bd2e1478521d8240ef63da0999a6acfe69fa914a0e247753ea20581cc",
       "classification": "project_source"
     },
     {
@@ -1000,7 +1000,7 @@
     {
       "path": "src/qq_nt_replica/primary_device_hardware.py",
       "source_sha256": "7fcf6022e6f47ed5ce7dd2ab809c516d3199e536d9fb392527616209e913cbfe",
-      "sha256": "7fcf6022e6f47ed5ce7dd2ab809c516d3199e536d9fb392527616209e913cbfe",
+      "sha256": "94ccec8e40c53977965016bf9ac07804e75578b89035106fce7939d78ce22739",
       "classification": "project_source"
     },
     {
@@ -1012,7 +1012,7 @@
     {
       "path": "src/qq_nt_replica/primary_device_identifiers.py",
       "source_sha256": "dcd0af4f81ed647fd2b2cfe893aba1efae78c0c9d2a2223cf389d1649630430d",
-      "sha256": "dcd0af4f81ed647fd2b2cfe893aba1efae78c0c9d2a2223cf389d1649630430d",
+      "sha256": "d46299cb2da9de06061a0441bfa0390344ee70045dc943a7c4d99163b0440b0b",
       "classification": "project_source"
     },
     {
@@ -1048,13 +1048,13 @@
     {
       "path": "src/qq_nt_replica/primary_device_process_records.py",
       "source_sha256": "69a3b1ec8118836c5b763da6f1df6ba5a812c5c420256d254e489b313a337412",
-      "sha256": "ee60122429ede72b349e0714343217bd048fe4fa9612dfc80bbda6a62a349b69",
+      "sha256": "904f1444d1d113c3d8992c46793cdd30523961ecf1c2c6c880a39ac1700ef829",
       "classification": "project_source"
     },
     {
       "path": "src/qq_nt_replica/primary_device_provenance.py",
       "source_sha256": "cd08931b873c1e89622292027e7dfb999bf711bf21abbe3ec3fbcdfe75e84a08",
-      "sha256": "cd08931b873c1e89622292027e7dfb999bf711bf21abbe3ec3fbcdfe75e84a08",
+      "sha256": "133e6ed9aa50cb92f81c6f0c6eaed7b449c9f4784ac44c5476396a4cdb4fb484",
       "classification": "project_source"
     },
     {
@@ -1078,7 +1078,7 @@
     {
       "path": "src/qq_nt_replica/primary_device_refresh.py",
       "source_sha256": "99aef6b5a962c5cd1a5617dfa8052fc5bb6eff6861cf6997da16f63a6577ccda",
-      "sha256": "99aef6b5a962c5cd1a5617dfa8052fc5bb6eff6861cf6997da16f63a6577ccda",
+      "sha256": "7bcbed7df3d928c9b0cdc11b8d898d321b8faf8d8593fb120c7500b6ba64af7c",
       "classification": "project_source"
     },
     {
@@ -1102,13 +1102,13 @@
     {
       "path": "src/qq_nt_replica/primary_device_system.py",
       "source_sha256": "b364d53215f89149b603cff56d1b1973ba4eda1e9272995e777a9fc4b91f3c62",
-      "sha256": "b364d53215f89149b603cff56d1b1973ba4eda1e9272995e777a9fc4b91f3c62",
+      "sha256": "10d4c407ec1d3097d29654f1346e1a2145c7192bab17e0f2f3109e004a179efb",
       "classification": "project_source"
     },
     {
       "path": "src/qq_nt_replica/primary_device_system_records.py",
       "source_sha256": "d385a5272c80f5648ab25c266dc76c7719473e74385f95478f0a6b627a132afd",
-      "sha256": "d385a5272c80f5648ab25c266dc76c7719473e74385f95478f0a6b627a132afd",
+      "sha256": "8c1b348affb776e8a11ef1c69e4d91886f4f108b6a4ad3db2a91b36715d34fa9",
       "classification": "project_source"
     },
     {
@@ -2850,7 +2850,7 @@
     {
       "path": "src/qq_nt_replica/primary_windows_wmi.py",
       "source_sha256": "97b8ff16076f7ca79e047ae855410b1427369f0adfbf270a053abe5303179d2c",
-      "sha256": "97b8ff16076f7ca79e047ae855410b1427369f0adfbf270a053abe5303179d2c",
+      "sha256": "f04779fd2f689dbdf5f06bc05b80fbc552c19339bade87bee3a1a943db13011c",
       "classification": "project_source"
     },
     {
@@ -3126,6 +3126,27 @@
       "sha256": "531684f4d4bc4f008a68026d7b3da8701aaf550ae30ade137463c68b49315bf8",
       "classification": "project_source",
       "origin": "OWN-QIMEI-COLD-RECORD-INPUT-IMPLEMENT/a1 first-retained-source/primary_qimei_getter.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_device_record_collector.py",
+      "source_sha256": "062c7b700c2c098e255b6dccf760a7ab4ce35f65ec64bc365799a2cc6d41546b",
+      "sha256": "062c7b700c2c098e255b6dccf760a7ab4ce35f65ec64bc365799a2cc6d41546b",
+      "classification": "project_source",
+      "origin": "OWN-137-INDEPENDENT-COLLECTOR-IMPLEMENT/a1 first-retained-source/primary_device_record_collector.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_windows_wmi_session.py",
+      "source_sha256": "73e65f88b98cb9e39baa88bd8568edd081c91d570b4ab19e4d286ba40d9aba86",
+      "sha256": "73e65f88b98cb9e39baa88bd8568edd081c91d570b4ab19e4d286ba40d9aba86",
+      "classification": "project_source",
+      "origin": "OWN-137-INDEPENDENT-COLLECTOR-IMPLEMENT/a1 first-retained-source/primary_windows_wmi_session.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_windows_device_collection.py",
+      "source_sha256": "eef18dd44c6f0a62df4bafb70ac8ed94ecd5c1138827babba7ffb34bfee68a04",
+      "sha256": "eef18dd44c6f0a62df4bafb70ac8ed94ecd5c1138827babba7ffb34bfee68a04",
+      "classification": "project_source",
+      "origin": "OWN-137-INDEPENDENT-COLLECTOR-IMPLEMENT/a1 first-retained-source/primary_windows_device_collection.py"
     }
   ],
   "excluded_pending_assets": [

@@ -291,3 +291,18 @@ def invoke(runtime, rva, values):
     if rva == 0x75CEC0 and len(values) == 2:
         return assign_string(runtime, *values)
     raise InputError('collector source interface argument count mismatch')
+
+
+def generate_material_bytes(hardware_ansi,*,filetime,random_device_word,ansi_to_utf8):
+    """Own data calculation for35F4E50 using the existing source MT body."""
+    from .primary_memory import PrimaryMemory
+    require_uint(filetime,64,'material FILETIME');require_uint(random_device_word,32,'material random_device DWORD')
+    if type(hardware_ansi)is not bytes:raise InputError('material hardware requires ANSI bytes')
+    memory=PrimaryMemory();pointer=0x10000
+    memory.map(pointer,bytearray(0x9C8),name='own material MT state',initialized=False)
+    try:
+        seed_mt(memory,pointer,random_device_word);word=next_mt(memory,pointer)
+    finally:memory.unmap(pointer)
+    converted=ansi_to_utf8(hardware_ansi)
+    if type(converted)is not bytes or b'\0'in converted:raise InputError('material conversion requires owning UTF8 CString')
+    return format(filetime,'X').encode('ascii')+b'-'+format(word,'X').encode('ascii')+b'-'+converted

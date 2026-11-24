@@ -78,6 +78,26 @@ class _NativeWMI:
             raise PrimarySemanticUnavailable('native WMI BSTR exceeds source observation bound')
         return ctypes.string_at(pointer, length * 2) + bytes(2)
 
+    def cstring_wide(self, pointer):
+        # Check each UTF16 unit before dereferencing; never substitute BSTR length.
+        output = bytearray()
+        for offset in range(0, 8192, 2):
+            address = pointer + offset
+            count, info = self.virtual_query(address)
+            if not count or len(info) != 48:
+                raise PrimarySemanticUnavailable('unknown WMI CString backing')
+            base = int.from_bytes(info[:8], 'little')
+            size = int.from_bytes(info[24:32], 'little')
+            state = int.from_bytes(info[32:36], 'little')
+            protection = int.from_bytes(info[36:40], 'little')
+            if state != 0x1000 or protection & 0x101 or not base <= address < address + 2 <= base + size:
+                raise PrimarySemanticUnavailable('unreadable WMI CString backing')
+            unit = ctypes.string_at(address, 2)
+            output.extend(unit)
+            if unit == bytes(2):
+                return bytes(output)
+        raise PrimarySemanticUnavailable('WMI CString exceeds supported conversion domain')
+
     def free(self, pointer):
         self.aut.SysFreeString(pointer)
 
@@ -128,6 +148,17 @@ class _NativeWMI:
         result = function(*args)
         size = result * (2 if name == 'MultiByteToWideChar' else 1)
         return result, bytes(buffer)[:size] if buffer is not None and result else b''
+
+    def convert_owned(self, name, arguments):
+        page, flags, raw, count, output, capacity, *tail = arguments
+        source = ctypes.create_string_buffer(raw)
+        unit = 2 if name == 'MultiByteToWideChar' else 1
+        buffer = ctypes.create_string_buffer(capacity * unit) if output else None
+        args = [page, flags, source, count, buffer, capacity]
+        if tail:
+            args.extend([None, None])
+        result = getattr(self.kernel, name)(*args)
+        return result, bytes(buffer) if buffer is not None else b''
 
     def close(self):
         for name in ('kernel', 'aut', 'ole'):

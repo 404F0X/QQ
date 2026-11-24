@@ -3,12 +3,12 @@ import json
 from pathlib import Path
 
 from .errors import InputError
-from .primary_device_collector import _new_array
+from .primary_device_collector import _new_array as _source_new_array
 from .primary_logger import _cstring, _String, _Tree
 from .primary_memory import UnknownMemory
 from .primary_vm import PrimaryProgramLimit, PrimarySemanticUnavailable
-from .primary_worker_consumer import _invoke
-from .primary_worker_response import _frame
+from .primary_worker_consumer import _invoke as _source_invoke
+from .primary_worker_response import _frame as _source_frame
 
 
 _IMAGE_SHA256 = 'aed2884c3eb5c338a5f0d2dd933a549239819e797792c462e472f1da21dd8abf'
@@ -42,7 +42,7 @@ def install_image(memory, image_base):
         memory.map(image_base + segment['rva'], raw, name='fixed device adapter source image', initialized=True)
 
 
-def _observe(runtime, name, arguments):
+def _observe(runtime, name, arguments, _operations=None):
     expected = runtime.worker_imports.get(name)
     if expected is None or runtime.memory.load(runtime.image_base + _IMPORTS[name], 8) != expected:
         raise PrimarySemanticUnavailable('device adapter current import is not bound: ' + name)
@@ -51,38 +51,41 @@ def _observe(runtime, name, arguments):
     return runtime.worker_observations.take(runtime, name, arguments)
 
 
-def _plain(runtime, name, arguments):
-    result, effects = _observe(runtime, name, arguments)
+def _plain(runtime, name, arguments, _operations=None):
+    if _operations is not None:
+        _operations.require_data(runtime)
+        return _operations.plain(name, arguments)
+    result, effects = _observe(runtime, name, arguments, _operations=_operations)
     if effects != b'':
         raise InputError('device adapter operation has no output buffer: ' + name)
     return result
 
 
-def _error(runtime, owner, bits):
+def _error(runtime, owner, bits, _operations=None):
     runtime.memory.store(owner + 0x30, runtime.memory.load(owner + 0x30, 4) | bits, 4,
                          source='1BEACxx.adapter_error_bits')
 
 
-def _release_library(runtime, owner):
+def _release_library(runtime, owner, _operations=None):
     handle = runtime.memory.load(owner + 8, 8)
     if handle:
-        _plain(runtime, 'FreeLibrary', (handle,))
+        _plain(runtime, 'FreeLibrary', (handle,), _operations=_operations)
         runtime.memory.store(owner + 8, 0, 8, source='1BEACxx.released_adapter_library')
 
 
-def _resolve(runtime, owner):
+def _resolve(runtime, owner, _operations=None):
     image, memory = _image(), runtime.memory
     handle = memory.load(owner + 8, 8)
     if not handle:
-        handle = _plain(runtime, 'LoadLibraryA', (_cstring(runtime, runtime.image_base + image['library_rva']),))
+        handle = _plain(runtime, 'LoadLibraryA', (_cstring(runtime, runtime.image_base + image['library_rva']),), _operations=_operations)
         memory.store(owner + 8, handle, 8, source='1BEAD1A.current_adapter_library')
         if not handle:
             return 0, 1
-    target = _plain(runtime, 'GetProcAddress', (handle, _cstring(runtime, runtime.image_base + image['symbol_rva'])))
+    target = _plain(runtime, 'GetProcAddress', (handle, _cstring(runtime, runtime.image_base + image['symbol_rva'])), _operations=_operations)
     return target, 0 if target else 2
 
 
-def _adapter_effects(runtime, target, buffer, size_pointer):
+def _adapter_effects(runtime, target, buffer, size_pointer, _operations=None):
     from .primary_device_hardware import AdapterBufferEffect, apply_adapter_buffer
     if runtime.worker_observations is None:
         raise UnknownMemory('missing device adapter GetAdaptersInfo observation')
@@ -99,44 +102,44 @@ def _adapter_effects(runtime, target, buffer, size_pointer):
     return result & 0xFFFFFFFF
 
 
-def query_size(runtime, owner, destination):
+def query_size(runtime, owner, destination, _operations=None):
     if not destination:
-        _error(runtime, owner, 8)
+        _error(runtime, owner, 8, _operations=_operations)
         return 0
-    target, error = _resolve(runtime, owner)
+    target, error = _resolve(runtime, owner, _operations=_operations)
     if error:
-        _error(runtime, owner, error | (8 if error == 1 else 0))
-        _release_library(runtime, owner)
+        _error(runtime, owner, error | (8 if error == 1 else 0), _operations=_operations)
+        _release_library(runtime, owner, _operations=_operations)
         return 0
     runtime.memory.store(destination, 0, 4, source='1BEAD35.initial_adapter_size')
-    result = _adapter_effects(runtime, target, 0, destination)
+    result = _adapter_effects(runtime, target, 0, destination, _operations=_operations)
     if result != 111:
-        _error(runtime, owner, 4)
-    _release_library(runtime, owner)
+        _error(runtime, owner, 4, _operations=_operations)
+    _release_library(runtime, owner, _operations=_operations)
     return int(result == 111)
 
 
-def fill_buffer(runtime, owner, destination, capacity):
-    frame, ignored = _frame(runtime, 0x38, '1BEABF0.adapter_fill_frame')
+def fill_buffer(runtime, owner, destination, capacity, _operations=None):
+    frame, ignored = _frame(runtime, 0x38, '1BEABF0.adapter_fill_frame', _operations=_operations)
     pointer = frame + 0x2C
     runtime.memory.store(pointer, capacity, 4, source='1BEAC0B.adapter_fill_capacity')
-    target, error = _resolve(runtime, owner)
+    target, error = _resolve(runtime, owner, _operations=_operations)
     if error:
-        _error(runtime, owner, 0x81 if error == 1 else 0x100)
-        _release_library(runtime, owner)
+        _error(runtime, owner, 0x81 if error == 1 else 0x100, _operations=_operations)
+        _release_library(runtime, owner, _operations=_operations)
         runtime.memory.unmap(frame)
         return 0
-    result = _adapter_effects(runtime, target, destination, pointer)
+    result = _adapter_effects(runtime, target, destination, pointer, _operations=_operations)
     if result:
-        _error(runtime, owner, {111: 0x200, 87: 0x400, 232: 0x800, 50: 0x1000}.get(result, 0x2000))
-    _release_library(runtime, owner)
+        _error(runtime, owner, {111: 0x200, 87: 0x400, 232: 0x800, 50: 0x1000}.get(result, 0x2000), _operations=_operations)
+    _release_library(runtime, owner, _operations=_operations)
     runtime.memory.unmap(frame)
     return int(result == 0)
 
 
-def initialize_buffer(runtime, owner):
+def initialize_buffer(runtime, owner, _operations=None):
     memory = runtime.memory
-    frame, ignored = _frame(runtime, 0x38, '1BEA500.adapter_buffer_frame')
+    frame, ignored = _frame(runtime, 0x38, '1BEA500.adapter_buffer_frame', _operations=_operations)
     pointer = frame + 0x2C
     memory.store(owner + 0x30, 0, 4, source='1BEA518.clear_adapter_errors')
     memory.store(pointer, 0, 4, source='1BEA51F.initial_adapter_size')
@@ -144,37 +147,37 @@ def initialize_buffer(runtime, owner):
     if previous:
         runtime._free_allocation(previous)
         memory.store(owner + 0x10, 0, 8, source='1BEA535.release_old_adapter_buffer')
-    if not query_size(runtime, owner, pointer):
-        _error(runtime, owner, 0x10)
+    if not query_size(runtime, owner, pointer, _operations=_operations):
+        _error(runtime, owner, 0x10, _operations=_operations)
         memory.unmap(frame)
         return 0
     size = memory.load(pointer, 4)
-    buffer = _new_array(runtime, size + 0x580)
+    buffer = _new_array(runtime, size + 0x580, _operations=_operations)
     runtime.allocations[buffer] = runtime._device_arrays.pop(buffer)
     memory.store(owner + 0x10, buffer, 8, source='1BEA566.adapter_buffer')
-    result = fill_buffer(runtime, owner, buffer, size)
+    result = fill_buffer(runtime, owner, buffer, size, _operations=_operations)
     if not result:
         runtime._free_allocation(buffer)
         memory.store(owner + 0x10, 0, 8, source='1BEA592.release_failed_adapter_buffer')
-        _error(runtime, owner, 0x40)
+        _error(runtime, owner, 0x40, _operations=_operations)
     memory.unmap(frame)
     return result
 
 
-def construct(runtime, owner):
+def construct(runtime, owner, _operations=None):
     runtime.memory.store(owner, runtime.image_base + 0x4148998, 8, source='1BE87BA.adapter_vtable')
     runtime.memory.write(owner + 8, bytes(44), source='1BE87C0.empty_adapter_owner')
     return owner
 
 
-def destroy(runtime, owner):
+def destroy(runtime, owner, _operations=None):
     memory = runtime.memory
     memory.store(owner, runtime.image_base + 0x4148998, 8, source='1BE87ED.adapter_vtable')
     pointer = memory.load(owner + 0x10, 8)
     if pointer:
         runtime._free_allocation(pointer)
         memory.store(owner + 0x10, 0, 8, source='1BE87FE.release_adapter_buffer')
-    _release_library(runtime, owner)
+    _release_library(runtime, owner, _operations=_operations)
     begin = memory.load(owner + 0x18, 8)
     memory.store(owner + 0x20, begin, 8, source='1BE8829.clear_adapter_records')
     if begin:
@@ -182,7 +185,7 @@ def destroy(runtime, owner):
     return None
 
 
-def _append_record(runtime, vector, source):
+def _append_record(runtime, vector, source, _operations=None):
     memory = runtime.memory
     begin, end, limit = (memory.load(vector + offset, 8) for offset in (0, 8, 16))
     if end < begin or limit < end or (end - begin) % _RECORD or (limit - begin) % _RECORD:
@@ -206,9 +209,9 @@ def _append_record(runtime, vector, source):
         memory.store(vector + 8, end + _RECORD, 8, source='1BEA92B.adapter_end')
 
 
-def parse_buffer(runtime, owner):
+def parse_buffer(runtime, owner, _operations=None):
     memory = runtime.memory
-    frame, rbp = _frame(runtime, 0x268, '1BEA5C0.adapter_parser_frame')
+    frame, rbp = _frame(runtime, 0x268, '1BEA5C0.adapter_parser_frame', _operations=_operations)
     pointer, produced, seen = memory.load(owner + 0x10, 8), False, set()
     record = rbp - 0x58
     while pointer:
@@ -233,7 +236,7 @@ def parse_buffer(runtime, owner):
                     raise PrimarySemanticUnavailable('oversized adapter address writes beyond the recovered eight-byte material field')
                 memory.copy_disjoint(record, pointer + 0x198, count, label='1BEA8C9.adapter_address_bytes')
             memory.copy_disjoint(record + 0x190, pointer + 0x1B8, 48, label='1BEA900.adapter_primary_address_record')
-            _append_record(runtime, owner + 0x18, record)
+            _append_record(runtime, owner + 0x18, record, _operations=_operations)
             node = memory.load(node, 8)
             text.destroy()
             produced = True
@@ -244,7 +247,7 @@ def parse_buffer(runtime, owner):
     return int(produced)
 
 
-def copy_records(runtime, destination, begin, end):
+def copy_records(runtime, destination, begin, end, _operations=None):
     memory = runtime.memory
     if end < begin or (end - begin) % _RECORD or end - begin > _LIMIT:
         raise PrimaryProgramLimit('adapter record copy has invalid observed bounds')
@@ -266,7 +269,7 @@ def copy_records(runtime, destination, begin, end):
     return None
 
 
-def _cache_node(runtime, flags):
+def _cache_node(runtime, flags, _operations=None):
     memory, head = runtime.memory, runtime.image_base + 0x677BF68
     tree = _Tree(runtime, head)
     def initialize(node):
@@ -276,12 +279,12 @@ def _cache_node(runtime, flags):
     return tree.insert(flags, 72, initialize)
 
 
-def filter_records(runtime, owner):
+def filter_records(runtime, owner, _operations=None):
     memory = runtime.memory
     first, last = memory.load(owner + 0x18, 8), memory.load(owner + 0x20, 8)
     if last - first < 2 * _RECORD:
         return 0
-    frame, rbp = _frame(runtime, 0x268, '1BEBD30.adapter_filter_frame')
+    frame, rbp = _frame(runtime, 0x268, '1BEBD30.adapter_filter_frame', _operations=_operations)
     vector = rbp + 0x1B0
     memory.write(vector, bytes(24), source='1BEBD94.empty_filtered_adapter_vector')
     for pointer in range(first, last, _RECORD):
@@ -299,13 +302,13 @@ def filter_records(runtime, owner):
         rejected = (b'vmware' in lowered or b'ppp/slip' in lowered or address[:4] == b'DEST'
                     or address[:3] == b'\0SE' or address == bytes(8) or b'RAS' in address)
         if not rejected:
-            _append_record(runtime, vector, rbp - 0x58)
+            _append_record(runtime, vector, rbp - 0x58, _operations=_operations)
         description.destroy()
     temporary, end = memory.load(vector, 8), memory.load(vector + 8, 8)
     if temporary != end:
         memory.store(owner + 0x20, first, 8, source='1BEC261.clear_unfiltered_adapter_records')
         for pointer in range(temporary, end, _RECORD):
-            _append_record(runtime, owner + 0x18, pointer)
+            _append_record(runtime, owner + 0x18, pointer, _operations=_operations)
     if temporary:
         runtime._free_allocation(temporary)
     result = int(memory.load(owner + 0x20, 8) != memory.load(owner + 0x18, 8))
@@ -313,12 +316,12 @@ def filter_records(runtime, owner):
     return result
 
 
-def select_record(runtime, owner, normalize):
+def select_record(runtime, owner, normalize, _operations=None):
     memory = runtime.memory
     first, last = memory.load(owner + 0x18, 8), memory.load(owner + 0x20, 8)
     if last - first < 2 * _RECORD:
         return 0
-    frame, ignored = _frame(runtime, 0x208, '1BED080.adapter_selection_frame')
+    frame, ignored = _frame(runtime, 0x208, '1BED080.adapter_selection_frame', _operations=_operations)
     if normalize & 0xFF:
         for pointer in range(first, last, _RECORD):
             memory.copy_disjoint(frame + 0x40, pointer, _RECORD, label='1BED0FA.adapter_selection_record')
@@ -332,12 +335,12 @@ def select_record(runtime, owner, normalize):
     selected = min(range(first, last, _RECORD), key=lambda pointer: memory.read(pointer, 8))
     memory.copy_disjoint(frame + 0x40, selected, _RECORD, label='1BED250.selected_adapter_record')
     memory.store(owner + 0x20, first, 8, source='1BED255.clear_adapter_selection_vector')
-    _append_record(runtime, owner + 0x18, frame + 0x40)
+    _append_record(runtime, owner + 0x18, frame + 0x40, _operations=_operations)
     memory.unmap(frame)
     return 1
 
 
-def enumerate_primary(runtime, owner, flags):
+def enumerate_primary(runtime, owner, flags, _operations=None):
     memory, base = runtime.memory, runtime.image_base
     flags &= 0xFFFFFFFF
     if flags != 3:
@@ -348,56 +351,61 @@ def enumerate_primary(runtime, owner, flags):
         memory.store(guard, value | 1, 4, source='1BE8FE7.adapter_cache_guard')
         memory.write(head + 8, bytes(16), source='1BE8FF0.adapter_cache_root_count')
         memory.store(head, head + 8, 8, source='1BE8FFE.adapter_cache_begin')
-        _invoke(runtime, 0x3E680B4, base + 0x1BEA4E0)
+        _invoke(runtime, 0x3E680B4, base + 0x1BEA4E0, _operations=_operations)
     node = next((item for item in _Tree(runtime, head).nodes() if memory.load(item + 32, 4) == flags), 0)
     if node and memory.load(node + 40, 1):
-        copy_records(runtime, owner + 0x18, memory.load(node + 48, 8), memory.load(node + 56, 8))
+        copy_records(runtime, owner + 0x18, memory.load(node + 48, 8), memory.load(node + 56, 8), _operations=_operations)
         return 1
     if node:
-        now = _plain(runtime, 'GetTickCount', ()) & 0xFFFFFFFF
+        now = _plain(runtime, 'GetTickCount', (), _operations=_operations) & 0xFFFFFFFF
         if (now - memory.load(node + 44, 4)) & 0xFFFFFFFF <= 0x36EE7F:
-            copy_records(runtime, owner + 0x18, memory.load(node + 48, 8), memory.load(node + 56, 8))
+            copy_records(runtime, owner + 0x18, memory.load(node + 48, 8), memory.load(node + 56, 8), _operations=_operations)
             return 0
     result = 1
-    if not memory.load(owner + 0x10, 8) and not initialize_buffer(runtime, owner):
-        _error(runtime, owner, 0x4000)
+    if not memory.load(owner + 0x10, 8) and not initialize_buffer(runtime, owner, _operations=_operations):
+        _error(runtime, owner, 0x4000, _operations=_operations)
         result = 0
     else:
-        if parse_buffer(runtime, owner):
-            filter_records(runtime, owner)
-            select_record(runtime, owner, 1)
+        if parse_buffer(runtime, owner, _operations=_operations):
+            filter_records(runtime, owner, _operations=_operations)
+            select_record(runtime, owner, 1, _operations=_operations)
         pointer = memory.load(owner + 0x10, 8)
         if pointer:
             runtime._free_allocation(pointer)
             memory.store(owner + 0x10, 0, 8, source='1BE8A26.release_consumed_adapter_buffer')
-    node = _cache_node(runtime, flags)
+    node = _cache_node(runtime, flags, _operations=_operations)
     memory.store(node + 40, result, 1, source='1BE8B93.adapter_cache_result')
-    now = _plain(runtime, 'GetTickCount', ()) & 0xFFFFFFFF
+    now = _plain(runtime, 'GetTickCount', (), _operations=_operations) & 0xFFFFFFFF
     memory.store(node + 44, now, 4, source='1BE8C5B.adapter_cache_tick')
-    copy_records(runtime, node + 48, memory.load(owner + 0x18, 8), memory.load(owner + 0x20, 8))
+    copy_records(runtime, node + 48, memory.load(owner + 0x18, 8), memory.load(owner + 0x20, 8), _operations=_operations)
     return result
 
 
-def collect(runtime, owner, method, flags):
+def collect(runtime, owner, method, flags, _operations=None):
     memory = runtime.memory
     memory.store(owner + 0x20, memory.load(owner + 0x18, 8), 8, source='1BE88AB.clear_adapter_records')
     method &= 0xFFFFFFFF
     if method > 3:
         return 0
     if method == 0:
-        if enumerate_primary(runtime, owner, flags):
+        if enumerate_primary(runtime, owner, flags, _operations=_operations) & 255:
             return 1
         memory.store(owner + 0x20, memory.load(owner + 0x18, 8), 8, source='1BE88E5.clear_failed_adapter_records')
-        return _invoke(runtime, 0x1BE9020, owner, flags)
+        result = _invoke(runtime, 0x1BE9020, owner, flags, _operations=_operations)
+        if result & 255:
+            return result
+        memory.store(owner + 0x20, memory.load(owner + 0x18, 8), 8, source='1BE88A0.clear_failed_second_backend')
+        return _invoke(runtime, 0x1BE9A70, owner, flags, _operations=_operations)
     if method == 1:
-        result = enumerate_primary(runtime, owner, flags)
+        result = enumerate_primary(runtime, owner, flags, _operations=_operations)
         if not result:
             memory.store(owner + 0x20, memory.load(owner + 0x18, 8), 8, source='1BE893C.clear_failed_adapter_records')
         return result
     raise PrimarySemanticUnavailable('adapter method requires its actual alternate collector backend')
 
 
-def _upper(runtime, character):
+def _upper(runtime, character, _operations=None):
+    if _operations is not None:return _operations.ascii_upper(character)
     image, memory, base = _image(), runtime.memory, runtime.image_base
     if memory.load(base + 0x6D8E630, 4):
         raise PrimarySemanticUnavailable('adapter hexadecimal uppercase requires its actual nondefault CRT locale')
@@ -410,50 +418,50 @@ def _upper(runtime, character):
     return memory.load(table + character, 1)
 
 
-def adapter_material(runtime, destination, detail):
+def adapter_material(runtime, destination, detail, _operations=None):
     memory = runtime.memory
-    frame, rbp = _frame(runtime, 0xA8, '35D5A80.adapter_material_frame')
+    frame, rbp = _frame(runtime, 0xA8, '35D5A80.adapter_material_frame', _operations=_operations)
     memory.store(destination, 0, 2, source='35D5AA2.empty_adapter_material')
     owner = rbp - 0x58
-    construct(runtime, owner)
-    if collect(runtime, owner, 0, 3):
+    construct(runtime, owner, _operations=_operations)
+    if collect(runtime, owner, 0, 3, _operations=_operations):
         first = memory.load(owner + 0x18, 8)
         if first != memory.load(owner + 0x20, 8):
             memory.store(rbp - 8, 16, 1, source='35D5ADB.raw_adapter_String_length')
             memory.copy_disjoint(rbp - 7, first, 8, label='35D5AE6.raw_adapter_String_bytes')
             memory.store(rbp + 1, 0, 1, source='35D5AEA.raw_adapter_String_nul')
-            _invoke(runtime, 0x2E11240, rbp - 0x20, rbp - 7, 8)
+            _invoke(runtime, 0x2E11240, rbp - 0x20, rbp - 7, 8, _operations=_operations)
             memory.copy_disjoint(destination + 16, rbp - 0x10, 8, label='35D5B05.move_adapter_hex_tail')
             memory.copy_disjoint(destination, rbp - 0x20, 16, label='35D5B0D.move_adapter_hex_head')
             value = _String.read(runtime, destination)
             pointer = value.get(16, 8) if value.get(0, 1) & 1 else destination + 1
             for index in range(len(value.value())):
-                memory.store(pointer + index, _upper(runtime, memory.load(pointer + index, 1)), 1,
+                memory.store(pointer + index, _upper(runtime, memory.load(pointer + index, 1), _operations=_operations), 1,
                              source='35D5B48.uppercase_adapter_hex')
-            _invoke(runtime, 0x75BEB0, detail, first + 0x10C, len(_cstring(runtime, first + 0x10C)))
-    destroy(runtime, owner)
+            _invoke(runtime, 0x75BEB0, detail, first + 0x10C, len(_cstring(runtime, first + 0x10C)), _operations=_operations)
+    destroy(runtime, owner, _operations=_operations)
     memory.unmap(frame)
     return destination
 
 
-def _destroy_cache_tree(runtime, node):
+def _destroy_cache_tree(runtime, node, _operations=None):
     if not node:
         return
     memory = runtime.memory
-    _destroy_cache_tree(runtime, memory.load(node, 8))
-    _destroy_cache_tree(runtime, memory.load(node + 8, 8))
+    _destroy_cache_tree(runtime, memory.load(node, 8), _operations=_operations)
+    _destroy_cache_tree(runtime, memory.load(node + 8, 8), _operations=_operations)
     begin = memory.load(node + 0x30, 8)
     if begin:
         memory.store(node + 0x38, begin, 8, source='1BED730.adapter_cache_end')
         runtime._free_allocation(begin)
-    _invoke(runtime, 0xB75029, node)
+    _invoke(runtime, 0xB75029, node, _operations=_operations)
 
 
-def destroy_cache(runtime):
-    return _destroy_cache_tree(runtime, runtime.memory.load(runtime.image_base + 0x677BF70, 8))
+def destroy_cache(runtime, _operations=None):
+    return _destroy_cache_tree(runtime, runtime.memory.load(runtime.image_base + 0x677BF70, 8), _operations=_operations)
 
 
-def invoke(runtime, rva, values):
+def invoke(runtime, rva, values, _operations=None):
     definitions = {0x1BE87B0: (construct, 1), 0x1BE87D0: (destroy, 1),
                    0x1BE88A0: (collect, 3), 0x1BE8960: (enumerate_primary, 2),
                    0x1BEA500: (initialize_buffer, 1), 0x1BEA5C0: (parse_buffer, 1),
@@ -464,4 +472,22 @@ def invoke(runtime, rva, values):
     function, count = definitions[rva]
     if len(values) != count:
         raise InputError('device adapter source interface argument count mismatch')
-    return function(runtime, *values)
+    return function(runtime, *values, _operations=_operations)
+
+
+def _invoke(runtime,*values,_operations=None):
+    if _operations is None:return _source_invoke(runtime,*values)
+    _operations.require_data(runtime)
+    return _operations.invoke(*values)
+
+
+def _new_array(runtime,size,_operations=None):
+    if _operations is None:return _source_new_array(runtime,size)
+    _operations.require_data(runtime)
+    return _operations.array(size)
+
+
+def _frame(runtime,size,name,_operations=None):
+    if _operations is None:return _source_frame(runtime,size,name)
+    _operations.require_data(runtime)
+    return _operations.frame(size,name)

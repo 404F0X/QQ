@@ -123,7 +123,7 @@ def digest_string(runtime, source, destination, requested):
     raw = runtime.memory.read(_data(runtime, source), count) if count else b''
     size = requested & 0xFFFFFFFF
     size = size if 1 <= size <= 16 else 16
-    runtime.memory.write(destination, hashlib.md5(raw).digest()[:size], source='1D05BC0.device_digest')
+    runtime.memory.write(destination, identifier_digest_bytes(raw,size), source='1D05BC0.device_digest')
     return None
 
 
@@ -449,3 +449,14 @@ def invoke(runtime, rva, values):
     if len(values) != count:
         raise InputError('device identifier source interface argument count mismatch')
     return function(runtime, *values)
+
+
+def identifier_digest_bytes(raw,size=16):
+    if type(raw)is not bytes:raise InputError('identifier digest requires owned bytes')
+    size=size&0xFFFFFFFF;size=size if 1<=size<=16 else 16
+    return hashlib.md5(raw).digest()[:size]
+
+
+def identifier_digest_text(raw):
+    # Fixed436ED70 UTF16 digits:0123456789ABCDEF; no host locale substitution.
+    return identifier_digest_bytes(raw).hex().upper().encode('ascii')

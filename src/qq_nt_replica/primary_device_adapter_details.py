@@ -7,8 +7,8 @@ from .primary_device_collector import _terminated
 from .primary_logger import _String, log
 from .primary_memory import PrimaryMemoryLimit, UnknownMemory
 from .primary_vm import PrimarySemanticUnavailable
-from .primary_worker_consumer import _invoke
-from .primary_worker_response import _frame
+from .primary_worker_consumer import _invoke as _source_invoke
+from .primary_worker_response import _frame as _source_frame
 
 
 _IMAGE_SHA256 = '041b3e26ca1c03cb451a95a12c594df58f60d5e3f73051ef194e92225158250a'
@@ -37,7 +37,10 @@ def install_image(memory, image_base):
                 raise InputError('shared adapter detail image identity mismatch')
 
 
-def _query(runtime, buffer, size_pointer):
+def _query(runtime, buffer, size_pointer, _operations=None):
+    if _operations is not None:
+        _operations.require_data(runtime)
+        return _operations.adapter_query(buffer, size_pointer)
     from .primary_device_hardware import AdapterBufferEffect, apply_adapter_buffer
     target = runtime.worker_imports.get('GetAdaptersInfo')
     if target is None or runtime.memory.load(runtime.image_base + _IMPORTS['GetAdaptersInfo'], 8) != target:
@@ -62,26 +65,29 @@ def _query(runtime, buffer, size_pointer):
     return result & 0xFFFFFFFF
 
 
-def _log_failure(runtime, error):
+def _log_failure(runtime, error, _operations=None):
+    if _operations is not None:
+        _operations.require_data(runtime)
+        return _operations.adapter_failure(error)
     item = _image()['logs']['587']
     runtime.events.append(('device.adapter_detail_log', 587))
     return log(runtime, bytes.fromhex(item['source_file_hex']), 587,
                bytes.fromhex(item['template_hex']), bytes.fromhex(item['tag_hex']), item['severity'], error)
 
 
-def capture(runtime, owner):
+def capture(runtime, owner, _operations=None):
     memory = runtime.memory
-    frame, rbp = _frame(runtime, 0x110, '2E24240.adapter_detail_frame')
+    frame, rbp = _frame(runtime, 0x110, '2E24240.adapter_detail_frame', _operations=_operations)
     size_pointer = rbp - 0x44
     memory.store(size_pointer, 0x2C0, 4, source='2E24267.initial_adapter_buffer_size')
-    buffer = _invoke(runtime, 0x3E97020, 0x2C0)
-    result = _query(runtime, buffer, size_pointer)
+    buffer = _invoke(runtime, 0x3E97020, 0x2C0, _operations=_operations)
+    result = _query(runtime, buffer, size_pointer, _operations=_operations)
     if result == 111:
-        _invoke(runtime, 0x3E94F90, buffer)
-        buffer = _invoke(runtime, 0x3E97020, memory.load(size_pointer, 4))
-    result = _query(runtime, buffer, size_pointer)
+        _invoke(runtime, 0x3E94F90, buffer, _operations=_operations)
+        buffer = _invoke(runtime, 0x3E97020, memory.load(size_pointer, 4), _operations=_operations)
+    result = _query(runtime, buffer, size_pointer, _operations=_operations)
     if result:
-        _log_failure(runtime, result)
+        _log_failure(runtime, result, _operations=_operations)
     else:
         _String.construct(runtime, _terminated(runtime, buffer + 0xC, 1)[:-1]).write_to(rbp + 0x18)
         _String.construct(runtime, _terminated(runtime, buffer + 0x110, 1)[:-1]).write_to(rbp - 0x28)
@@ -95,15 +101,27 @@ def capture(runtime, owner):
                 address_string.write_to(rbp - 0x40)
         for source, field in ((rbp + 0x18, 0x4B0), (rbp - 0x28, 0x4C8), (rbp - 0x40, 0x4E0)):
             if _String.read(runtime, source).value():
-                _invoke(runtime, 0x75CEC0, owner + field, source)
+                _invoke(runtime, 0x75CEC0, owner + field, source, _operations=_operations)
         for source in (rbp - 0x40, rbp - 0x28, rbp + 0x18):
             _String.read(runtime, source).destroy()
-    _invoke(runtime, 0x3E94F90, buffer)
+    _invoke(runtime, 0x3E94F90, buffer, _operations=_operations)
     memory.unmap(frame)
     return None
 
 
-def invoke(runtime, rva, values):
+def invoke(runtime, rva, values, _operations=None):
     if rva != 0x2E24240 or len(values) != 1:
         raise InputError('adapter detail source interface argument count mismatch')
-    return capture(runtime, values[0])
+    return capture(runtime, values[0], _operations=_operations)
+
+
+def _invoke(runtime,*values,_operations=None):
+    if _operations is None:return _source_invoke(runtime,*values)
+    _operations.require_data(runtime)
+    return _operations.invoke(*values)
+
+
+def _frame(runtime,size,name,_operations=None):
+    if _operations is None:return _source_frame(runtime,size,name)
+    _operations.require_data(runtime)
+    return _operations.frame(size,name)

@@ -8,8 +8,8 @@ from .primary_device_collector import _append_material
 from .primary_logger import _cstring, _String
 from .primary_memory import UnknownMemory
 from .primary_vm import PrimaryProgramLimit, PrimarySemanticUnavailable
-from .primary_worker_consumer import _invoke
-from .primary_worker_response import _frame
+from .primary_worker_consumer import _invoke as _source_invoke
+from .primary_worker_response import _frame as _source_frame
 
 
 _IMAGE_SHA256 = '7ba807708e50b721c6ae90c33fb1e147f3418c6c5bd2aa49e7dee53000057187'
@@ -25,7 +25,7 @@ class AdapterBufferEffect:
     relocations: tuple
 
 
-def apply_adapter_buffer(runtime, buffer, capacity, effect, *, source):
+def apply_adapter_buffer(runtime, buffer, capacity, effect, *, source, _operations=None):
     if isinstance(effect, bytes):
         if len(effect) > capacity or effect and not buffer:
             raise InputError('adapter output exceeds its source destination')
@@ -92,7 +92,10 @@ def install_image(memory, image_base):
         memory.map(image_base + segment['rva'], raw, name='fixed device hardware source image', initialized=True)
 
 
-def _observe(runtime, name, arguments):
+def _observe(runtime, name, arguments, _operations=None):
+    if _operations is not None:
+        _operations.require_data(runtime)
+        return _operations.observe(name, arguments)
     expected = runtime.worker_imports.get(name)
     if expected is None or runtime.memory.load(runtime.image_base + _IMPORTS[name], 8) != expected:
         raise PrimarySemanticUnavailable('device hardware current import is not bound: ' + name)
@@ -101,14 +104,17 @@ def _observe(runtime, name, arguments):
     return runtime.worker_observations.take(runtime, name, arguments)
 
 
-def _plain(runtime, name, arguments):
-    result, raw = _observe(runtime, name, arguments)
+def _plain(runtime, name, arguments, _operations=None):
+    if _operations is not None:
+        _operations.require_data(runtime)
+        return _operations.plain(name, arguments)
+    result, raw = _observe(runtime, name, arguments, _operations=_operations)
     if raw != b'':
         raise InputError('device hardware operation has no output buffer: ' + name)
     return result
 
 
-def _cpuid(runtime, leaf):
+def _cpuid(runtime, leaf, _operations=None):
     if runtime.worker_observations is None:
         raise UnknownMemory('device hardware CPU brand requires CPUID observations')
     ignored, values = runtime.worker_observations.take(runtime, 'CPUID', (leaf, 0))
@@ -118,18 +124,18 @@ def _cpuid(runtime, leaf):
     return b''.join(value.to_bytes(4, 'little') for value in values)
 
 
-def cpu_brand(runtime, destination):
-    frame, ignored = _frame(runtime, 0x70, '1BED570.CPU_brand_frame')
-    raw = b''.join(_cpuid(runtime, leaf) for leaf in (0x80000002, 0x80000003, 0x80000004))
+def cpu_brand(runtime, destination, _operations=None):
+    frame, ignored = _frame(runtime, 0x70, '1BED570.CPU_brand_frame', _operations=_operations)
+    raw = b''.join(_cpuid(runtime, leaf, _operations=_operations) for leaf in (0x80000002, 0x80000003, 0x80000004))
     runtime.memory.write(frame + 0x20, raw + b'\0', source='1BED570.CPU_brand_register_bytes')
     runtime.memory.write(destination, b'\x02 \0', source='1BED5EF.default_CPU_brand')
     if raw[0]:
-        _invoke(runtime, 0x75BEB0, destination, frame + 0x20, len(_cstring(runtime, frame + 0x20)))
+        _invoke(runtime, 0x75BEB0, destination, frame + 0x20, len(_cstring(runtime, frame + 0x20)), _operations=_operations)
     runtime.memory.unmap(frame)
     return destination
 
 
-def _alphanumeric(runtime, value):
+def _alphanumeric(runtime, value, _operations=None):
     image, memory, base = _image(), runtime.memory, runtime.image_base
     if memory.load(base + image['ctype_locale_flag_rva'], 4):
         raise PrimarySemanticUnavailable('device product byte classification requires its actual nondefault CRT locale')
@@ -140,13 +146,13 @@ def _alphanumeric(runtime, value):
     return bool(memory.load(table + 2 * character, 2) & 0x107)
 
 
-def physical_device(runtime, destination):
+def physical_device(runtime, destination, _operations=None):
     memory = runtime.memory
-    frame, rbp = _frame(runtime, 0x470, '1BED2F0.physical_device_frame')
+    frame, rbp = _frame(runtime, 0x470, '1BED2F0.physical_device_frame', _operations=_operations)
     memory.write(destination, b'\x02 \0', source='1BED30D.default_physical_device')
     buffer, temporary = rbp - 0x40, rbp + 0x3C8
     memory.write(buffer, bytes(265), source='1BED32C.zero_windows_directory_buffer')
-    ignored, raw = _observe(runtime, 'GetWindowsDirectoryA', (260,))
+    ignored, raw = _observe(runtime, 'GetWindowsDirectoryA', (260,), _operations=_operations)
     if not isinstance(raw, bytes) or len(raw) > 260:
         raise InputError('device hardware Windows directory requires bounded raw output effects')
     memory.write(buffer, raw, source='1BED339.GetWindowsDirectoryA_output')
@@ -154,12 +160,12 @@ def physical_device(runtime, destination):
     memory.copy_disjoint(buffer + 1, runtime.image_base + _image()['physical_path_rva'], 16,
                          label='1BED34A.physical_path_literal')
     memory.store(buffer + 17, 0x65, 2, source='1BED34E.physical_path_suffix')
-    _invoke(runtime, 0x75E7B0, temporary, 0)
+    _invoke(runtime, 0x75E7B0, temporary, 0, _operations=_operations)
     path = _String.read(runtime, buffer)
     _append_material(runtime, path, _String.read(runtime, temporary).value()).write_to(buffer)
     _String.read(runtime, temporary).destroy()
     path = _String.read(runtime, buffer).value().split(b'\0', 1)[0]
-    handle = _plain(runtime, 'CreateFileA', (path, 0, 3, 0, 3, 0, 0))
+    handle = _plain(runtime, 'CreateFileA', (path, 0, 3, 0, 3, 0, 0), _operations=_operations)
     _String.read(runtime, buffer).destroy()
     if ((handle + 1) & _MASK64) < 2:
         memory.unmap(frame)
@@ -168,7 +174,7 @@ def physical_device(runtime, destination):
     memory.store(written, 0, 4, source='1BED403.initial_device_bytes_returned')
     memory.write(query, bytes(12), source='1BED40D.storage_property_query')
     memory.write(buffer, bytes(1024), source='1BED42D.zero_device_control_buffer')
-    result, effects = _observe(runtime, 'DeviceIoControl', (handle, 0x2D1400, memory.read(query, 12), 1024, 0))
+    result, effects = _observe(runtime, 'DeviceIoControl', (handle, 0x2D1400, memory.read(query, 12), 1024, 0), _operations=_operations)
     if (not isinstance(effects, tuple) or len(effects) != 2 or not isinstance(effects[0], bytes)
             or len(effects[0]) > 1024 or effects[1] is not None
             and (type(effects[1]) is not int or not 0 <= effects[1] <= 0xFFFFFFFF)):
@@ -179,58 +185,58 @@ def physical_device(runtime, destination):
     if result & 0xFFFFFFFF:
         offset = memory.load(buffer + 16, 4)
         value = memory.load(buffer + offset, 1)
-        if _alphanumeric(runtime, value):
-            _invoke(runtime, 0x75BEB0, destination, buffer + offset, len(_cstring(runtime, buffer + offset)))
-    _plain(runtime, 'CloseHandle', (handle,))
+        if _alphanumeric(runtime, value, _operations=_operations):
+            _invoke(runtime, 0x75BEB0, destination, buffer + offset, len(_cstring(runtime, buffer + offset)), _operations=_operations)
+    _plain(runtime, 'CloseHandle', (handle,), _operations=_operations)
     memory.unmap(frame)
     return destination
 
 
-def _move(runtime, destination, source):
+def _move(runtime, destination, source, _operations=None):
     if runtime.memory.load(destination, 1) & 1:
         runtime._free_allocation(runtime.memory.load(destination + 16, 8))
     runtime.memory.copy_disjoint(destination + 16, source + 16, 8, label='35D5C30.move_hardware_String_tail')
     runtime.memory.copy_disjoint(destination, source, 16, label='35D5C30.move_hardware_String_head')
 
 
-def concatenate(runtime, destination, first, second):
+def concatenate(runtime, destination, first, second, _operations=None):
     prefix, suffix = _String.read(runtime, first).value(), _String.read(runtime, second).value()
     result = _String.construct(runtime, prefix, capacity=len(prefix) + len(suffix))
     _append_material(runtime, result, suffix).write_to(destination)
     return destination
 
 
-def capture_hardware(runtime, ignored, digest, device, cpu, adapter):
-    frame, rbp = _frame(runtime, 0x80, '35D5C30.hardware_material_frame')
+def capture_hardware(runtime, ignored, digest, device, cpu, adapter, _operations=None):
+    frame, rbp = _frame(runtime, 0x80, '35D5C30.hardware_material_frame', _operations=_operations)
     if not digest:
         runtime.memory.unmap(frame)
         return 0
-    _invoke(runtime, 0x1BED2F0, rbp - 0x20)
-    _move(runtime, device, rbp - 0x20)
-    _invoke(runtime, 0x1BED570, rbp - 0x20)
-    _move(runtime, cpu, rbp - 0x20)
+    _invoke(runtime, 0x1BED2F0, rbp - 0x20, _operations=_operations)
+    _move(runtime, device, rbp - 0x20, _operations=_operations)
+    _invoke(runtime, 0x1BED570, rbp - 0x20, _operations=_operations)
+    _move(runtime, cpu, rbp - 0x20, _operations=_operations)
     runtime.memory.write(rbp - 0x20, bytes(24), source='35D5CAB.initial_adapter_detail_String')
-    _invoke(runtime, 0x35D5A80, rbp - 0x40, rbp - 0x20)
-    _move(runtime, adapter, rbp - 0x40)
-    concatenate(runtime, rbp - 0x58, device, cpu)
+    _invoke(runtime, 0x35D5A80, rbp - 0x40, rbp - 0x20, _operations=_operations)
+    _move(runtime, adapter, rbp - 0x40, _operations=_operations)
+    concatenate(runtime, rbp - 0x58, device, cpu, _operations=_operations)
     joined = _String.read(runtime, rbp - 0x58)
     _append_material(runtime, joined, _String.read(runtime, adapter).value()).write_to(rbp - 0x58)
     runtime.memory.copy_disjoint(rbp - 0x40, rbp - 0x58, 24, label='35D5D22.move_joined_hardware_String')
     runtime.memory.write(rbp - 0x58, bytes(24), source='35D5D31.clear_moved_hardware_String')
     _String.read(runtime, rbp - 0x58).destroy()
-    _invoke(runtime, 0x1D05BC0, rbp - 0x40, digest, 16)
+    _invoke(runtime, 0x1D05BC0, rbp - 0x40, digest, 16, _operations=_operations)
     _String.read(runtime, rbp - 0x40).destroy()
     _String.read(runtime, rbp - 0x20).destroy()
     runtime.memory.unmap(frame)
     return 1
 
 
-def capture_into_owner(runtime, destination, device, cpu, adapter):
-    frame, ignored = _frame(runtime, 0x60, '2E11020.hardware_capture_frame')
+def capture_into_owner(runtime, destination, device, cpu, adapter, _operations=None):
+    frame, ignored = _frame(runtime, 0x60, '2E11020.hardware_capture_frame', _operations=_operations)
     rbp = frame + 0x60
     runtime.memory.write(rbp - 0x20, bytes(24), source='2E11040.empty_hardware_vector')
     runtime.memory.write(rbp - 0x30, bytes(16), source='2E1104C.empty_hardware_digest')
-    _invoke(runtime, 0x35D5C30, rbp - 0x20, rbp - 0x30, device, cpu, adapter)
+    _invoke(runtime, 0x35D5C30, rbp - 0x20, rbp - 0x30, device, cpu, adapter, _operations=_operations)
     if not destination:
         raise PrimarySemanticUnavailable('2E11073 null hardware destination requires actual CRT invalid-parameter effects')
     runtime.memory.copy_disjoint(destination, rbp - 0x30, 16, label='2E1106E.owner_hardware_digest')
@@ -246,11 +252,23 @@ def capture_into_owner(runtime, destination, device, cpu, adapter):
     return 1
 
 
-def invoke(runtime, rva, values):
+def invoke(runtime, rva, values, _operations=None):
     definitions = {0x1BED570: (cpu_brand, 1), 0x1BED2F0: (physical_device, 1),
                    0x35D5C30: (capture_hardware, 5), 0x2E11020: (capture_into_owner, 4),
                    0x37AAE6: (concatenate, 3)}
     function, count = definitions[rva]
     if len(values) != count:
         raise InputError('device hardware source interface argument count mismatch')
-    return function(runtime, *values)
+    return function(runtime, *values, _operations=_operations)
+
+
+def _invoke(runtime,*values,_operations=None):
+    if _operations is None:return _source_invoke(runtime,*values)
+    _operations.require_data(runtime)
+    return _operations.invoke(*values)
+
+
+def _frame(runtime,size,name,_operations=None):
+    if _operations is None:return _source_frame(runtime,size,name)
+    _operations.require_data(runtime)
+    return _operations.frame(size,name)

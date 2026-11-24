@@ -32,13 +32,14 @@ class _Element:
 
 
 class _Parser:
-    def __init__(self, runtime, raw, errors):
+    def __init__(self, runtime, raw, errors, *, text_factory=_XmlString, element_factory=_Element, attribute_allocator=None):
+        self.text=text_factory;self.element_factory=element_factory;self.attribute_allocator=attribute_allocator
         self.runtime, self.raw, self.position = runtime, raw, 0
-        self.errors, self.error, self.nodes = errors, _XmlString(runtime), 0
+        self.errors, self.error, self.nodes = errors, self.text(runtime), 0
 
     def fail(self, code):
         if self.error.pointer is None:
-            self.error = _XmlString(self.runtime, bytes.fromhex(self.errors[str(code)]).split(b'\0', 1)[0])
+            self.error = self.text(self.runtime, bytes.fromhex(self.errors[str(code)]).split(b'\0', 1)[0])
         raise _ParseFailure
 
     def whitespace(self):
@@ -88,8 +89,8 @@ class _Parser:
         return raw[start:self.position]
 
     def attribute(self, element):
-        pointer = self.runtime._operator_new(64)
-        name, value = _XmlString(self.runtime), _XmlString(self.runtime)
+        pointer = self.runtime._operator_new(64) if self.attribute_allocator is None else self.attribute_allocator()
+        name, value = self.text(self.runtime), self.text(self.runtime)
         element.attributes.append((pointer, name, value))
         if not self.name(name):
             self.fail(6)
@@ -114,7 +115,7 @@ class _Parser:
         self.nodes += 1
         if self.nodes > 4096:
             raise PrimaryProgramLimit('device cache XML exceeds its bounded node count')
-        element = _Element(self.runtime)
+        element = self.element_factory(self.runtime)
         mark = None
         try:
             if self.raw[self.position:self.position + 1] != b'<':
@@ -123,7 +124,7 @@ class _Parser:
             self.whitespace()
             if not self.name(element.name):
                 self.fail(4)
-            mark = _XmlString(self.runtime, b'</')
+            mark = self.text(self.runtime, b'</')
             mark.append(element.name.value())
             while True:
                 self.whitespace()
@@ -241,3 +242,37 @@ def parse(runtime, manager, source):
     for root in roots:
         root.destroy()
     return None
+
+
+class _OwnedText:
+    def __init__(self,runtime,raw=None):self.raw=b'' if raw is None else raw;self.pointer=None if raw is None else True
+    def value(self):return self.raw
+    def _replace(self,raw,size):self.raw=bytes(raw[:size]);self.pointer=True
+    def append(self,raw):self.raw+=raw;self.pointer=True
+    def destroy(self):pass
+
+class _OwnedElement:
+    def __init__(self,runtime):self.name=_OwnedText(None);self.attributes=[];self.children=[]
+    def destroy(self):pass
+
+def parse_owned_cache_xml(raw):
+    """Same parser/control grammar on owning Python nodes, no source allocations."""
+    from .primary_device_cache import _image
+    if type(raw)is not bytes or len(raw)>_LIMIT:raise PrimaryProgramLimit('cache XML input outside finite domain')
+    raw=raw.split(b'\0',1)[0].replace(b'\r\n',b'\n').replace(b'\r',b'\n')
+    parser=_Parser(None,raw,_image()['xml_errors'],text_factory=_OwnedText,element_factory=_OwnedElement,attribute_allocator=lambda:None)
+    roots=[]
+    try:
+        parser.whitespace()
+        if not parser.raw:parser.fail(12)
+        while parser.position<len(parser.raw) and parser.raw[parser.position:parser.position+1]==b'<':
+            if parser.raw[parser.position:parser.position+2] in (b'<!',b'<?'):raise PrimarySemanticUnavailable('device cache XML declaration/comment behavior unavailable')
+            roots.append(parser.element());parser.whitespace()
+    except _ParseFailure:return False,()
+    pairs=[]
+    if roots:
+        for child in roots[0].children:
+            if child.name.value()!=b'config':continue
+            attributes={name.value():value.value() for _,name,value in child.attributes}
+            if b'key'in attributes and b'value'in attributes:pairs.append((attributes[b'key'].split(b'\0',1)[0],attributes[b'value'].split(b'\0',1)[0]))
+    return True,tuple(pairs)

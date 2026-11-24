@@ -178,29 +178,34 @@ def _configuration_field(runtime, frame, owner, offset, key):
     _String.read(runtime, frame).destroy()
 
 
+_PERSISTENCE_FIELDS=((0x570,'config','raw_configuration',600),(0x5B8,'config','digest_configuration',604),
+                     (0x588,'cache','raw_cache',608),(0x5D0,'cache','digest_cache',612),(0x5E8,'registry','registry_name',617))
+
+
+def _read_persistence_fields(present,read,after):
+    """Shared exact source read order, including the first-field second read."""
+    for offset,kind,key,line in _PERSISTENCE_FIELDS:
+        if present(offset):continue
+        read(offset,kind,key)
+        if offset==0x570 and not present(offset):read(offset,kind,key)
+        after(offset,line)
+
+
 def read_persistence(runtime, owner):
     frame, _ = _frame(runtime, 96, '2E270E0.persistence_frame')
-    if not _length(runtime, owner + 0x570):
-        _configuration_field(runtime, frame, owner, 0x570, 'raw_configuration')
-        if not _length(runtime, owner + 0x570):
-            _configuration_field(runtime, frame, owner, 0x570, 'raw_configuration')
-        _log(runtime, 'computer_info.cpp', 600, _data(runtime, owner + 0x570))
-    if not _length(runtime, owner + 0x5B8):
-        _configuration_field(runtime, frame, owner, 0x5B8, 'digest_configuration')
-        _log(runtime, 'computer_info.cpp', 604, _data(runtime, owner + 0x5B8))
-    for offset, key, line in ((0x588, 'raw_cache', 608), (0x5D0, 'digest_cache', 612)):
-        if not _length(runtime, owner + offset):
-            manager = _cache(runtime)
-            runtime.memory.write(frame, _key(key) + b'\0', source='2E270E0.decoded_cache_key')
-            read_cache(runtime, manager, frame, owner + offset)
-            _log(runtime, 'computer_info.cpp', line, _data(runtime, owner + offset))
-    if not _length(runtime, owner + 0x5E8):
-        _String.construct(runtime, _key('registry_subkey')).write_to(frame)
-        _String.construct(runtime, _key('registry_name')).write_to(frame + 24)
-        read_registry(runtime, 0xFFFFFFFF80000001, frame, frame + 24, owner + 0x5E8)
-        _String.read(runtime, frame + 24).destroy()
-        _String.read(runtime, frame).destroy()
-        _log(runtime, 'computer_info.cpp', 617, _data(runtime, owner + 0x5E8))
+    def read(offset,kind,key):
+        if kind=='config':_configuration_field(runtime,frame,owner,offset,key)
+        elif kind=='cache':
+            manager=_cache(runtime)
+            runtime.memory.write(frame,_key(key)+b'\0',source='2E270E0.decoded_cache_key')
+            read_cache(runtime,manager,frame,owner+offset)
+        else:
+            _String.construct(runtime,_key('registry_subkey')).write_to(frame)
+            _String.construct(runtime,_key(key)).write_to(frame+24)
+            read_registry(runtime,0xFFFFFFFF80000001,frame,frame+24,owner+offset)
+            _String.read(runtime,frame+24).destroy();_String.read(runtime,frame).destroy()
+    _read_persistence_fields(lambda offset:_length(runtime,owner+offset),read,
+                             lambda offset,line:_log(runtime,'computer_info.cpp',line,_data(runtime,owner+offset)))
     runtime.memory.unmap(frame)
     return None
 
@@ -244,3 +249,41 @@ def invoke(runtime, rva, values):
     if len(values) != count:
         raise InputError('device provenance source interface argument count mismatch')
     return function(runtime, *values)
+
+
+def collect_owned_identifiers(state,stores,*,generate):
+    """Source control policy over explicit OWN_STORES, never QQ redirection.
+
+    stores uses decoded source key names; its registry namespace/root are an
+    explicit independent-client choice, not simulated original API results.
+    """
+    from .primary_device_identifiers import _key
+    from .primary_device_identifiers import identifier_digest_text
+    def read(offset,kind,key):
+        if not state.string(offset):
+            value=getattr(stores,'read_'+kind)(_key(key))
+            if value is not None:
+                if type(value)is not bytes:raise InputError('own store must return owning bytes or observed absence')
+                state.set_string(offset,value.split(b'\0',1)[0])
+    stores.delete_registry(bytes.fromhex(_image()['delete_name_hex']))
+    for _ in range(3):
+        _read_persistence_fields(state.string,read,lambda offset,line:None)
+    if all(state.string(o) for o in (0x570,0x588,0x5B8,0x5D0,0x5E8)):return
+    hardware=b'-'.join(state.string(o) for o in (0x88,0x130,0x268,0x100))
+    generated=generate(hardware)
+    if type(generated)is not bytes:raise InputError('material generator requires owning bytes')
+    state.set_string(0x558,generated)
+    if not generated:return
+    if not state.string(0x570):
+        state.set_string(0x570,generated);stores.write_config(_key('raw_configuration'),generated)
+    if not state.string(0x588):
+        state.set_string(0x588,generated);stores.write_cache(_key('raw_cache'),generated)
+    if all(state.string(o) for o in (0x5B8,0x5D0,0x5E8)):return
+    digest=identifier_digest_text(generated)
+    state.set_string(0x5A0,digest)
+    if not state.string(0x5B8):
+        state.set_string(0x5B8,digest);stores.write_config(_key('digest_configuration'),digest)
+    if not state.string(0x5D0):
+        state.set_string(0x5D0,digest);stores.write_cache(_key('digest_cache'),digest);stores.flush_cache()
+    if not state.string(0x5E8):
+        doubled=identifier_digest_text(digest);state.set_string(0x5E8,doubled);stores.write_registry(_key('registry_name'),doubled)
