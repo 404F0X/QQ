@@ -46,7 +46,7 @@ class WindowsQimeiSystemObservations(WindowsQimeiExtraObservations):
         self._ntdll_procedure = None
 
     def _allowed_registry(self, root, path):
-        return ((root == HKLM and (path in (PROCESSOR_KEY, WINDOWS_KEY, BIOS_KEY) or path in {row[0] for row in CLASSIFIER_RULES} or path.startswith(KEYBOARD_KEY)
+        return ((root == HKLM and (path in (PROCESSOR_KEY, WINDOWS_KEY, BIOS_KEY, br'SYSTEM\ControlSet001\Control\SystemInformation', br'SYSTEM\CurrentControlSet\Control\SystemInformation') or path in {row[0] for row in CLASSIFIER_RULES} or path.startswith(KEYBOARD_KEY)
                                   or path.startswith(b'BCD00000000\\Objects\\')))
                 or (root == HKCU and path == COMPATIBILITY_KEY))
 
@@ -55,6 +55,8 @@ class WindowsQimeiSystemObservations(WindowsQimeiExtraObservations):
             return True
         if path == PROCESSOR_KEY:
             return value in PROCESSOR_VALUES
+        if path in (br'SYSTEM\ControlSet001\Control\SystemInformation',br'SYSTEM\CurrentControlSet\Control\SystemInformation'):
+            return value in (b'SystemManufacturer',b'SystemProductName')
         if path == BIOS_KEY:
             return value in BIOS_VALUES
         if path == WINDOWS_KEY:

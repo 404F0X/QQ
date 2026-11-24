@@ -86,3 +86,22 @@ def populate_local_tail(state,system):
     state.set_u32(23,system.system_metric(1))
     state.set_u64(24,system.request_time())
     return state
+
+
+def populate_flag1_group(owner,state,settings,probes,*,settings_dependencies=None):
+    """Whole526C3..52728; independent refresh-backed flag1, no flag2 read."""
+    deps={} if settings_dependencies is None else dict(settings_dependencies)
+    if _integer(settings.flag(1,group=1,**deps))&0xFFFFFFFF:
+        first,second=probes.cpuid_pair()
+        state.set_u32(25,first);state.set_u32(26,second)
+        state.set_u32(30,_integer(probes.vmware())&255)
+        state.set_u32(31,_integer(probes.virtualbox())&255)
+    return state
+
+
+def populate_flag2_group(owner,state,settings,probes,*,settings_dependencies=None):
+    """52730..52754; its own source refresh/flag2, stopping before LCID."""
+    deps={} if settings_dependencies is None else dict(settings_dependencies)
+    if _integer(settings.flag(2,group=1,**deps))&0xFFFFFFFF:
+        state.set_u32(27,_integer(probes.debugger())&0xFFFFFFFF)
+    return state

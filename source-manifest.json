@@ -2807,7 +2807,7 @@
     {
       "path": "src/qq_nt_replica/primary_windows_qimei_system.py",
       "source_sha256": "22de05098832ad0cd7bcdecd3896fd6ea2632cb6d6acccdac1f245e34f010215",
-      "sha256": "70264c9ef24f2e62fd60184f2f154ba9bb5233b079eb804a6e5b655c397de622",
+      "sha256": "1ac79fd1ef877f1cd6244b5dec2ee2915b0fe6c823db470b469b31a95c5f8971",
       "classification": "project_source"
     },
     {
@@ -3025,7 +3025,7 @@
     {
       "path": "src/qq_nt_replica/primary_qimei_kind2_payload.py",
       "source_sha256": "3ace9b2dccaddb5d04851d6eaea4ed36acf23eed1f56a1f02736ee775e244967",
-      "sha256": "8733c16ee952806a4c3ea0250c69e3a3b999a14d8dd21033373e491bcceb3cfb",
+      "sha256": "8cf9d08ae22f06319ec0477a9f8d86afa19b77657bc2c96dcabed9ad14da027e",
       "classification": "project_source",
       "origin": "KIND2-REQUEST-STAGES-IMPLEMENT/a1 first-retained-source/primary_qimei_kind2_payload.py"
     },
@@ -3077,6 +3077,20 @@
       "sha256": "496cd4e014ac249c884af02b89b72ad55059d9ac4f76719b6e714f250304fb09",
       "classification": "project_source",
       "origin": "GENUINE-KIND2-CONFIG-ASSEMBLY-IMPLEMENT/a1 first-retained-source/primary_windows_qimei_settings.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_environment_probes.py",
+      "source_sha256": "28778e176148c3b00340be9c4e4b1d7ad24e54b04d8afdb6505eea49119e00ab",
+      "sha256": "28778e176148c3b00340be9c4e4b1d7ad24e54b04d8afdb6505eea49119e00ab",
+      "classification": "project_source",
+      "origin": "KIND2-GENUINE-FLAG1-GROUP-IMPLEMENT/a1 REV1 first-retained-source/primary_qimei_environment_probes.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_windows_qimei_environment.py",
+      "source_sha256": "a315621c9051b8946226c1d809e4213c703ae0ca7cee1af8e501cfd2f3ee802f",
+      "sha256": "a315621c9051b8946226c1d809e4213c703ae0ca7cee1af8e501cfd2f3ee802f",
+      "classification": "project_source",
+      "origin": "KIND2-GENUINE-FLAG1-GROUP-IMPLEMENT/a1 REV1 first-retained-source/primary_windows_qimei_environment.py"
     }
   ],
   "excluded_pending_assets": [
