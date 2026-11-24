@@ -23,7 +23,7 @@ class Binding(unittest.TestCase):
     def test_path_finite_literal_projection(self):
         self.assertEqual(derive_application_msf_path('D:\\Profile-1'), 'D:\\Profile-1\\nt_data\\msf')
         self.assertEqual(derive_application_msf_path(r'D:\p\nt_data\msf'),r'D:\p\nt_data\msf\nt_data\msf')
-        for value in ('relative','D:/Profile','D:\\has space','D:\\æ±‰','\\\\host\\share','D:\\p\\..\\q'):
+        for value in ('relative','D:/Profile','D:\\æ±‰','\\\\host\\share','D:\\p\\..\\q'):
             factory=Mock()
             with self.assertRaises(QimeiRequestBoundary):bind_application(value,contexts=QimeiSdkContexts(),settings_by_owner={},settings_observations=Mock(),reader_factory=factory)
             factory.assert_not_called()

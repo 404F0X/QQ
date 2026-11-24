@@ -1,6 +1,6 @@
 """Finite public-commonPath -> typed Registry20 -> same-owner QQ binding.
 
-This projection supports ASCII drive paths with alnum/_/- components only;
+This projection supports ASCII drive paths with alnum/_/- components and internal ASCII spaces only;
 it does not claim to restrict the original public NAPI input domain.
 """
 from collections.abc import MutableMapping
@@ -17,7 +17,7 @@ _METADATA = ('used','closed','file_handles','local_allocations','selected_read_l
 
 
 def derive_application_msf_path(common_path):
-    if type(common_path) is not str or re.fullmatch(r'[A-Za-z]:\\(?:[A-Za-z0-9_-]+\\)*[A-Za-z0-9_-]+',common_path) is None:
+    if type(common_path) is not str or re.fullmatch(r'[A-Za-z]:\\[A-Za-z0-9_-]+(?: +[A-Za-z0-9_-]+)*(?:\\[A-Za-z0-9_-]+(?: +[A-Za-z0-9_-]+)*)*',common_path) is None:
         raise QimeiRequestBoundary('commonPath outside finite ASCII drive-absolute component domain')
     return common_path+'\\nt_data\\msf'
 

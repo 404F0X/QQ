@@ -1784,7 +1784,7 @@
     {
       "path": "src/qq_nt_replica/primary_outer_init.py",
       "source_sha256": "100f19fe66db1a89e7b601208880fc6b9eeb0d6fcb1a67c2d011368e5c017fa3",
-      "sha256": "ed13e0dafd7206a55e5e2f5d575ca1415d8116951dd8e55b37993115663a6fdc",
+      "sha256": "19503990341631df943b21e223ae6ebcdf6cf6b4cbabaa819d140f87e0c2acd2",
       "classification": "project_source",
       "origin": "MAT-SIGN-OUTER-PREFIX-IMPLEMENT/a1 source-aligned bounded prefix; first authoring snapshot: outer-prefix-implementation/primary_outer_init.py"
     },
@@ -3046,7 +3046,7 @@
     {
       "path": "src/qq_nt_replica/primary_qimei_application_binding.py",
       "source_sha256": "97f9d9e38e72a48847889dc49a14afed1e23023e98948086a3917bd8f98cc16e",
-      "sha256": "f5873d1644cb777eb124a9fc3d1b5ae3f42f43524848f033432a02d580af3010",
+      "sha256": "dd60145f92f7a9db1de8655993d90c85e808bd9f5bffd38466fe81153ffc3359",
       "classification": "project_source",
       "origin": "QQ-APPLICATION-BINDER-IMPLEMENT/a1 first-retained-source/primary_qimei_application_binding.py"
     },

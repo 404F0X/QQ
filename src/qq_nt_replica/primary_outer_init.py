@@ -28,7 +28,7 @@ def login_nt_data_path(runtime,source):
     raw=source.value()
     import re
     if (any(value>=128 for value in raw) or b'\0' in raw or
-            re.fullmatch(rb'[A-Za-z]:\\[A-Za-z0-9_-]+(?:\\[A-Za-z0-9_-]+)*',raw) is None):
+            re.fullmatch(rb'[A-Za-z]:\\[A-Za-z0-9_-]+(?: +[A-Za-z0-9_-]+)*(?:\\[A-Za-z0-9_-]+(?: +[A-Za-z0-9_-]+)*)*',raw) is None):
         raise PrimarySemanticUnavailable('9AE42A unsupported path normalization/encoding domain')
     return _String.construct(runtime,raw+b'\\nt_data')
 
