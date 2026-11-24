@@ -2756,7 +2756,7 @@
     {
       "path": "src/qq_nt_replica/primary_windows_qimei_config.py",
       "source_sha256": "506eb8cdeed3996a7994702f682169e863b7581f00dbff8922c2a18c6a402155",
-      "sha256": "506eb8cdeed3996a7994702f682169e863b7581f00dbff8922c2a18c6a402155",
+      "sha256": "d54431d6a772ac5b8a34c749c45c74e40d80a0bedd259c8d91c288c67e8286e8",
       "classification": "project_source",
       "origin": "MAT-QIMEI-CONFIG-IMPLEMENT/a1 new source-derived implementation; authoring snapshot: qimei-config-implementation/primary_windows_qimei_config.py"
     },
@@ -3021,6 +3021,27 @@
       "sha256": "42a42ab120cce5b2eb94630fa68ad6559c2d843c58f578e5a9cbb5c0d896931c",
       "classification": "project_source",
       "origin": "QIMEI-TREEA-IMPLEMENT/a1 first-retained-source/primary_windows_qimei_module_tree.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_kind2_payload.py",
+      "source_sha256": "3ace9b2dccaddb5d04851d6eaea4ed36acf23eed1f56a1f02736ee775e244967",
+      "sha256": "094dc383f8affcab4336c4da346fac87672da9c79a71f6777cd8e1df1aead731",
+      "classification": "project_source",
+      "origin": "KIND2-REQUEST-STAGES-IMPLEMENT/a1 first-retained-source/primary_qimei_kind2_payload.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_kind2_request.py",
+      "source_sha256": "d0918726d7cfa5081b086099748ea0f555694e57ae61369779a1a4439b60f98b",
+      "sha256": "dd050c99c58a555b7143764e4e6355d208cba9fb37b86aa4098bb6cc6a07f892",
+      "classification": "project_source",
+      "origin": "KIND2-REQUEST-STAGES-IMPLEMENT/a1 first-retained-source/primary_qimei_kind2_request.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_request_state.py",
+      "source_sha256": "7b8d6dfec6d9b16f6fe3714ae909e64ec01c5c2f42004866988e7dec01a7b778",
+      "sha256": "7b8d6dfec6d9b16f6fe3714ae909e64ec01c5c2f42004866988e7dec01a7b778",
+      "classification": "project_source",
+      "origin": "KIND2-REQUEST-STATE-COMPLETION/a1 retained-source/primary_qimei_request_state.py"
     }
   ],
   "excluded_pending_assets": [

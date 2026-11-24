@@ -87,3 +87,11 @@ class WindowsQimeiConfigSources:
         year,month,week,day,hour,minute,second,millis = local
         tm = (C.c_int32*9)(second,minute,hour,day,month-1,year-1900,0,0,0)
         return self._call('ucrtbase','_mktime64',C.c_int64,(C.c_void_p,),C.byref(tm))
+
+    def clock_milliseconds(self):
+        local = (C.c_uint16*8)()
+        self._call('kernel32','GetLocalTime',None,(C.c_void_p,),C.byref(local))
+        year,month,week,day,hour,minute,second,millis = local
+        tm = (C.c_int32*9)(second,minute,hour,day,month-1,year-1900,0,0,0)
+        seconds = self._call('ucrtbase','_mktime64',C.c_int64,(C.c_void_p,),C.byref(tm))
+        return (seconds*1000+millis)&0xFFFFFFFFFFFFFFFF
