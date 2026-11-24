@@ -4639,3 +4639,10 @@ def run_primary_device_record_cipher(vm):
     _stage_171(vm)
     return vm.result
 
+
+
+def encrypt_device_records(records, *, state17, process_id, wall_seconds, formatter_options):
+    """Isolated existing cipher, with explicit consistent state and host inputs."""
+    from .primary_device_record_adapter import RecordCipherHost
+    return RecordCipherHost(state17, process_id, wall_seconds, formatter_options).encrypt(records)
+

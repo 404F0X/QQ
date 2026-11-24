@@ -1066,7 +1066,7 @@
     {
       "path": "src/qq_nt_replica/primary_device_record_cipher.py",
       "source_sha256": "827fe732fcd483ded8dc539846ccb187d7e4e9d20452545aed459d927e9a1cc0",
-      "sha256": "827fe732fcd483ded8dc539846ccb187d7e4e9d20452545aed459d927e9a1cc0",
+      "sha256": "7ab8f9bacd9a305b3ed14e339dc7568d08577c7b9f0ef9ca0978425c486681a4",
       "classification": "project_source"
     },
     {
@@ -3094,10 +3094,17 @@
     },
     {
       "path": "src/qq_nt_replica/primary_sdk_request.py",
-      "sha256": "f479adc6ee454f3b8cf0a170aab829437726229a8f8752adf2732402656e34ba",
+      "sha256": "5ad3dcd69f216af78c647ab80ec37d749716954d8dace977e2dc1fad2ee046c1",
       "source_sha256": "f479adc6ee454f3b8cf0a170aab829437726229a8f8752adf2732402656e34ba",
       "classification": "project_source",
       "origin": "OWN-SDK-INDEPENDENT-RECORD-REQUEST-IMPLEMENT/a1 REV4 first-retained-source/primary_sdk_request.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_device_record_adapter.py",
+      "source_sha256": "5677de1ec25d84923fb8085ff1bc667585fc9a03571690f56c5626150dd11905",
+      "sha256": "5677de1ec25d84923fb8085ff1bc667585fc9a03571690f56c5626150dd11905",
+      "classification": "project_source",
+      "origin": "OWN-SDK-FEATURE46-ISOLATED-CIPHER-IMPLEMENT/a1 first-retained-source/primary_device_record_adapter.py"
     }
   ],
   "excluded_pending_assets": [

@@ -1,4 +1,4 @@
-"""Independent OFF-domain record request generation; no receiver admission or send."""
+"""Independent record request generation; no receiver admission or send."""
 from dataclasses import dataclass
 from .errors import InputError
 from .primary_vm import PrimarySemanticUnavailable
@@ -14,7 +14,7 @@ class SdkRecordRequest:
     decode_material: RequestMaterial
     serialized_records: bytes
 
-def create_record_request(records,metadata,*,feature46,tag,material_state,sdk_sequence,a2,commands,encoding_inputs):
+def create_record_request(records,metadata,*,feature46,tag,material_state,sdk_sequence,a2,commands,encoding_inputs,cipher_inputs=None):
     """Explicit resolved A2; SDK sequence is distinct from message_id/wire sequence.
 
     Retains this request's immutable material snapshot for subsequent decoding.
@@ -28,9 +28,13 @@ def create_record_request(records,metadata,*,feature46,tag,material_state,sdk_se
         raise InputError('explicit SDK sequence required')
     if not isinstance(material_state,RequestMaterialState) or type(encoding_inputs)is not dict:
         raise InputError('material state and explicit encoding inputs required')
+    encrypted=b''
     if feature46==1:
-        raise PrimarySemanticUnavailable('feature46 ON requires genuine device-mix material16/seed8 and cipher execution inputs; independent domain unavailable')
-    payload=serialize_device_records(records,metadata,b'')
+        if type(cipher_inputs)is not dict:
+            raise PrimarySemanticUnavailable('feature46 ON requires explicit consistent17B/PID/time/formatter inputs')
+        from .primary_device_record_cipher import encrypt_device_records
+        encrypted=encrypt_device_records(records,**cipher_inputs)
+    payload=serialize_device_records(records,metadata,encrypted)
     encoded=material_state.encode(tag,payload,**encoding_inputs)
     command=commands[int(a2)*2+int(encoded.status==0)]
     return SdkRecordRequest(command,encoded.request.wire,sdk_sequence,encoded,material_state.current,payload)
