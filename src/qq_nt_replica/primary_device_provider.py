@@ -212,58 +212,65 @@ class DeviceFactory:
     def _produce(self):
         if self.enumeration_source != "observed" or self.public_key_source != "observed":
             raise PrimarySemanticUnavailable("raw OS device production requires the shared native runtime and ordered API observations")
-        observations = collect_device_observations(self.source)
-        if self.injected_material is not None:
-            observations = replace(observations, injected_material=self.injected_material)
-        hardware = initial_device_profile(observations)
-        storage, storage_error = self._checkpoint_storage()
-        read = storage.read() if storage_error is None else None
-        decoded = decode_checkpoint(read.value) if read is not None and read.value is not None else None
-        record = decoded.record if decoded is not None and decoded.success else None
-        flagged = bool(record[81] & 1) if record is not None else False
-        errors = []
+        return produce_observed_device_value(self.source, self.environment, self._checkpoint_storage,
+                                             injected_material=self.injected_material)
 
-        def save(value):
-            target, error = self._checkpoint_storage()
-            if error is not None:
-                errors.append(error >> 32)
-                return
-            result = target.write_record(value, self.environment.random_bytes)
-            if not result.success:
-                errors.append(result.error)
 
-        def acquire():
-            capi = self.source.capi_public_key()
-            if not isinstance(capi, CapiObservation):
-                raise InputError("device CAPI source must return its structured public-key observation")
-            if capi.error_code == 0:
-                return device_public_key_material(capi.public_key_bits), 6, 0
-            target, error = self._checkpoint_storage()
-            if error is not None:
-                return None, 0, error
-            profile = (target.read_profile(random_bytes=self.environment.random_bytes)
-                       if isinstance(target, DirectoryCheckpointStorage) else target.read_profile())
-            if profile.value is None:
-                return None, 0, (profile.internal_error << 32) | ((profile.error or 0) & 0xFFFFFFFF)
-            material = decode_profile(profile.value)
-            if material is None:
-                return None, 0, (0x15 << 32) | ((profile.error or 0) & 0xFFFFFFFF)
-            return material, 3 if profile.created else 4, capi.error_code
+def produce_observed_device_value(source, environment, checkpoint_storage, *, injected_material=None):
+    """Shared complete observed-input key25 policy, including storage effects."""
+    observations = collect_device_observations(source)
+    if injected_material is not None:
+        observations = replace(observations, injected_material=injected_material)
+    hardware = initial_device_profile(observations)
+    storage, storage_error = checkpoint_storage()
+    read = storage.read() if storage_error is None else None
+    decoded = decode_checkpoint(read.value) if read is not None and read.value is not None else None
+    record = decoded.record if decoded is not None and decoded.success else None
+    flagged = bool(record[81] & 1) if record is not None else False
+    errors = []
 
-        if record is not None and checkpoint_hardware_invalidates(record, hardware):
-            preliminary, method, secondary = acquire()
-            if preliminary is not None and mix_device_bytes(preliminary).to_bytes(8, "little") == record[72:80]:
-                flagged = True
-                record = invalid_checkpoint_record(hardware)
-                save(record)
-        material, method, secondary = acquire()
+    def save(value):
+        target, error = checkpoint_storage()
+        if error is not None:
+            errors.append(error >> 32)
+            return
+        result = target.write_record(value, environment.random_bytes)
+        if not result.success:
+            errors.append(result.error)
+
+    def acquire():
+        capi = source.capi_public_key()
+        if not isinstance(capi, CapiObservation):
+            raise InputError("device CAPI source must return its structured public-key observation")
+        if capi.error_code == 0:
+            return device_public_key_material(capi.public_key_bits), capi.method, 0
+        target, error = checkpoint_storage()
+        if error is not None:
+            return None, 0, error
+        profile = (target.read_profile(random_bytes=environment.random_bytes)
+                   if isinstance(target, DirectoryCheckpointStorage) else target.read_profile())
+        if profile.value is None:
+            return None, 0, (profile.internal_error << 32) | ((profile.error or 0) & 0xFFFFFFFF)
+        material = decode_profile(profile.value)
         if material is None:
-            return DeviceResult(b"", False, secondary, tuple(errors))
-        if checkpoint_needs_update(record, hardware, material, flagged=flagged):
-            save(new_checkpoint_record(hardware, material, method=method, flagged=flagged))
-        classification = device_environment_classification(collect_device_environment(
-            self.source, observations.cpuid[0x40000000]))
-        body = bytes([method | (0x80 if flagged else 0), classification]) + material
-        seconds = filetime_seconds(self.environment.filetime()) & 0xFFFFFFFF
-        value = encode_device_body(body, seconds, self.environment.random_bytes)
-        return DeviceResult(value, True, secondary, tuple(errors))
+            return None, 0, (0x15 << 32) | ((profile.error or 0) & 0xFFFFFFFF)
+        return material, 3 if profile.created else 4, capi.error_code
+
+    if record is not None and checkpoint_hardware_invalidates(record, hardware):
+        preliminary, method, secondary = acquire()
+        if preliminary is not None and mix_device_bytes(preliminary).to_bytes(8, "little") == record[72:80]:
+            flagged = True
+            record = invalid_checkpoint_record(hardware)
+            save(record)
+    material, method, secondary = acquire()
+    if material is None:
+        return DeviceResult(b"", False, secondary, tuple(errors))
+    if checkpoint_needs_update(record, hardware, material, flagged=flagged):
+        save(new_checkpoint_record(hardware, material, method=method, flagged=flagged))
+    classification = device_environment_classification(collect_device_environment(
+        source, observations.cpuid[0x40000000]))
+    body = bytes([method | (0x80 if flagged else 0), classification]) + material
+    clock = getattr(environment, 'time_seconds', None)
+    seconds = (clock() if clock is not None else filetime_seconds(environment.filetime())) & 0xFFFFFFFF
+    value = encode_device_body(body, seconds, environment.random_bytes)
+    return DeviceResult(value, True, secondary, tuple(errors))

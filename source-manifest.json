@@ -946,7 +946,7 @@
     {
       "path": "src/qq_nt_replica/primary_device.py",
       "source_sha256": "2426a3c0371ae38e6cb860812e3df4a19c7cb1c790428226ec5357ed9134e5c0",
-      "sha256": "2426a3c0371ae38e6cb860812e3df4a19c7cb1c790428226ec5357ed9134e5c0",
+      "sha256": "19105425cfbba6f63e63c384724249fce58bedf5070f1d41383268eafa5cd6ee",
       "classification": "project_source"
     },
     {
@@ -1060,7 +1060,7 @@
     {
       "path": "src/qq_nt_replica/primary_device_provider.py",
       "source_sha256": "8b5ed3bc06efea294d65568a528789ac75d874ad3527e3c45888541165853366",
-      "sha256": "8b5ed3bc06efea294d65568a528789ac75d874ad3527e3c45888541165853366",
+      "sha256": "74e9ae68f75b69dbdfc242fafa75ff5188fc3ace2ec58178cfcbb6c01c0ee4aa",
       "classification": "project_source"
     },
     {
@@ -3112,6 +3112,13 @@
       "sha256": "dc3c5d45e5ad9392e0c2bf19862598e3228527178ce8109d689b83f5aff400c1",
       "classification": "project_source",
       "origin": "OWN-DEVICE-MIX-INDEPENDENT-PRODUCER-IMPLEMENT/a1 first-retained-source/primary_device_mix_producer.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_device_value_producer.py",
+      "source_sha256": "b1e91d18f795ac8c2be7037be1e50d159054f633555a4e4c47ead5f913b10a7e",
+      "sha256": "e3df51ee8fb51cdb2a2978c1a73805d912655f53ea9f894bd0891fd9f56c8cb6",
+      "classification": "project_source",
+      "origin": "OWN-KEY25-INDEPENDENT-PRODUCER-IMPLEMENT/a1 first-retained-source/primary_device_value_producer.py"
     }
   ],
   "excluded_pending_assets": [

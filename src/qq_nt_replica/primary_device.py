@@ -52,6 +52,11 @@ class CapiObservation:
     public_key_bits: bytes | None
     error_code: int
     last_error: int = 0
+    method: int = 6
+
+    def __post_init__(self):
+        if type(self.method) is not int or self.method not in (5, 6):
+            raise InputError("CAPI success method requires source5 or6")
 
 
 @dataclass(frozen=True)
