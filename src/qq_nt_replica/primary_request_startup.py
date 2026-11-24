@@ -121,14 +121,23 @@ def _destroy_archive(runtime):
     return runtime._free_allocation(storage)
 
 
+
+def _destroy_status_tree(runtime, node):
+    if not node:
+        return
+    _destroy_status_tree(runtime, runtime.memory.load(node, 8))
+    _destroy_status_tree(runtime, runtime.memory.load(node + 8, 8))
+    _String.read(runtime, node + 40).destroy()
+    _invoke(runtime, 0xB75029, node)
+
+
 def invoke(runtime, rva, values):
     if values:
         raise InputError('request startup source interface takes no arguments')
     if rva == 0x1CF4360:
         return construct(runtime)
     if rva == 0x1C54B50:
-        from .primary_device_records import _destroy_record_tree
-        return _destroy_record_tree(runtime, runtime.memory.load(runtime.image_base + 0x677D038, 8))
+        return _destroy_status_tree(runtime, runtime.memory.load(runtime.image_base + 0x677D038, 8))
     if rva == 0x1C54B70:
         return _invoke(runtime, 0x75B030, runtime.image_base + 0x677D048)
     if rva == 0x1C54B80:

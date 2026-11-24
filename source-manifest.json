@@ -1246,7 +1246,7 @@
     {
       "path": "src/qq_nt_replica/primary_logger.py",
       "source_sha256": "cfe20373911f3894b446891f49f89f29927e0ec4fd903cd44eba69e84e73eea9",
-      "sha256": "72b62f4454ada7f5325c0fa2c5f1bdbe1523aa427bcf101a1ac8b9b39de93257",
+      "sha256": "0a80398553bf86cd7dce0399c78e7232cf42582f3c3df4b314b85dc347ef92fd",
       "classification": "project_source"
     },
     {
@@ -2175,7 +2175,7 @@
     {
       "path": "src/qq_nt_replica/primary_request_startup.py",
       "source_sha256": "2c30dc7d3cac2b83361058a60644e7c8572e6464b09111b749be0d6c2ae1b65d",
-      "sha256": "51558e558859d1c4f3de5b9c5d4f425672e560729b87ed4e843208ae4350d8d6",
+      "sha256": "7b5e6e7af392f7a775965653a95cc420a377bd90efc201e9985860b75ecb340b",
       "classification": "project_source"
     },
     {
