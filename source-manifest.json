@@ -2880,7 +2880,7 @@
     {
       "path": "src/qq_nt_replica/primary_worker_consumer.py",
       "source_sha256": "7e7f53a1beea50c8d66fa520aa843a56d17b34f358bad89d936cddf9e9f8fc58",
-      "sha256": "7e7f53a1beea50c8d66fa520aa843a56d17b34f358bad89d936cddf9e9f8fc58",
+      "sha256": "cbf10fcfc3a868286cd9aab523941c5c558f4c356b762b959df28a63980c8cc0",
       "classification": "project_source"
     },
     {
@@ -3091,6 +3091,13 @@
       "sha256": "a315621c9051b8946226c1d809e4213c703ae0ca7cee1af8e501cfd2f3ee802f",
       "classification": "project_source",
       "origin": "KIND2-GENUINE-FLAG1-GROUP-IMPLEMENT/a1 REV1 first-retained-source/primary_windows_qimei_environment.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_sdk_request.py",
+      "sha256": "f479adc6ee454f3b8cf0a170aab829437726229a8f8752adf2732402656e34ba",
+      "source_sha256": "f479adc6ee454f3b8cf0a170aab829437726229a8f8752adf2732402656e34ba",
+      "classification": "project_source",
+      "origin": "OWN-SDK-INDEPENDENT-RECORD-REQUEST-IMPLEMENT/a1 REV4 first-retained-source/primary_sdk_request.py"
     }
   ],
   "excluded_pending_assets": [

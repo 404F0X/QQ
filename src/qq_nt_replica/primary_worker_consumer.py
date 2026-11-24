@@ -172,18 +172,43 @@ def _vector(runtime, records):
     return pointer, values
 
 
+@dataclass(frozen=True)
+class DeviceRecord:
+    key: int
+    value: bytes
+
+    def __post_init__(self):
+        if type(self.key) is not int or not 0 <= self.key <= 0xFFFFFFFF or type(self.value) is not bytes:
+            raise InputError('device record requires a DWORD key and bytes')
+
+
+def serialize_device_records(records, metadata, encrypted):
+    """BD7FAF shared ordered record envelope, without native admission."""
+    if type(records) is not tuple or any(type(row) is not DeviceRecord for row in records):
+        raise InputError('ordered typed records tuple required')
+    if type(metadata) is not bytes or type(encrypted) is not bytes:
+        raise InputError('metadata and encrypted records require bytes')
+    output = bytearray()
+    def field(tag, raw):
+        output.extend(_varint(tag));output.extend(_varint(len(raw)));output.extend(raw)
+        if len(output)>_LIMIT:raise PrimaryProgramLimit('device consumer serialized string exceeds the bounded offline domain')
+    for row in records:
+        raw = _varint(8)+_varint(row.key) if row.key else b''
+        if row.value:raw += _varint(18)+_varint(len(row.value))+row.value
+        field(10,raw)
+    if metadata:field(18,metadata)
+    if encrypted:field(26,encrypted)
+    return bytes(output)
+
+
 def _serialize(runtime, records, metadata, encrypted):
-    result = _zero_string(runtime)
-    for key, value in records:
-        if runtime.memory.load(runtime.image_base + 0x3FD7118, 8) != runtime.image_base + 0xBDBE60:
+    rows=[]
+    for key,value in records:
+        if runtime.memory.load(runtime.image_base+0x3FD7118,8)!=runtime.image_base+0xBDBE60:
             raise PrimarySemanticUnavailable('BD7FAF current device record serializer is not bound')
-        encoded = _record(runtime, key, value)
-        _field(result, 10, encoded.value())
-        encoded.destroy()
-    if metadata.value():
-        _field(result, 18, metadata.value())
-    if encrypted.value():
-        _field(result, 26, encrypted.value())
+        rows.append(DeviceRecord(key,value.value()))
+    result=_zero_string(runtime)
+    _append(result,serialize_device_records(tuple(rows),metadata.value(),encrypted.value()))
     return result
 
 

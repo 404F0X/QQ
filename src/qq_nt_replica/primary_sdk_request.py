@@ -1,0 +1,36 @@
+"""Independent OFF-domain record request generation; no receiver admission or send."""
+from dataclasses import dataclass
+from .errors import InputError
+from .primary_vm import PrimarySemanticUnavailable
+from .primary_worker_consumer import serialize_device_records
+from .primary_request_material import RequestMaterialState,RequestMaterial
+
+@dataclass(frozen=True,repr=False)
+class SdkRecordRequest:
+    command: bytes
+    body: bytes
+    sdk_sequence: int
+    encoded: object
+    decode_material: RequestMaterial
+    serialized_records: bytes
+
+def create_record_request(records,metadata,*,feature46,tag,material_state,sdk_sequence,a2,commands,encoding_inputs):
+    """Explicit resolved A2; SDK sequence is distinct from message_id/wire sequence.
+
+    Retains this request's immutable material snapshot for subsequent decoding.
+    No pending state, response receipt or native receiver qualification is created.
+    """
+    if type(feature46) is not int or not 0<=feature46<=0xFFFFFFFF:
+        raise InputError('explicit observed feature46 DWORD required')
+    if type(a2) is not bool or type(commands) is not tuple or len(commands)!=4 or any(type(x)is not bytes or not x for x in commands):
+        raise InputError('resolved A2 and four initialized commands required')
+    if type(sdk_sequence)is not int or not 0<=sdk_sequence<=0xFFFFFFFFFFFFFFFF:
+        raise InputError('explicit SDK sequence required')
+    if not isinstance(material_state,RequestMaterialState) or type(encoding_inputs)is not dict:
+        raise InputError('material state and explicit encoding inputs required')
+    if feature46==1:
+        raise PrimarySemanticUnavailable('feature46 ON requires genuine device-mix material16/seed8 and cipher execution inputs; independent domain unavailable')
+    payload=serialize_device_records(records,metadata,b'')
+    encoded=material_state.encode(tag,payload,**encoding_inputs)
+    command=commands[int(a2)*2+int(encoded.status==0)]
+    return SdkRecordRequest(command,encoded.request.wire,sdk_sequence,encoded,material_state.current,payload)
