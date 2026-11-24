@@ -2030,7 +2030,7 @@
     {
       "path": "src/qq_nt_replica/primary_qimei_request_pipeline.py",
       "source_sha256": "e36ed07bf26c0c40c0868051d023feb723e35f2bb5bde4267dcaf2494e7ddd38",
-      "sha256": "e36ed07bf26c0c40c0868051d023feb723e35f2bb5bde4267dcaf2494e7ddd38",
+      "sha256": "2e0523e390c000ab7e70723fa243c9b093a6bce8be3c3e19d35c7ce065da125b",
       "classification": "project_source"
     },
     {
@@ -3063,6 +3063,13 @@
       "sha256": "afe1c0755bd1c40baeb1758286f156722f56ce28e5113036193d0e63f1c0d731",
       "classification": "project_source",
       "origin": "QQ-GUID-LEGACY-LOCATOR-IMPLEMENT/a1 first-retained-source/primary_windows_machine_guid_legacy_path.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_dispatch.py",
+      "source_sha256": "3251a610ebdad80686a9f033f532514ce1ba952fdde72ecbf1f65fd0d1122e69",
+      "sha256": "3251a610ebdad80686a9f033f532514ce1ba952fdde72ecbf1f65fd0d1122e69",
+      "classification": "project_source",
+      "origin": "KIND2-POSTPAYLOAD-DISPATCH-IMPLEMENT/a1 retained-source/primary_qimei_dispatch.py"
     }
   ],
   "excluded_pending_assets": [

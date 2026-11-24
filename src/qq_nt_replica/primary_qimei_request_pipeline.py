@@ -63,11 +63,25 @@ class QimeiRequestPipeline:
         external = {} if extra is None else {_bytes(key): _bytes(value) for key, value in extra.values.items()}
         effective = QimeiRequestExtras(external if external else {b'app_key': owner})
         device = self.request_producer.populate().encode(convert_ansi=self.convert_ansi)
-        header = self.material_producer.produce(owner, logical_mode, sequence).serialize()
-        envelope = self.envelope.encode(header, device, configuration=self.configuration)
-        request = self.transport.encode(envelope, mode=1 if logical_mode in (1, 2) else 2,
-                                        long_names=bool(external), extra=effective,
-                                        configuration=self.configuration, sign_enabled=self.sign_enabled)
-        if len(request.body) >= 1 << 32:
-            raise QimeiRequestBoundary('HTTP body length exceeds source DWORD domain')
-        return PreparedQimeiRequest(QimeiHttpRequest(request.body), request, owner, logical_mode, sequence)
+        return encode_payload(owner, logical_mode, sequence, device,
+            material_producer=self.material_producer,envelope=self.envelope,
+            configuration=self.configuration,transport=self.transport,
+            sign_enabled=self.sign_enabled,extra=QimeiRequestExtras(external))
+
+
+def encode_payload(owner,logical_mode,sequence,payload,*,material_producer,envelope,
+                   configuration,transport,sign_enabled,extra=None):
+    """Common post-payload65B74 encoding; does not invoke a device producer."""
+    owner,payload=_bytes(owner),_bytes(payload)
+    logical_mode,sequence=_integer(logical_mode)&0xFFFFFFFF,_integer(sequence)
+    if extra is not None and not isinstance(extra,QimeiRequestExtras):
+        raise QimeiRequestError('explicit external String extra map required')
+    if type(sign_enabled)is not bool:raise QimeiRequestError('explicit independent signature gate required')
+    external={} if extra is None else {_bytes(k):_bytes(v) for k,v in extra.values.items()}
+    effective=QimeiRequestExtras(external if external else {b'app_key':owner})
+    header=material_producer.produce(owner,logical_mode,sequence).serialize()
+    encoded=envelope.encode(header,payload,configuration=configuration)
+    request=transport.encode(encoded,mode=1 if logical_mode in (1,2) else 2,
+        long_names=bool(external),extra=effective,configuration=configuration,sign_enabled=sign_enabled)
+    if len(request.body)>=1<<32:raise QimeiRequestBoundary('HTTP body length exceeds source DWORD domain')
+    return PreparedQimeiRequest(QimeiHttpRequest(request.body),request,owner,logical_mode,sequence)
