@@ -3042,6 +3042,27 @@
       "sha256": "7b8d6dfec6d9b16f6fe3714ae909e64ec01c5c2f42004866988e7dec01a7b778",
       "classification": "project_source",
       "origin": "KIND2-REQUEST-STATE-COMPLETION/a1 retained-source/primary_qimei_request_state.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_application_binding.py",
+      "source_sha256": "97f9d9e38e72a48847889dc49a14afed1e23023e98948086a3917bd8f98cc16e",
+      "sha256": "f5873d1644cb777eb124a9fc3d1b5ae3f42f43524848f033432a02d580af3010",
+      "classification": "project_source",
+      "origin": "QQ-APPLICATION-BINDER-IMPLEMENT/a1 first-retained-source/primary_qimei_application_binding.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_machine_guid_legacy_path.py",
+      "source_sha256": "9433ac57445be87fe98c3ef3680f1f5cb5394a768fc9c9ff0d233cf5f26b5dee",
+      "sha256": "9433ac57445be87fe98c3ef3680f1f5cb5394a768fc9c9ff0d233cf5f26b5dee",
+      "classification": "project_source",
+      "origin": "QQ-GUID-LEGACY-LOCATOR-IMPLEMENT/a1 first-retained-source/primary_machine_guid_legacy_path.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_windows_machine_guid_legacy_path.py",
+      "source_sha256": "afe1c0755bd1c40baeb1758286f156722f56ce28e5113036193d0e63f1c0d731",
+      "sha256": "afe1c0755bd1c40baeb1758286f156722f56ce28e5113036193d0e63f1c0d731",
+      "classification": "project_source",
+      "origin": "QQ-GUID-LEGACY-LOCATOR-IMPLEMENT/a1 first-retained-source/primary_windows_machine_guid_legacy_path.py"
     }
   ],
   "excluded_pending_assets": [
