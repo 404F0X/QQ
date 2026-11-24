@@ -10,6 +10,7 @@ import math
 import os
 from pathlib import Path
 import platform
+import runpy
 import secrets
 import socket
 import sys
@@ -377,6 +378,30 @@ def _checked_inputs(path, login_root):
         if (not (source.is_relative_to(ROOT) or source.is_relative_to(login_root)) or
                 hashlib.sha256(source.read_bytes()).hexdigest() != row['sha256']):
             raise EntryError('AUTH_SOURCE_CHANGED')
+    return document
+
+
+def _load_login_components(login_root, inputs):
+    """Assemble the original public components under this entry's current pins.
+
+    The old resident snapshot remains immutable and its dependency paths remain
+    mandatory; the current reviewed INPUTS supplies their exact versions.
+    """
+    document = _checked_inputs(inputs, login_root)
+    current = {Path(row['path']).resolve() for row in document['files']}
+    legacy_path = login_root / 'ENTRY-SOURCE-BINDING.json'
+    if legacy_path.resolve() not in current:
+        raise EntryError('AUTH_LOGIN_SOURCE_CLOSURE_REQUIRED')
+    legacy = json.loads(legacy_path.read_bytes())
+    if not {Path(pin['path']).resolve() for pin in legacy['sources'].values()}.issubset(current):
+        raise EntryError('AUTH_LOGIN_SOURCE_CLOSURE_REQUIRED')
+    import mode1_binding as binding
+    G = runpy.run_path(str(login_root / 'G/entry.py'))['load_api']()
+    Q = sys.modules['independent_qr_login']
+    T = sys.modules['independent_login_ticket_exchange']
+    W = runpy.run_path(str(login_root / 'W/entry.py'))['load_api'](qr_api=Q)
+    adapter = binding.module(login_root / 'adapter/candidate.py', '_resident_own_adapter')
+    return Q, T, G, W, adapter
 
 
 def _close_login(transport, signer, owner, activation, core):
@@ -433,7 +458,7 @@ def _login_phase(options, network, notify, sleep, timing=None, local_capture=Non
     try:
         if timing is not None:
             timing('login.factory.begin')
-        Q, T, G, W, adapter = binding.load_all()
+        Q, T, G, W, adapter = _load_login_components(options.login_root, options.inputs)
         if local_capture is not None:
             local_capture.configure(Q, T, G)
         core = adapter.load_core()

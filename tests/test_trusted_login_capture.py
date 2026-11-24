@@ -54,6 +54,36 @@ class TrustedCapture(unittest.TestCase):
         return subject.LoginCapture(subject.CAPTURE_ROOT, login_root=LOGIN_ROOT,
             inputs=self.inputs, parameters={'synthetic_controlled_fixture': True})
 
+    def test_current_source_binding_assembles_original_public_loaders(self):
+        path = Path(__file__).resolve().parents[1] / 'run_authenticated_sdk_session.py'
+        spec = importlib.util.spec_from_file_location('current_login_entry_test', path)
+        entry = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(entry)
+        evidence = subject.CAPTURE_ROOT.parent / 'authenticated-sdk-integration-a1/trusted-capture-a1/source-binding-replan-a1'
+        current = evidence / 'INPUTS.json'
+        legacy = json.loads((LOGIN_ROOT / 'ENTRY-SOURCE-BINDING.json').read_bytes())
+        old_snapshot = (evidence / 'legacy-ENTRY-SOURCE-BINDING.json').read_bytes()
+        self.assertTrue((LOGIN_ROOT / 'ENTRY-SOURCE-BINDING.json').read_bytes() == old_snapshot)
+        document = entry._checked_inputs(current, LOGIN_ROOT)
+        pins = {Path(row['path']).resolve(): row['sha256'] for row in document['files']}
+        changed = [name for name, row in legacy['sources'].items()
+            if pins[Path(row['path']).resolve()] != row['sha256']]
+        self.assertEqual(changed, ['envelope.py'])
+        sys.path.insert(0, str(LOGIN_ROOT))
+        try:
+            import mode1_binding as binding
+            with self.assertRaisesRegex(RuntimeError, '^RESIDENT_SOURCE_CHANGED$'):
+                binding.checked(legacy['sources']['envelope.py'])
+            Q, T, G, W, adapter = entry._load_login_components(LOGIN_ROOT, current)
+            self.assertIs(Q, sys.modules['independent_qr_login'])
+            self.assertIs(T, sys.modules['independent_login_ticket_exchange'])
+            self.assertIs(W._qr_api, Q)
+            self.assertIs(G.StateError, sys.modules['independent_login_account_registration.common'].StateError)
+            self.assertTrue(adapter.HERE.resolve() == (LOGIN_ROOT / 'adapter').resolve())
+            self.assertTrue((LOGIN_ROOT / 'ENTRY-SOURCE-BINDING.json').read_bytes() == old_snapshot)
+        finally:
+            sys.path.remove(str(LOGIN_ROOT))
+
     def test_binary_order_alias_and_unavailable_are_explicit(self):
         capture = self.capture()
         capture.dto_types.add(OrdinaryFixture)
