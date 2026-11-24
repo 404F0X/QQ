@@ -261,3 +261,18 @@ class QimeiSystemSources:
         from .primary_windows_qimei_config import architecture_class
         data=StorageBuffer(bytes(48));unused,out=self._api('GetNativeSystemInfo',(data,),{'data':data})
         return architecture_class(int.from_bytes(out['data'].read(0,2),'little'))
+
+    def keyboard_type(self):
+        result,_=self._api('GetKeyboardType',(0,))
+        return result
+    def system_metric(self,index):
+        result,_=self._api('GetSystemMetrics',(_integer(index),))
+        return result
+    def request_time(self):
+        data=StorageBuffer(bytes(8))
+        unused,out=self._api('GetSystemTimeAsFileTime',(data,),{'data':data})
+        shifted=(int.from_bytes(out['data'].read(),'little')+0xFE624E212AC18000)&0xFFFFFFFFFFFFFFFF
+        signed=shifted-(1<<64) if shifted&(1<<63) else shifted
+        seconds=abs(signed)//10000000
+        if signed<0:seconds=-seconds
+        return (-1 if seconds>32536799999 else seconds)&0xFFFFFFFFFFFFFFFF

@@ -15,7 +15,7 @@ class WindowsQimeiSystemObservations(WindowsQimeiExtraObservations):
                  'GetComputerNameA': 'kernel32', 'GetUserNameA': 'advapi32', 'GetTimeZoneInformation': 'kernel32',
                  'GlobalMemoryStatusEx': 'kernel32', 'GetKeyboardLayoutList': 'user32', 'GetProcessHeap': 'kernel32',
                  'HeapAlloc': 'kernel32', 'HeapFree': 'kernel32', 'IsUserAnAdmin': 'shell32', '_localtime64_s': 'ucrtbase',
-                 'GetDriveTypeA': 'kernel32', 'QueryDosDeviceA': 'kernel32', 'GetVersionExA':'kernel32', 'GetNativeSystemInfo':'kernel32', 'GetCursorPos':'user32'}
+                 'GetDriveTypeA': 'kernel32', 'QueryDosDeviceA': 'kernel32', 'GetVersionExA':'kernel32', 'GetNativeSystemInfo':'kernel32', 'GetCursorPos':'user32','GetKeyboardType':'user32','GetSystemMetrics':'user32','GetSystemTimeAsFileTime':'kernel32'}
         if api is None:
             groups = {name: ctypes.WinDLL(name, use_last_error=True) for name in set(names.values())}
             self._api.update({name: getattr(groups[group], name) for name, group in names.items()})
@@ -31,7 +31,8 @@ class WindowsQimeiSystemObservations(WindowsQimeiExtraObservations):
             'HeapFree': (integer, (pointer, dword, pointer)), 'IsUserAnAdmin': (integer, ()),
             '_localtime64_s': (integer, (pointer, pointer)), 'GetDriveTypeA': (dword, (ctypes.c_char_p,)),
             'QueryDosDeviceA': (dword, (ctypes.c_char_p, pointer, dword)),
-            'GetVersionExA':(integer,(pointer,)), 'GetNativeSystemInfo':(None,(pointer,)), 'GetCursorPos':(integer,(pointer,))
+            'GetVersionExA':(integer,(pointer,)), 'GetNativeSystemInfo':(None,(pointer,)), 'GetCursorPos':(integer,(pointer,)),
+            'GetKeyboardType':(integer,(integer,)), 'GetSystemMetrics':(integer,(integer,)), 'GetSystemTimeAsFileTime':(None,(pointer,))
         }
         for name, (result, arguments) in signatures.items():
             self._api[name].restype, self._api[name].argtypes = result, arguments
@@ -66,6 +67,18 @@ class WindowsQimeiSystemObservations(WindowsQimeiExtraObservations):
 
     def read(self, namespace, name, *args):
         self._check()
+        if namespace=='qimei-api' and name in ('GetKeyboardType','GetSystemMetrics','GetSystemTimeAsFileTime'):
+            if name=='GetSystemTimeAsFileTime':
+                target,=args
+                if len(target.data)!=8:raise QimeiRequestBoundary('FILETIME requires eight-byte backing')
+                target.read();data=self._buffer(target)
+                self._calls[name]=self._calls.get(name,0)+1
+                self._api[name](data)
+                return self._reply(0,{'data':data})
+            if len(args)!=1 or type(args[0])is not int or args[0] not in ((0,) if name=='GetKeyboardType' else (0,1)):
+                raise QimeiRequestBoundary('local tail source API arguments required')
+            self._calls[name]=self._calls.get(name,0)+1
+            return self._reply(self._api[name](*args))
         if namespace=='qimei-api' and (name in ('GetVersionExA','GetNativeSystemInfo','GetCursorPos','RtlGetNtVersionNumbers') or
                 name=='GetModuleHandleA' and args==(b'ntdll.dll',) or
                 name=='GetProcAddress' and len(args)==2 and args[1]==b'RtlGetNtVersionNumbers'):

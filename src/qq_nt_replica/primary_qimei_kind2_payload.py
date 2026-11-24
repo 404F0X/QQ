@@ -77,3 +77,12 @@ def populate_platform_stage(state,system):
     if cursor.accepted:
         state.set_u32(19,cursor.values[0]);state.set_u32(20,cursor.values[1])
     return state
+
+
+def populate_local_tail(state,system):
+    """Contiguous52667..526BB only, before settings-refresh-controlled stages."""
+    state.set_u32(21,system.keyboard_type())
+    state.set_u32(22,system.system_metric(0))
+    state.set_u32(23,system.system_metric(1))
+    state.set_u64(24,system.request_time())
+    return state
