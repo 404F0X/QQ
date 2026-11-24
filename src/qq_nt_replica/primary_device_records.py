@@ -216,8 +216,7 @@ def _destroy_record_tree(runtime, node):
         return
     _destroy_record_tree(runtime, runtime.memory.load(node, 8))
     _destroy_record_tree(runtime, runtime.memory.load(node + 8, 8))
-    if runtime.memory.load(node + 0x28, 1) & 1:
-        runtime._free_allocation(runtime.memory.load(node + 0x38, 8))
+    _String.read(runtime, node + 40).destroy()
     runtime._free_allocation(node)
 
 

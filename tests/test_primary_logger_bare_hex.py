@@ -23,7 +23,7 @@ class ColdRepair(unittest.TestCase):
                 self.assertEqual(log._format(r,b'IW initialize : 0x%x',(arg,)),b'IW initialize : 0x'+want)
         for options in (0x18,0x24):
             m.store(b+0x6749CC0,options,8,source='test')
-            for fmt in (b'%X',b'%#x',b'%2x',b'%.2x',b'%lx'):
+            for fmt in (b'%#x',b'%2x',b'%.2x',b'%lx'):
                 with self.assertRaises(PrimarySemanticUnavailable):log._format(r,fmt,(1,))
             for args in ((),(None,),(True,)):
                 with self.assertRaises(UnknownMemory):log._format(r,b'%x',args)

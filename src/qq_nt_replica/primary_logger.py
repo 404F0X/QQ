@@ -375,8 +375,11 @@ def _format(runtime, template, arguments):
         if match is None:
             raise PrimarySemanticUnavailable('logger printf conversion requires unrecovered CRT formatting semantics')
         flags, width, precision, length, conversion = match.groups()
-        if options in (0x18, 0x24) and (flags or width or precision is not None or length or conversion not in (b'd', b'u', b's', b'x')):
-            raise PrimarySemanticUnavailable('logger finite-options supports only bare narrow d/u/s/x conversions')
+        if options in (0x18, 0x24):
+            bare = not flags and not width and conversion in (b'd', b'u', b's', b'x', b'X')
+            zero_hex = conversion in (b'x', b'X') and flags == b'0' and bool(width)
+            if precision is not None or length or not (bare or zero_hex):
+                raise PrimarySemanticUnavailable('logger finite-options supports bare narrow d/u/s/x/X or zero-padded constant-width hex')
         width, precision = int(width or b'0'), None if precision is None else int(precision)
         if width > _LIMIT or (precision is not None and precision > _LIMIT):
             raise PrimaryProgramLimit('logger printf field exceeds the bounded offline domain')
@@ -390,7 +393,7 @@ def _format(runtime, template, arguments):
             argument = arguments[index]
             index += 1
             if options in (0x18, 0x24):
-                if conversion in (b'd', b'u', b'x') and type(argument) is not int:
+                if conversion in (b'd', b'u', b'x', b'X') and type(argument) is not int:
                     raise UnknownMemory('logger finite-options reads an unobserved integer variadic argument')
                 if conversion == b's' and type(argument) is int and argument == 0:
                     raise PrimarySemanticUnavailable('logger finite-options NULL narrow CString is unsupported')

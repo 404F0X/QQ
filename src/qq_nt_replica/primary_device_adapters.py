@@ -446,7 +446,7 @@ def _destroy_cache_tree(runtime, node):
     if begin:
         memory.store(node + 0x38, begin, 8, source='1BED730.adapter_cache_end')
         runtime._free_allocation(begin)
-    runtime._free_allocation(node)
+    _invoke(runtime, 0xB75029, node)
 
 
 def destroy_cache(runtime):
