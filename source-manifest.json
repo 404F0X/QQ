@@ -1034,6 +1034,13 @@
       "classification": "project_source"
     },
     {
+      "path": "src/qq_nt_replica/primary_device_mix_producer.py",
+      "source_sha256": "dc3c5d45e5ad9392e0c2bf19862598e3228527178ce8109d689b83f5aff400c1",
+      "sha256": "dc3c5d45e5ad9392e0c2bf19862598e3228527178ce8109d689b83f5aff400c1",
+      "classification": "project_source",
+      "origin": "OWN-DEVICE-MIX-INDEPENDENT-PRODUCER-IMPLEMENT/a1 first-retained-source/primary_device_mix_producer.py"
+    },
+    {
       "path": "src/qq_nt_replica/primary_device_native.py",
       "source_sha256": "335ed7d4656d771032f618212eaeb0d5979b48e598264de153927845c84d800c",
       "sha256": "153ff5526ecfff9eaf5f38db2e17d8e96afb2d57a9e61821c8c571807c99ea21",
@@ -1064,10 +1071,24 @@
       "classification": "project_source"
     },
     {
+      "path": "src/qq_nt_replica/primary_device_record_adapter.py",
+      "source_sha256": "5677de1ec25d84923fb8085ff1bc667585fc9a03571690f56c5626150dd11905",
+      "sha256": "5677de1ec25d84923fb8085ff1bc667585fc9a03571690f56c5626150dd11905",
+      "classification": "project_source",
+      "origin": "OWN-SDK-FEATURE46-ISOLATED-CIPHER-IMPLEMENT/a1 first-retained-source/primary_device_record_adapter.py"
+    },
+    {
       "path": "src/qq_nt_replica/primary_device_record_cipher.py",
       "source_sha256": "827fe732fcd483ded8dc539846ccb187d7e4e9d20452545aed459d927e9a1cc0",
       "sha256": "7ab8f9bacd9a305b3ed14e339dc7568d08577c7b9f0ef9ca0978425c486681a4",
       "classification": "project_source"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_device_record_collector.py",
+      "source_sha256": "062c7b700c2c098e255b6dccf760a7ab4ce35f65ec64bc365799a2cc6d41546b",
+      "sha256": "062c7b700c2c098e255b6dccf760a7ab4ce35f65ec64bc365799a2cc6d41546b",
+      "classification": "project_source",
+      "origin": "OWN-137-INDEPENDENT-COLLECTOR-IMPLEMENT/a1 first-retained-source/primary_device_record_collector.py"
     },
     {
       "path": "src/qq_nt_replica/primary_device_records.py",
@@ -1110,6 +1131,13 @@
       "source_sha256": "d385a5272c80f5648ab25c266dc76c7719473e74385f95478f0a6b627a132afd",
       "sha256": "8c1b348affb776e8a11ef1c69e4d91886f4f108b6a4ad3db2a91b36715d34fa9",
       "classification": "project_source"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_device_value_producer.py",
+      "source_sha256": "b1e91d18f795ac8c2be7037be1e50d159054f633555a4e4c47ead5f913b10a7e",
+      "sha256": "e3df51ee8fb51cdb2a2978c1a73805d912655f53ea9f894bd0891fd9f56c8cb6",
+      "classification": "project_source",
+      "origin": "OWN-KEY25-INDEPENDENT-PRODUCER-IMPLEMENT/a1 first-retained-source/primary_device_value_producer.py"
     },
     {
       "path": "src/qq_nt_replica/primary_device_wmi.py",
@@ -1281,6 +1309,13 @@
       "source_sha256": "364ed615f24ad2bce44f10975006ddafa17b9fc2e3c7ba43a975a217e78b1258",
       "sha256": "364ed615f24ad2bce44f10975006ddafa17b9fc2e3c7ba43a975a217e78b1258",
       "classification": "project_source"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_machine_guid_legacy_path.py",
+      "source_sha256": "9433ac57445be87fe98c3ef3680f1f5cb5394a768fc9c9ff0d233cf5f26b5dee",
+      "sha256": "9433ac57445be87fe98c3ef3680f1f5cb5394a768fc9c9ff0d233cf5f26b5dee",
+      "classification": "project_source",
+      "origin": "QQ-GUID-LEGACY-LOCATOR-IMPLEMENT/a1 first-retained-source/primary_machine_guid_legacy_path.py"
     },
     {
       "path": "src/qq_nt_replica/primary_main_clock_inputs.py",
@@ -1789,6 +1824,12 @@
       "origin": "MAT-SIGN-OUTER-PREFIX-IMPLEMENT/a1 source-aligned bounded prefix; first authoring snapshot: outer-prefix-implementation/primary_outer_init.py"
     },
     {
+      "path": "src/qq_nt_replica/primary_own_sdk_request.py",
+      "classification": "project_source",
+      "source_sha256": "c6bc3b1252e123f38f560cd1002b0875518a94cd0594c5ac110ca2fd54258d0c",
+      "sha256": "c6bc3b1252e123f38f560cd1002b0875518a94cd0594c5ac110ca2fd54258d0c"
+    },
+    {
       "path": "src/qq_nt_replica/primary_payload.py",
       "source_sha256": "f103066c3c3bbd4260f39e385d96ed436b2f5d3600a52d0c2e2f6fdf63f1ca23",
       "sha256": "f103066c3c3bbd4260f39e385d96ed436b2f5d3600a52d0c2e2f6fdf63f1ca23",
@@ -1928,6 +1969,13 @@
       "classification": "project_source"
     },
     {
+      "path": "src/qq_nt_replica/primary_qimei_application_binding.py",
+      "source_sha256": "97f9d9e38e72a48847889dc49a14afed1e23023e98948086a3917bd8f98cc16e",
+      "sha256": "dd60145f92f7a9db1de8655993d90c85e808bd9f5bffd38466fe81153ffc3359",
+      "classification": "project_source",
+      "origin": "QQ-APPLICATION-BINDER-IMPLEMENT/a1 first-retained-source/primary_qimei_application_binding.py"
+    },
+    {
       "path": "src/qq_nt_replica/primary_qimei_beacon.py",
       "source_sha256": "43eea0f9609189b76fd2eefb211f5eb85c2d136a8165e03c9110ebbf779feb96",
       "sha256": "43eea0f9609189b76fd2eefb211f5eb85c2d136a8165e03c9110ebbf779feb96",
@@ -1954,10 +2002,24 @@
       "classification": "project_source"
     },
     {
+      "path": "src/qq_nt_replica/primary_qimei_dispatch.py",
+      "source_sha256": "3251a610ebdad80686a9f033f532514ce1ba952fdde72ecbf1f65fd0d1122e69",
+      "sha256": "3251a610ebdad80686a9f033f532514ce1ba952fdde72ecbf1f65fd0d1122e69",
+      "classification": "project_source",
+      "origin": "KIND2-POSTPAYLOAD-DISPATCH-IMPLEMENT/a1 retained-source/primary_qimei_dispatch.py"
+    },
+    {
       "path": "src/qq_nt_replica/primary_qimei_envelope.py",
       "source_sha256": "a16bbb1ad4a2ecaeeaa4a791320f44bd4b260f4e00a20388f6e774427e33c2be",
       "sha256": "a16bbb1ad4a2ecaeeaa4a791320f44bd4b260f4e00a20388f6e774427e33c2be",
       "classification": "project_source"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_environment_probes.py",
+      "source_sha256": "28778e176148c3b00340be9c4e4b1d7ad24e54b04d8afdb6505eea49119e00ab",
+      "sha256": "28778e176148c3b00340be9c4e4b1d7ad24e54b04d8afdb6505eea49119e00ab",
+      "classification": "project_source",
+      "origin": "KIND2-GENUINE-FLAG1-GROUP-IMPLEMENT/a1 REV1 first-retained-source/primary_qimei_environment_probes.py"
     },
     {
       "path": "src/qq_nt_replica/primary_qimei_extension_sources.py",
@@ -1978,6 +2040,13 @@
       "classification": "project_source"
     },
     {
+      "path": "src/qq_nt_replica/primary_qimei_getter.py",
+      "source_sha256": "531684f4d4bc4f008a68026d7b3da8701aaf550ae30ade137463c68b49315bf8",
+      "sha256": "531684f4d4bc4f008a68026d7b3da8701aaf550ae30ade137463c68b49315bf8",
+      "classification": "project_source",
+      "origin": "OWN-QIMEI-COLD-RECORD-INPUT-IMPLEMENT/a1 first-retained-source/primary_qimei_getter.py"
+    },
+    {
       "path": "src/qq_nt_replica/primary_qimei_identity_parser.py",
       "source_sha256": "f64c0496c905f6494d5368b123fe68e3cc1a9ac2e4794a780e166195aa887a53",
       "sha256": "f64c0496c905f6494d5368b123fe68e3cc1a9ac2e4794a780e166195aa887a53",
@@ -1989,6 +2058,34 @@
       "sha256": "882b573c9581e5a64ddf2b7d283fdf49de480c66ca167044751913604035cfa4",
       "classification": "project_source",
       "origin": "MAT-QIMEI-IPC-IMPLEMENT/a1 new source-derived implementation; authoring snapshot: qimei-ipc-implementation/primary_qimei_ipc.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_kind2_module_tree.py",
+      "source_sha256": "bfef5131b0ebc62897adc567a2f1597118c2d4b84f7fee7a9b070661a48d6202",
+      "sha256": "bfef5131b0ebc62897adc567a2f1597118c2d4b84f7fee7a9b070661a48d6202",
+      "classification": "project_source",
+      "origin": "QIMEI-TREEA-IMPLEMENT/a1 first-retained-source/primary_qimei_kind2_module_tree.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_kind2_payload.py",
+      "source_sha256": "3ace9b2dccaddb5d04851d6eaea4ed36acf23eed1f56a1f02736ee775e244967",
+      "sha256": "8cf9d08ae22f06319ec0477a9f8d86afa19b77657bc2c96dcabed9ad14da027e",
+      "classification": "project_source",
+      "origin": "KIND2-REQUEST-STAGES-IMPLEMENT/a1 first-retained-source/primary_qimei_kind2_payload.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_kind2_process_tree.py",
+      "source_sha256": "dedc14444bd9b4b3c6511b99a822462b91e9685ac2d8cc12fca00aad285932a5",
+      "sha256": "dedc14444bd9b4b3c6511b99a822462b91e9685ac2d8cc12fca00aad285932a5",
+      "classification": "project_source",
+      "origin": "QIMEI-TREEB-IMPLEMENT/a1 first-retained-source/primary_qimei_kind2_process_tree.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_kind2_request.py",
+      "source_sha256": "d0918726d7cfa5081b086099748ea0f555694e57ae61369779a1a4439b60f98b",
+      "sha256": "dd050c99c58a555b7143764e4e6355d208cba9fb37b86aa4098bb6cc6a07f892",
+      "classification": "project_source",
+      "origin": "KIND2-REQUEST-STAGES-IMPLEMENT/a1 first-retained-source/primary_qimei_kind2_request.py"
     },
     {
       "path": "src/qq_nt_replica/primary_qimei_kind5_request.py",
@@ -2044,6 +2141,13 @@
       "source_sha256": "86a2057971cccb7a056ab25398faca82456471a17be7a37cc9511d1d3941d034",
       "sha256": "86a2057971cccb7a056ab25398faca82456471a17be7a37cc9511d1d3941d034",
       "classification": "project_source"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_request_state.py",
+      "source_sha256": "7b8d6dfec6d9b16f6fe3714ae909e64ec01c5c2f42004866988e7dec01a7b778",
+      "sha256": "7b8d6dfec6d9b16f6fe3714ae909e64ec01c5c2f42004866988e7dec01a7b778",
+      "classification": "project_source",
+      "origin": "KIND2-REQUEST-STATE-COMPLETION/a1 retained-source/primary_qimei_request_state.py"
     },
     {
       "path": "src/qq_nt_replica/primary_qimei_sdk.py",
@@ -2263,6 +2367,13 @@
       "classification": "project_source"
     },
     {
+      "path": "src/qq_nt_replica/primary_sdk_request.py",
+      "sha256": "bcb856118698d18b08d3144c24b0f5580587d6c47f12746cc62cd9ae3854c023",
+      "source_sha256": "bcb856118698d18b08d3144c24b0f5580587d6c47f12746cc62cd9ae3854c023",
+      "classification": "project_source",
+      "origin": "OWN-SDK-INDEPENDENT-RECORD-REQUEST-IMPLEMENT/a1 REV4 first-retained-source/primary_sdk_request.py"
+    },
+    {
       "path": "src/qq_nt_replica/primary_sdk_table.py",
       "source_sha256": "94efd55a812551008805bf917fdd37e5147eae3ed61ea2f21e05b0c1ddab3299",
       "sha256": "94efd55a812551008805bf917fdd37e5147eae3ed61ea2f21e05b0c1ddab3299",
@@ -2342,8 +2453,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_signer.py",
-      "source_sha256": "3284517ba2f38548e60b440ebf13003b40a38c09e8db23d11039efe823e55745",
-      "sha256": "ebe3472b4532a20df40756cd29645d4a2475769eed4fe2330dc6e633c75b3e56",
+      "source_sha256": "f10c176dd08260e08b3580d8a54baf0d18b9e25c75b4e58299dfb31a795fcb29",
+      "sha256": "f10c176dd08260e08b3580d8a54baf0d18b9e25c75b4e58299dfb31a795fcb29",
       "classification": "project_source"
     },
     {
@@ -2587,6 +2698,13 @@
       "classification": "project_source"
     },
     {
+      "path": "src/qq_nt_replica/primary_windows_device_collection.py",
+      "source_sha256": "eef18dd44c6f0a62df4bafb70ac8ed94ecd5c1138827babba7ffb34bfee68a04",
+      "sha256": "eef18dd44c6f0a62df4bafb70ac8ed94ecd5c1138827babba7ffb34bfee68a04",
+      "classification": "project_source",
+      "origin": "OWN-137-INDEPENDENT-COLLECTOR-IMPLEMENT/a1 first-retained-source/primary_windows_device_collection.py"
+    },
+    {
       "path": "src/qq_nt_replica/primary_windows_device_files.py",
       "source_sha256": "269d801600e9747d8b78a4b1743afb3b560ecabc7756487c8a0c9a232d41dd67",
       "sha256": "269d801600e9747d8b78a4b1743afb3b560ecabc7756487c8a0c9a232d41dd67",
@@ -2633,6 +2751,13 @@
       "source_sha256": "9f9c1ed98693c7c74b4c2c485f8d1de3b5ebcc983c0959811067a34b4ef4a22e",
       "sha256": "9f9c1ed98693c7c74b4c2c485f8d1de3b5ebcc983c0959811067a34b4ef4a22e",
       "classification": "project_source"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_windows_machine_guid_legacy_path.py",
+      "source_sha256": "afe1c0755bd1c40baeb1758286f156722f56ce28e5113036193d0e63f1c0d731",
+      "sha256": "afe1c0755bd1c40baeb1758286f156722f56ce28e5113036193d0e63f1c0d731",
+      "classification": "project_source",
+      "origin": "QQ-GUID-LEGACY-LOCATOR-IMPLEMENT/a1 first-retained-source/primary_windows_machine_guid_legacy_path.py"
     },
     {
       "path": "src/qq_nt_replica/primary_windows_mmkv_host_init.py",
@@ -2767,6 +2892,13 @@
       "classification": "project_source"
     },
     {
+      "path": "src/qq_nt_replica/primary_windows_qimei_environment.py",
+      "source_sha256": "a315621c9051b8946226c1d809e4213c703ae0ca7cee1af8e501cfd2f3ee802f",
+      "sha256": "a315621c9051b8946226c1d809e4213c703ae0ca7cee1af8e501cfd2f3ee802f",
+      "classification": "project_source",
+      "origin": "KIND2-GENUINE-FLAG1-GROUP-IMPLEMENT/a1 REV1 first-retained-source/primary_windows_qimei_environment.py"
+    },
+    {
       "path": "src/qq_nt_replica/primary_windows_qimei_extensions.py",
       "source_sha256": "5cb7e36b4058369dfae31090e3805269f8f670ef48aa53e0263a30464d83f46d",
       "sha256": "5cb7e36b4058369dfae31090e3805269f8f670ef48aa53e0263a30464d83f46d",
@@ -2786,10 +2918,31 @@
       "origin": "MAT-QIMEI-IPC-IMPLEMENT/a1 new source-derived implementation; authoring snapshot: qimei-ipc-implementation/primary_windows_qimei_ipc.py"
     },
     {
+      "path": "src/qq_nt_replica/primary_windows_qimei_module_tree.py",
+      "source_sha256": "42a42ab120cce5b2eb94630fa68ad6559c2d843c58f578e5a9cbb5c0d896931c",
+      "sha256": "42a42ab120cce5b2eb94630fa68ad6559c2d843c58f578e5a9cbb5c0d896931c",
+      "classification": "project_source",
+      "origin": "QIMEI-TREEA-IMPLEMENT/a1 first-retained-source/primary_windows_qimei_module_tree.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_windows_qimei_process_tree.py",
+      "source_sha256": "c0672c4bc5c5439855cdb2ede253e4e5b8befe4dddfc59f1c6948e127cd4408f",
+      "sha256": "c0672c4bc5c5439855cdb2ede253e4e5b8befe4dddfc59f1c6948e127cd4408f",
+      "classification": "project_source",
+      "origin": "QIMEI-TREEB-IMPLEMENT/a1 first-retained-source/primary_windows_qimei_process_tree.py"
+    },
+    {
       "path": "src/qq_nt_replica/primary_windows_qimei_request_sources.py",
       "source_sha256": "48b8cc966ab86976b6ad433324ee07a1fb8739445dcba6ad956c7649ae720020",
       "sha256": "48b8cc966ab86976b6ad433324ee07a1fb8739445dcba6ad956c7649ae720020",
       "classification": "project_source"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_windows_qimei_settings.py",
+      "source_sha256": "496cd4e014ac249c884af02b89b72ad55059d9ac4f76719b6e714f250304fb09",
+      "sha256": "496cd4e014ac249c884af02b89b72ad55059d9ac4f76719b6e714f250304fb09",
+      "classification": "project_source",
+      "origin": "GENUINE-KIND2-CONFIG-ASSEMBLY-IMPLEMENT/a1 first-retained-source/primary_windows_qimei_settings.py"
     },
     {
       "path": "src/qq_nt_replica/primary_windows_qimei_settings_writer.py",
@@ -2825,8 +2978,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_windows_signer.py",
-      "source_sha256": "483f5d9bd3301d8f974f628b98d4b7cba2bc72627ab2ac8f18daffeb31b9923a",
-      "sha256": "483f5d9bd3301d8f974f628b98d4b7cba2bc72627ab2ac8f18daffeb31b9923a",
+      "source_sha256": "722483eb107fffa29a17a5136690776afe684b4d2b7009b37d5cdd74445c9e50",
+      "sha256": "722483eb107fffa29a17a5136690776afe684b4d2b7009b37d5cdd74445c9e50",
       "classification": "project_source"
     },
     {
@@ -2852,6 +3005,13 @@
       "source_sha256": "97b8ff16076f7ca79e047ae855410b1427369f0adfbf270a053abe5303179d2c",
       "sha256": "f04779fd2f689dbdf5f06bc05b80fbc552c19339bade87bee3a1a943db13011c",
       "classification": "project_source"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_windows_wmi_session.py",
+      "source_sha256": "73e65f88b98cb9e39baa88bd8568edd081c91d570b4ab19e4d286ba40d9aba86",
+      "sha256": "73e65f88b98cb9e39baa88bd8568edd081c91d570b4ab19e4d286ba40d9aba86",
+      "classification": "project_source",
+      "origin": "OWN-137-INDEPENDENT-COLLECTOR-IMPLEMENT/a1 first-retained-source/primary_windows_wmi_session.py"
     },
     {
       "path": "src/qq_nt_replica/primary_windows_worker_bridge.py",
@@ -2993,160 +3153,6 @@
       "sha256": "7dba6b4f69dfb63d532998f84f6d52ede5dfaf45d033653d8521a016da1639e3",
       "source_key": "resolver_replay",
       "dependencies": []
-    },
-    {
-      "path": "src/qq_nt_replica/primary_qimei_kind2_process_tree.py",
-      "source_sha256": "dedc14444bd9b4b3c6511b99a822462b91e9685ac2d8cc12fca00aad285932a5",
-      "sha256": "dedc14444bd9b4b3c6511b99a822462b91e9685ac2d8cc12fca00aad285932a5",
-      "classification": "project_source",
-      "origin": "QIMEI-TREEB-IMPLEMENT/a1 first-retained-source/primary_qimei_kind2_process_tree.py"
-    },
-    {
-      "path": "src/qq_nt_replica/primary_windows_qimei_process_tree.py",
-      "source_sha256": "c0672c4bc5c5439855cdb2ede253e4e5b8befe4dddfc59f1c6948e127cd4408f",
-      "sha256": "c0672c4bc5c5439855cdb2ede253e4e5b8befe4dddfc59f1c6948e127cd4408f",
-      "classification": "project_source",
-      "origin": "QIMEI-TREEB-IMPLEMENT/a1 first-retained-source/primary_windows_qimei_process_tree.py"
-    },
-    {
-      "path": "src/qq_nt_replica/primary_qimei_kind2_module_tree.py",
-      "source_sha256": "bfef5131b0ebc62897adc567a2f1597118c2d4b84f7fee7a9b070661a48d6202",
-      "sha256": "bfef5131b0ebc62897adc567a2f1597118c2d4b84f7fee7a9b070661a48d6202",
-      "classification": "project_source",
-      "origin": "QIMEI-TREEA-IMPLEMENT/a1 first-retained-source/primary_qimei_kind2_module_tree.py"
-    },
-    {
-      "path": "src/qq_nt_replica/primary_windows_qimei_module_tree.py",
-      "source_sha256": "42a42ab120cce5b2eb94630fa68ad6559c2d843c58f578e5a9cbb5c0d896931c",
-      "sha256": "42a42ab120cce5b2eb94630fa68ad6559c2d843c58f578e5a9cbb5c0d896931c",
-      "classification": "project_source",
-      "origin": "QIMEI-TREEA-IMPLEMENT/a1 first-retained-source/primary_windows_qimei_module_tree.py"
-    },
-    {
-      "path": "src/qq_nt_replica/primary_qimei_kind2_payload.py",
-      "source_sha256": "3ace9b2dccaddb5d04851d6eaea4ed36acf23eed1f56a1f02736ee775e244967",
-      "sha256": "8cf9d08ae22f06319ec0477a9f8d86afa19b77657bc2c96dcabed9ad14da027e",
-      "classification": "project_source",
-      "origin": "KIND2-REQUEST-STAGES-IMPLEMENT/a1 first-retained-source/primary_qimei_kind2_payload.py"
-    },
-    {
-      "path": "src/qq_nt_replica/primary_qimei_kind2_request.py",
-      "source_sha256": "d0918726d7cfa5081b086099748ea0f555694e57ae61369779a1a4439b60f98b",
-      "sha256": "dd050c99c58a555b7143764e4e6355d208cba9fb37b86aa4098bb6cc6a07f892",
-      "classification": "project_source",
-      "origin": "KIND2-REQUEST-STAGES-IMPLEMENT/a1 first-retained-source/primary_qimei_kind2_request.py"
-    },
-    {
-      "path": "src/qq_nt_replica/primary_qimei_request_state.py",
-      "source_sha256": "7b8d6dfec6d9b16f6fe3714ae909e64ec01c5c2f42004866988e7dec01a7b778",
-      "sha256": "7b8d6dfec6d9b16f6fe3714ae909e64ec01c5c2f42004866988e7dec01a7b778",
-      "classification": "project_source",
-      "origin": "KIND2-REQUEST-STATE-COMPLETION/a1 retained-source/primary_qimei_request_state.py"
-    },
-    {
-      "path": "src/qq_nt_replica/primary_qimei_application_binding.py",
-      "source_sha256": "97f9d9e38e72a48847889dc49a14afed1e23023e98948086a3917bd8f98cc16e",
-      "sha256": "dd60145f92f7a9db1de8655993d90c85e808bd9f5bffd38466fe81153ffc3359",
-      "classification": "project_source",
-      "origin": "QQ-APPLICATION-BINDER-IMPLEMENT/a1 first-retained-source/primary_qimei_application_binding.py"
-    },
-    {
-      "path": "src/qq_nt_replica/primary_machine_guid_legacy_path.py",
-      "source_sha256": "9433ac57445be87fe98c3ef3680f1f5cb5394a768fc9c9ff0d233cf5f26b5dee",
-      "sha256": "9433ac57445be87fe98c3ef3680f1f5cb5394a768fc9c9ff0d233cf5f26b5dee",
-      "classification": "project_source",
-      "origin": "QQ-GUID-LEGACY-LOCATOR-IMPLEMENT/a1 first-retained-source/primary_machine_guid_legacy_path.py"
-    },
-    {
-      "path": "src/qq_nt_replica/primary_windows_machine_guid_legacy_path.py",
-      "source_sha256": "afe1c0755bd1c40baeb1758286f156722f56ce28e5113036193d0e63f1c0d731",
-      "sha256": "afe1c0755bd1c40baeb1758286f156722f56ce28e5113036193d0e63f1c0d731",
-      "classification": "project_source",
-      "origin": "QQ-GUID-LEGACY-LOCATOR-IMPLEMENT/a1 first-retained-source/primary_windows_machine_guid_legacy_path.py"
-    },
-    {
-      "path": "src/qq_nt_replica/primary_qimei_dispatch.py",
-      "source_sha256": "3251a610ebdad80686a9f033f532514ce1ba952fdde72ecbf1f65fd0d1122e69",
-      "sha256": "3251a610ebdad80686a9f033f532514ce1ba952fdde72ecbf1f65fd0d1122e69",
-      "classification": "project_source",
-      "origin": "KIND2-POSTPAYLOAD-DISPATCH-IMPLEMENT/a1 retained-source/primary_qimei_dispatch.py"
-    },
-    {
-      "path": "src/qq_nt_replica/primary_windows_qimei_settings.py",
-      "source_sha256": "496cd4e014ac249c884af02b89b72ad55059d9ac4f76719b6e714f250304fb09",
-      "sha256": "496cd4e014ac249c884af02b89b72ad55059d9ac4f76719b6e714f250304fb09",
-      "classification": "project_source",
-      "origin": "GENUINE-KIND2-CONFIG-ASSEMBLY-IMPLEMENT/a1 first-retained-source/primary_windows_qimei_settings.py"
-    },
-    {
-      "path": "src/qq_nt_replica/primary_qimei_environment_probes.py",
-      "source_sha256": "28778e176148c3b00340be9c4e4b1d7ad24e54b04d8afdb6505eea49119e00ab",
-      "sha256": "28778e176148c3b00340be9c4e4b1d7ad24e54b04d8afdb6505eea49119e00ab",
-      "classification": "project_source",
-      "origin": "KIND2-GENUINE-FLAG1-GROUP-IMPLEMENT/a1 REV1 first-retained-source/primary_qimei_environment_probes.py"
-    },
-    {
-      "path": "src/qq_nt_replica/primary_windows_qimei_environment.py",
-      "source_sha256": "a315621c9051b8946226c1d809e4213c703ae0ca7cee1af8e501cfd2f3ee802f",
-      "sha256": "a315621c9051b8946226c1d809e4213c703ae0ca7cee1af8e501cfd2f3ee802f",
-      "classification": "project_source",
-      "origin": "KIND2-GENUINE-FLAG1-GROUP-IMPLEMENT/a1 REV1 first-retained-source/primary_windows_qimei_environment.py"
-    },
-    {
-      "path": "src/qq_nt_replica/primary_sdk_request.py",
-      "sha256": "5ad3dcd69f216af78c647ab80ec37d749716954d8dace977e2dc1fad2ee046c1",
-      "source_sha256": "f479adc6ee454f3b8cf0a170aab829437726229a8f8752adf2732402656e34ba",
-      "classification": "project_source",
-      "origin": "OWN-SDK-INDEPENDENT-RECORD-REQUEST-IMPLEMENT/a1 REV4 first-retained-source/primary_sdk_request.py"
-    },
-    {
-      "path": "src/qq_nt_replica/primary_device_record_adapter.py",
-      "source_sha256": "5677de1ec25d84923fb8085ff1bc667585fc9a03571690f56c5626150dd11905",
-      "sha256": "5677de1ec25d84923fb8085ff1bc667585fc9a03571690f56c5626150dd11905",
-      "classification": "project_source",
-      "origin": "OWN-SDK-FEATURE46-ISOLATED-CIPHER-IMPLEMENT/a1 first-retained-source/primary_device_record_adapter.py"
-    },
-    {
-      "path": "src/qq_nt_replica/primary_device_mix_producer.py",
-      "source_sha256": "dc3c5d45e5ad9392e0c2bf19862598e3228527178ce8109d689b83f5aff400c1",
-      "sha256": "dc3c5d45e5ad9392e0c2bf19862598e3228527178ce8109d689b83f5aff400c1",
-      "classification": "project_source",
-      "origin": "OWN-DEVICE-MIX-INDEPENDENT-PRODUCER-IMPLEMENT/a1 first-retained-source/primary_device_mix_producer.py"
-    },
-    {
-      "path": "src/qq_nt_replica/primary_device_value_producer.py",
-      "source_sha256": "b1e91d18f795ac8c2be7037be1e50d159054f633555a4e4c47ead5f913b10a7e",
-      "sha256": "e3df51ee8fb51cdb2a2978c1a73805d912655f53ea9f894bd0891fd9f56c8cb6",
-      "classification": "project_source",
-      "origin": "OWN-KEY25-INDEPENDENT-PRODUCER-IMPLEMENT/a1 first-retained-source/primary_device_value_producer.py"
-    },
-    {
-      "path": "src/qq_nt_replica/primary_qimei_getter.py",
-      "source_sha256": "531684f4d4bc4f008a68026d7b3da8701aaf550ae30ade137463c68b49315bf8",
-      "sha256": "531684f4d4bc4f008a68026d7b3da8701aaf550ae30ade137463c68b49315bf8",
-      "classification": "project_source",
-      "origin": "OWN-QIMEI-COLD-RECORD-INPUT-IMPLEMENT/a1 first-retained-source/primary_qimei_getter.py"
-    },
-    {
-      "path": "src/qq_nt_replica/primary_device_record_collector.py",
-      "source_sha256": "062c7b700c2c098e255b6dccf760a7ab4ce35f65ec64bc365799a2cc6d41546b",
-      "sha256": "062c7b700c2c098e255b6dccf760a7ab4ce35f65ec64bc365799a2cc6d41546b",
-      "classification": "project_source",
-      "origin": "OWN-137-INDEPENDENT-COLLECTOR-IMPLEMENT/a1 first-retained-source/primary_device_record_collector.py"
-    },
-    {
-      "path": "src/qq_nt_replica/primary_windows_wmi_session.py",
-      "source_sha256": "73e65f88b98cb9e39baa88bd8568edd081c91d570b4ab19e4d286ba40d9aba86",
-      "sha256": "73e65f88b98cb9e39baa88bd8568edd081c91d570b4ab19e4d286ba40d9aba86",
-      "classification": "project_source",
-      "origin": "OWN-137-INDEPENDENT-COLLECTOR-IMPLEMENT/a1 first-retained-source/primary_windows_wmi_session.py"
-    },
-    {
-      "path": "src/qq_nt_replica/primary_windows_device_collection.py",
-      "source_sha256": "eef18dd44c6f0a62df4bafb70ac8ed94ecd5c1138827babba7ffb34bfee68a04",
-      "sha256": "eef18dd44c6f0a62df4bafb70ac8ed94ecd5c1138827babba7ffb34bfee68a04",
-      "classification": "project_source",
-      "origin": "OWN-137-INDEPENDENT-COLLECTOR-IMPLEMENT/a1 first-retained-source/primary_windows_device_collection.py"
     }
   ],
   "excluded_pending_assets": [

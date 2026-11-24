@@ -183,6 +183,20 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
   当前仅有受控 pure 检查，不证明 actual provider/bootstrap、SDKReady、材料安装或 actual SIGN。
   refresh/complete 仍用原公共入口；notify/update 公开映射仍未证明。
 
+### 本方独立 cold SDK request component
+
+- own-business owner 可经 `initialize_own_sdk_request(request_capi=..., clock_inputs=..., random_environment=..., state17_owner=..., transport_context=...)`
+  一次绑定，再以 `create_own_device_request(records)` 经原公共 operation fencing 构造请求。
+  clocks 显式包含 wall_seconds/monotonic_ns/clock_ns；生产环境借用 SystemRequestCapi、真实时钟及
+  WindowsDeviceValueEnvironment.random_bytes(4) 的 canonical rand_s；不使用测试熵或 secrets 替代源证明。
+- component 自持 fresh flags0、counter1、zero168B material及连续 MT；不是原SDK receiver/pending资格，
+  不访问 receiver_state、不创建原pending、不重置warm metadata。绑定确认实际SDK cache+24 empty，构造时重读当前metadata及feature46。
+  命令及getToken解码沿用固定源语义；先编码并固定decode snapshot，再type选择，最后取旧SDK序号并递增。
+  编码/type失败不提前消耗SDKcounter，已发生material/MT变化不回滚；当前transport None不表示网络可用。
+  feature46 ON要求同owner state17 producer及实际PID/clock/formatter状态，OFF不调用cipher。
+- clock/CAPI/observation接口为借用，不由component关闭；client关闭component逻辑生命周期。
+  当前受控组合到既有encoder通过，actual同owner137→policy2 SIGN仍未执行；notify/update及完整Goal仍未完成。
+
 ### SDK、异步消费者与登录
 
 - 四 SDK 命令均消费完整 payload；status0 也加密 payload，没有纯握手空 body 捷径。

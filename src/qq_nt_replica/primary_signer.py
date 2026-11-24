@@ -1161,6 +1161,18 @@ class PrimarySigner:
 
 
 
+    def initialize_own_sdk_request(self, **inputs):
+        from .primary_own_sdk_request import OwnColdSdkRequestOwner
+        if getattr(self, '_own_sdk_request', None) is not None:
+            raise InputError('own request component already attached')
+        self._own_sdk_request = OwnColdSdkRequestOwner(self.runtime, **inputs)
+
+    def create_own_device_request(self, records):
+        component = getattr(self, '_own_sdk_request', None)
+        if component is None:
+            raise InputError('own request component is not attached')
+        return component.create_device_request(records)
+
     def initialize_provider(self, metadata, *, private_context_tail=_PROVIDER_TAIL_FROM_ENVIRONMENT):
 
         if self.failed:

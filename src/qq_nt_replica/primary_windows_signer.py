@@ -258,6 +258,7 @@ def open_windows_signer(*, bridge_path, storage_root, host_profile_string, initi
             from .primary_windows_signer_setup import IndependentWindowsSetup
             owner._independent_setup = IndependentWindowsSetup(owner)
             owner._independent_setup.prepare_business(**own_business_config)
+            owner._own_business_initialized = True
         elif independent_provider_metadata is not None:
             from .primary_windows_signer_setup import IndependentWindowsSetup
             owner._independent_setup = IndependentWindowsSetup(owner)
@@ -487,6 +488,14 @@ class WindowsSigner:
     def initialize_sdk(self):
         return self._operation('initialize_sdk')
 
+    def initialize_own_sdk_request(self, **inputs):
+        if not getattr(self, '_own_business_initialized', False):
+            raise InputError('own request requires own business initialization')
+        return self._operation('initialize_own_sdk_request', **inputs)
+
+    def create_own_device_request(self, records):
+        return self._operation('create_own_device_request', records)
+
     def initialize_provider(self, metadata, *, private_context_tail):
         return self._operation('initialize_provider', metadata, private_context_tail=private_context_tail)
 
@@ -636,6 +645,10 @@ class WindowsSigner:
                 if self._files.pending_handles or any(row.get('completion') == 'unknown' for row in self._files.cleanup_records):
                     raise PrimarySemanticUnavailable('Windows signer file cleanup retains pending handles or unknown native completion')
             attempt('device_files', release_files)
+        if self._signer is not None:
+            component = getattr(self._signer, '_own_sdk_request', None)
+            if component is not None and not component.closed:
+                attempt('own_sdk_request', component.close)
         consumers_closed = True
         if self._notification_environment is not None:
             def release_notification_environment():
