@@ -1,4 +1,5 @@
 import ctypes
+import os
 
 from .primary_qimei_extra_sources import HKCU
 from .primary_qimei_observations import CLASSIFIER_RULES
@@ -14,7 +15,7 @@ class WindowsQimeiSystemObservations(WindowsQimeiExtraObservations):
                  'GetComputerNameA': 'kernel32', 'GetUserNameA': 'advapi32', 'GetTimeZoneInformation': 'kernel32',
                  'GlobalMemoryStatusEx': 'kernel32', 'GetKeyboardLayoutList': 'user32', 'GetProcessHeap': 'kernel32',
                  'HeapAlloc': 'kernel32', 'HeapFree': 'kernel32', 'IsUserAnAdmin': 'shell32', '_localtime64_s': 'ucrtbase',
-                 'GetDriveTypeA': 'kernel32', 'QueryDosDeviceA': 'kernel32'}
+                 'GetDriveTypeA': 'kernel32', 'QueryDosDeviceA': 'kernel32', 'GetVersionExA':'kernel32', 'GetNativeSystemInfo':'kernel32', 'GetCursorPos':'user32'}
         if api is None:
             groups = {name: ctypes.WinDLL(name, use_last_error=True) for name in set(names.values())}
             self._api.update({name: getattr(groups[group], name) for name, group in names.items()})
@@ -29,7 +30,8 @@ class WindowsQimeiSystemObservations(WindowsQimeiExtraObservations):
             'GetProcessHeap': (pointer, ()), 'HeapAlloc': (pointer, (pointer, dword, ctypes.c_size_t)),
             'HeapFree': (integer, (pointer, dword, pointer)), 'IsUserAnAdmin': (integer, ()),
             '_localtime64_s': (integer, (pointer, pointer)), 'GetDriveTypeA': (dword, (ctypes.c_char_p,)),
-            'QueryDosDeviceA': (dword, (ctypes.c_char_p, pointer, dword))
+            'QueryDosDeviceA': (dword, (ctypes.c_char_p, pointer, dword)),
+            'GetVersionExA':(integer,(pointer,)), 'GetNativeSystemInfo':(None,(pointer,)), 'GetCursorPos':(integer,(pointer,))
         }
         for name, (result, arguments) in signatures.items():
             self._api[name].restype, self._api[name].argtypes = result, arguments
@@ -38,6 +40,9 @@ class WindowsQimeiSystemObservations(WindowsQimeiExtraObservations):
         self._wow64_procedure = None
         self._kernel_module = None
         self._process = None
+        self._platform_pid = os.getpid()
+        self._ntdll_module = None
+        self._ntdll_procedure = None
 
     def _allowed_registry(self, root, path):
         return ((root == HKLM and (path in (PROCESSOR_KEY, WINDOWS_KEY, BIOS_KEY) or path in {row[0] for row in CLASSIFIER_RULES} or path.startswith(KEYBOARD_KEY)
@@ -61,6 +66,11 @@ class WindowsQimeiSystemObservations(WindowsQimeiExtraObservations):
 
     def read(self, namespace, name, *args):
         self._check()
+        if namespace=='qimei-api' and (name in ('GetVersionExA','GetNativeSystemInfo','GetCursorPos','RtlGetNtVersionNumbers') or
+                name=='GetModuleHandleA' and args==(b'ntdll.dll',) or
+                name=='GetProcAddress' and len(args)==2 and args[1]==b'RtlGetNtVersionNumbers'):
+            return self._platform_read(name,args)
+
         if namespace != 'qimei-api':
             raise QimeiRequestBoundary('unsupported system observation namespace')
         if name == 'RegOpenKeyExA':
@@ -186,3 +196,32 @@ class WindowsQimeiSystemObservations(WindowsQimeiExtraObservations):
             if self._allocations:
                 raise QimeiRequestBoundary('system backend could not close owned heap allocations')
         super().close()
+
+    def _platform_read(self,name,args):
+        self._check()
+        if os.getpid()!=self._platform_pid:raise QimeiRequestBoundary('platform backend belongs to its creator process')
+        if name=='GetModuleHandleA':
+            self._calls[name]=self._calls.get(name,0)+1
+            self._ntdll_module=self._api[name](b'ntdll.dll') or 0
+            return self._reply(self._ntdll_module,width=64)
+        if name=='GetProcAddress':
+            module,symbol=args
+            if symbol!=b'RtlGetNtVersionNumbers' or self._ntdll_module is None or module!=self._ntdll_module:raise QimeiRequestBoundary('version module lookup is not owned')
+            self._calls[name]=self._calls.get(name,0)+1
+            self._ntdll_procedure=self._api[name](module,symbol) or 0
+            return self._reply(self._ntdll_procedure,width=64)
+        if name=='RtlGetNtVersionNumbers':
+            proc,*targets=args
+            if not proc or proc!=self._ntdll_procedure or len(targets)!=3 or any(len(t.data)!=4 for t in targets):raise QimeiRequestBoundary('version procedure/buffers are not owned')
+            for t in targets:t.read()
+            data=[self._buffer(t) for t in targets]
+            ctypes.WINFUNCTYPE(None,*([ctypes.POINTER(ctypes.c_uint32)]*3))(proc)(*(ctypes.cast(d,ctypes.POINTER(ctypes.c_uint32)) for d in data))
+            self._calls[name]=self._calls.get(name,0)+1
+            return self._reply(0,dict(zip(('major','minor','build'),data)))
+        target,=args;size={'GetVersionExA':148,'GetNativeSystemInfo':48,'GetCursorPos':8}[name]
+        if len(target.data)!=size:raise QimeiRequestBoundary('platform structure has wrong backing size')
+        target.read()
+        if name=='GetVersionExA' and int.from_bytes(target.read(0,4),'little')!=148:raise QimeiRequestBoundary('version structure size missing')
+        data=self._buffer(target);result=self._api[name](data)
+        self._calls[name]=self._calls.get(name,0)+1
+        return self._reply(0 if name=='GetNativeSystemInfo' else result,{'data':data})

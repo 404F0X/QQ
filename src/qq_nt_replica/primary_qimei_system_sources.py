@@ -233,3 +233,31 @@ class QimeiSystemSources:
 
     def request_version(self):
         return 2
+
+    def memory_status(self):
+        data=StorageBuffer(bytes(64)).write(0,(64).to_bytes(4,'little'))
+        status,out=self._api('GlobalMemoryStatusEx',(data,),{'data':data})
+        values=(0,)*7
+        if status:
+            d=out['data'];values=(int.from_bytes(d.read(4,4),'little'),)+tuple(int.from_bytes(d.read(o,8),'little') for o in (8,16,24,32,40,48))
+        return SourceNumbers(bool(status),values)
+    def cursor_position(self):
+        data=StorageBuffer(bytes(8));status,out=self._api('GetCursorPos',(data,),{'data':data})
+        return SourceNumbers(bool(status),tuple(int.from_bytes(out['data'].read(o,4),'little') for o in (0,4)) if status else (0,0))
+    def os_classification(self):
+        from .primary_windows_qimei_config import classify_version
+        data=StorageBuffer(bytes(148)).write(0,(148).to_bytes(4,'little'))
+        unused,out=self._api('GetVersionExA',(data,),{'data':data})
+        major,minor,build=(int.from_bytes(out['data'].read(o,4),'little') for o in (4,8,12))
+        if (major,minor)==(6,2):
+            module,_=self._api('GetModuleHandleA',(b'ntdll.dll',),width=64)
+            proc,_=self._api('GetProcAddress',(module,b'RtlGetNtVersionNumbers'),width=64)
+            if proc:
+                a,b,c=(StorageBuffer(v.to_bytes(4,'little')) for v in (major,minor,build))
+                unused,out=self._api('RtlGetNtVersionNumbers',(proc,a,b,c),{'major':a,'minor':b,'build':c})
+                major,minor,build=(int.from_bytes(out[k].read(),'little') for k in ('major','minor','build'));build&=0xFFFF
+        return classify_version(major,minor,build)
+    def architecture(self):
+        from .primary_windows_qimei_config import architecture_class
+        data=StorageBuffer(bytes(48));unused,out=self._api('GetNativeSystemInfo',(data,),{'data':data})
+        return architecture_class(int.from_bytes(out['data'].read(0,2),'little'))

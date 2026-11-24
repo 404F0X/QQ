@@ -60,3 +60,20 @@ def populate_base_prefix(state,system):
         compatibility=system.compatibility_flags(executable.value)
         if compatibility.accepted:state.set_string(7,compatibility.value)
     return state
+
+
+def populate_platform_stage(state,system):
+    """Contiguous5250C..52662, after base prefix and before flag-controlled fields."""
+    names=system.machine_names()
+    if names.accepted:
+        state.set_string(4,names.values[0]);state.set_string(5,names.values[1])
+    state.set_u32(10,system.os_classification())
+    memory=system.memory_status()
+    if memory.accepted:
+        state.set_u32(11,memory.values[0])
+        for number,value in enumerate(memory.values[1:],12):state.set_u64(number,value)
+    state.set_u32(18,system.architecture())
+    cursor=system.cursor_position()
+    if cursor.accepted:
+        state.set_u32(19,cursor.values[0]);state.set_u32(20,cursor.values[1])
+    return state
