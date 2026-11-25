@@ -78,7 +78,9 @@ class RecordCipherHost:
             if type(records)is not tuple or any(type(r)is not DeviceRecord for r in records):raise InputError('typed ordered records required')
             array=self.allocate(24*len(records));self.memory.write(array,bytes(24*len(records)),source='record input')
             for i,row in enumerate(records):
-                p=self.allocate(len(row.value)+1);self.memory.write(p,row.value+b'\0',source='record input bytes')
+                p=0
+                if row.value:
+                    p=self.allocate(len(row.value)+1);self.memory.write(p,row.value+b'\0',source='record input bytes')
                 for off,v,w in ((0,row.key,4),(8,p,8),(16,len(row.value),4)):self.memory.store(array+i*24+off,v,w,source='record input row')
             out=self.allocate(8);length=self.allocate(4)
             program=load_program('device-records');cells=self.allocate((program.cell_count+1)*32);arena=self.allocate(arena_reservation(program))

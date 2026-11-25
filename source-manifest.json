@@ -1072,8 +1072,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_device_record_adapter.py",
-      "source_sha256": "512b6d9b548f25a67454759ae6d5c88ca836449a0f3482bd397aa8e83310f65a",
-      "sha256": "512b6d9b548f25a67454759ae6d5c88ca836449a0f3482bd397aa8e83310f65a",
+      "source_sha256": "bec4d9b6be7d45fda6d5c4ec0545903bdc8c234dd6a05082d1cc6fcf53cddd9d",
+      "sha256": "bec4d9b6be7d45fda6d5c4ec0545903bdc8c234dd6a05082d1cc6fcf53cddd9d",
       "classification": "project_source",
       "origin": "OWN-SDK-FEATURE46-ISOLATED-CIPHER-IMPLEMENT/a1 first-retained-source/primary_device_record_adapter.py"
     },

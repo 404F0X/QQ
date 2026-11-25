@@ -10,6 +10,29 @@ import test_primary_sdk_request as request_checks
 class Cipher(unittest.TestCase):
     inputs=dict(state17=bytes(range(17)),process_id=123,wall_seconds=100,formatter_options=0)
     rows=(DeviceRecord(1,b'controlled'),DeviceRecord(9,b'long'*30),DeviceRecord(0,b''))
+    def test_empty_value_null_abi_with_nonempty_neighbors(self):
+        from unittest.mock import patch
+        from qq_nt_replica import primary_device_record_adapter as adapter
+        original=adapter.run_primary_device_record_cipher
+        rows=(DeviceRecord(1,b'a\0b'),DeviceRecord(2,b''),DeviceRecord(3,b'end'))
+        host=RecordCipherHost(**self.inputs)
+        seen=[]
+        def run(vm):
+            array=next(p for p,size in host.owned.items() if size==24*len(rows))
+            for i,row in enumerate(rows):
+                base=array+i*24
+                pointer=host.memory.load(base+8,8);length=host.memory.load(base+16,4)
+                self.assertEqual(host.memory.load(base,4),row.key)
+                self.assertEqual(length,len(row.value))
+                if row.value:self.assertEqual(host.memory.read(pointer,length+1),row.value+b'\0')
+                else:self.assertEqual(pointer,0)
+                seen.append((bool(pointer),length))
+            return original(vm)
+        with patch.object(adapter,'run_primary_device_record_cipher',side_effect=run):
+            self.assertTrue(host.encrypt(rows))
+        self.assertEqual(seen,[(True,3),(False,0),(True,3)])
+        self.assertEqual(host.owned,{})
+
     def test_actual_cipher_determinism_inputs_and_cleanup(self):
         host=RecordCipherHost(**self.inputs);output=host.encrypt(self.rows)
         self.assertTrue(output);self.assertEqual(host.owned,{})

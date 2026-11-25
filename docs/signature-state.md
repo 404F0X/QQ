@@ -27,6 +27,18 @@ B已通过独立source review及6项MODEL检查；正式纯decoder现已对保�
 
 binding active finally始终清理，不嵌套既有public operation；真实complete／cancel异常按原fence抛出，部分副作用不回滚、不转成功DTO。MODEL使用实际Bparser及原pending检查、明确公共操作ports doubles；尚未在真实owner执行该receiver。A15MODEL、B6MODEL／16项保存实际wire offline验证分别复用其原范围，不等于真实认证／安装／发布／后续消费。旧Pure Own reply MODEL close FAIL及SDK1003根因unknown保留。证据：`A/overall-signing-service/own-cold12-receive-implementation/`。
 
+## record137 空value的source ABI
+
+feature46 ON 的默认路径 `encode_record_request→encrypt_device_records→RecordCipherHost→PrimaryVM` 已核对。fixed source BD69BB..BD69CB 对空value写NULL／len0；adapter现按此投影，不再为空bytes分配非NULL backing。非空值仍按显式len复制并追加NUL，embeddedNUL与原清理所有权不变。该NULL修复已获独立review APPROVE及4项检查PASS。原1105B固定MODEL fixture含key0＋empty，修改前后逐bytes相同，不向actual外推；另以actual137 records＋明确MODEL host参数做baseline／candidate独立CPU各一次，两者均4491B且逐bytes相同。这是HYBRID／MODEL敏感性对照，不是原actual cipher复现或独立cipher真值。
+
+既存actual安全报告确认firstsnapshot137有2条empty、无key0＋empty，savedtuple与plainrecords一致；原值仅在可信本地分析中使用。zero-keyempty PB差异不在本次修复范围，未改。原actual cipher调用的state17／PID／wall_seconds／formatter_options未进入snapshot，因此actual137-counterfactual仍UNKNOWN；虽有records及cipher输出，也不等于保存全部原始inputs。未拿监督PID、currenttime或默认值补齐。VM是否在其他输入观察NULL差别、实际cipher／1003因果仍未证。证据：`A/overall-signing-service/request-independent-points/record137-empty-abi-implementation/{RESULT.md,sensitivity.json}`。
+
+## 请求生产独立检查的当前边界
+
+P256原受控检查0/24在首个scalar1 raw-scalar oracle差异停止，原FAIL保留。后续known peer private7的6/6 server-side ECDH／HKDF一致；非均匀／highbit的4个正常域case也匹配raw-scalar oracle。保存actual client public精确对应sentbody field2，client／decodedpeer两点均合法；这不证明实际ECDH key正确。source co-Z scalar1 bitcount映射仍未闭合，finding归档、不改算法，不声称QQ故意非标准或已排除所有ECDH问题。Opus先前系统性猜测已撤回，顾问意见不作source证明 [RI]。
+
+fresh command selector值匹配已证，不等于执行原callback或传输资格。137／profile确实进入AEAD/body及SIGN，不是未使用输入；但其完整独立正确性及1003因果仍unknown。完整builtin参数snapshot、原args／返回值不变的wrapper仅在analysis MODEL／HYBRID检查过，下一actual payload尚未整合。下一actual前需绑定代码版本的producer全参snapshot及必要CAPI输入采集；不能以成品DTO替代原始生成输入，ECDH原private仍缺。没有新probe GO。既有VM trace feasibility已确认局部观察接口，尚未执行算法trace；caller metadata来源另作有界核对，不授权重建VM或扩算法研究 [RI]。
+
 ## 整体大签名服务
 
 当前交付形态是 Python 库与 Windows 单 owner 的串行运行时；正常 core 已实现并实际产生 SIGN 三字段，不只是接口外壳。限定当前 C 的入口检索未发现 HTTP 服务；这不是新增 HTTP、部署或池化目标 [OS]。
@@ -34,7 +46,7 @@ binding active finally始终清理，不嵌套既有public operation；真实com
 | 层次 | 当前证据与边界 |
 | --- | --- |
 | ResultProduced | a7 与一次真实 binder 请求已产生正常 SIGN 三字段；后者逐 bytes 核对并实际进入 frame、发送。 |
-| 独立数学 Verified | 完整 SIGN 尚无适用的同输入独立真值。reference/direct 共享 PrimaryRuntime、程序及 host 族，reference 也可进入 direct helper，不能自动充当独立 oracle；限定已知材料未找到可立即执行的完整独立点，不代表全历史不存在。实际 P256 检查因未保存同次 private scalar／sharedX 而停于输入缺口，不是已发现数学错误 [P256]。 |
+| 独立数学 Verified | 完整 SIGN 尚无适用的同输入独立真值。reference/direct 共享 PrimaryRuntime、程序及 host 族，reference 也可进入 direct helper，不能自动充当独立 oracle；限定已知材料未找到可立即执行的完整独立点，不代表全历史不存在。实际P256因未保存同次private scalar／sharedX仍停于输入缺口；受控scalar1 raw-oracle差异与6/6 server互通分别保留其范围，不能外推actual正确或失败 [P256][RI]。 |
 | 普通业务 Accepted | 仅一次 SsoEstablishShareKey 关联回复 SDK1003，不能证明服务器校验了全部 SIGN，更不证明普通业务命令已接受。 |
 
 SDK1003 的源消息已知为“下游服务失败”，根因仍 unknown；它不是 owner fatal。上次 actual runtime 已正常返回级关闭，不是当前持续运行中的服务，逐 handle 退出仍 unknown [SA][BR1]。B 的真实新材料认证、安装、发布与同 runtime 后续 SIGN 消费未闭环；它可能影响首次及持续 SIGN，不能只称维护路径。源 counter→BA22B0→signed32 十进制临时量已证，但栈槽多生命周期／alias 传播未闭合，seq 的数学消费仍 unknown，既非已证 bug 也非1003根因；不新增 public seq 参数。
@@ -506,3 +518,5 @@ GCM 失败不使用 primitive 可能附带的 plaintext，status3 不安装；�
 
 - [POST] `A/overall-signing-service/OPUS-AFTER-RECEIVER-{CONTEXT,ADVICE}.md`：交付后完整brief及顾问取舍，非source审查／行为证据。
 - [TR] `A/overall-signing-service/transport-contract/{fixed52230,login-side}.md`、`transport-contract/readiness-source/RESULT.md`：两侧传输入口与尚未绑定的readiness资格；未证明auth不匹配或1003原因，无新probe授权。
+
+- [RI] `A/overall-signing-service/request-independent-points/` 下 `p256-{controlled-check,interoperability-diag,source-diagnosis}`、`OPUS-P256-OUTCOME-{CONTEXT,ADVICE}.md`、`sdk-command-selection.md`、`establish-input-reachability.md`、`record137-nonzero-sensitivity/RESULT.json`及`actual137-counterfactual/`：受控独立检查／源边界／HYBRID对照与实际输入缺口各按原范围，不作1003归因。
