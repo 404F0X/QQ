@@ -115,6 +115,33 @@ class FreshCold12Binding:
             return EncodedOwnCold12(frame, prepared.wire_sequence, request.sdk_sequence, result, request)
         finally:self._active = False
 
+    def receive(self, encoded, frame):
+        from .primary_source_cold12_reply import decode_source_cold12_reply
+        from .primary_own_sdk_response import OwnCompletionResult
+        self._check()
+        if self._active:
+            raise InputError('cold12 receiving cannot reenter')
+        if type(encoded) is not EncodedOwnCold12:
+            raise InputError('cold12 receiving requires encoded request data')
+        request = encoded._request
+        self.component.check_device_request(request)
+        if (type(encoded.wire_sequence) is not int or not 0 <= encoded.wire_sequence < 1 << 32 or
+                type(encoded.sdk_sequence) is not int or encoded.sdk_sequence != request.sdk_sequence):
+            raise InputError('cold12 encoded request sequence mismatch')
+        self._active = True
+        try:
+            reply = decode_source_cold12_reply(frame)
+            if reply.wire_sequence != encoded.wire_sequence or reply.command != request.command:
+                raise InputError('cold12 reply wire sequence or command mismatch')
+            self._check()
+            self.component.check_device_request(request)
+            if reply.status:
+                self.owner.cancel_own_device_request(request)
+                return OwnCompletionResult('failed', 'sso', reply.status, False, None)
+            return self.owner.complete_own_device_request(request, reply.payload, transport_status=0)
+        finally:
+            self._active = False
+
     def close(self):
         if self.closed:return
         if self._close_failure is not None:raise self._close_failure

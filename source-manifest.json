@@ -2507,8 +2507,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_source_cold12_binding.py",
-      "source_sha256": "f6d706b2f6107cb37605c77cec5d90cbd3ed6bdaeedb8b78c66e104a3dfd564c",
-      "sha256": "f6d706b2f6107cb37605c77cec5d90cbd3ed6bdaeedb8b78c66e104a3dfd564c",
+      "source_sha256": "d2b404d3b4d2f9c050ce8c0d905ccde3355d3ce31610c8948f6a97786d6138e7",
+      "sha256": "d2b404d3b4d2f9c050ce8c0d905ccde3355d3ce31610c8948f6a97786d6138e7",
       "classification": "project_source"
     },
     {
@@ -3014,8 +3014,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_windows_signer.py",
-      "source_sha256": "1783d0b12ba858eb296668c6da090c5d308ebcf38c7e85b5b7a21f7034e2b98e",
-      "sha256": "1783d0b12ba858eb296668c6da090c5d308ebcf38c7e85b5b7a21f7034e2b98e",
+      "source_sha256": "f5224216af05b690e8848da5372266a7b4d52f2979aa75aac98727d2c6585bdd",
+      "sha256": "f5224216af05b690e8848da5372266a7b4d52f2979aa75aac98727d2c6585bdd",
       "classification": "project_source"
     },
     {

@@ -511,6 +511,12 @@ class WindowsSigner:
             raise InputError('own cold12 binding is not initialized')
         return self._own_cold12.encode(request)
 
+    def receive_own_cold12(self, encoded, frame):
+        self._check_owner()
+        if self._own_cold12 is None:
+            raise InputError('own cold12 binding is not initialized')
+        return self._own_cold12.receive(encoded, frame)
+
     def create_own_device_request(self, records):
         return self._operation('create_own_device_request', records)
 
