@@ -7,6 +7,20 @@
 COORDINATION 只记录调度和操作，不另立业务状态机。
 原长篇过程记录已由 Git 历史及既有 before/input-versions 快照保留，不再复制归档。
 
+## 整体大签名服务
+
+当前交付形态是 Python 库与 Windows 单 owner 的串行运行时；正常 core 已实现并实际产生 SIGN 三字段，不只是接口外壳。限定当前 C 的入口检索未发现 HTTP 服务；这不是新增 HTTP、部署或池化目标 [OS]。
+
+| 层次 | 当前证据与边界 |
+| --- | --- |
+| ResultProduced | a7 与一次真实 binder 请求已产生正常 SIGN 三字段；后者逐 bytes 核对并实际进入 frame、发送。 |
+| 独立数学 Verified | 完整 SIGN 尚无适用的同输入独立真值。reference/direct 共享 PrimaryRuntime、程序及 host 族，reference 也可进入 direct helper，不能自动充当独立 oracle；限定已知材料未找到可立即执行的完整独立点，不代表全历史不存在。实际 P256 检查因未保存同次 private scalar／sharedX 而停于输入缺口，不是已发现数学错误 [P256]。 |
+| 普通业务 Accepted | 仅一次 SsoEstablishShareKey 关联回复 SDK1003，不能证明服务器校验了全部 SIGN，更不证明普通业务命令已接受。 |
+
+SDK1003 的源消息已知为“下游服务失败”，根因仍 unknown；它不是 owner fatal。上次 actual runtime 已正常返回级关闭，不是当前持续运行中的服务，逐 handle 退出仍 unknown [SA][BR1]。B 的真实新材料认证、安装、发布与同 runtime 后续 SIGN 消费未闭环；它可能影响首次及持续 SIGN，不能只称维护路径。源 counter→BA22B0→signed32 十进制临时量已证，但栈槽多生命周期／alias 传播未闭合，seq 的数学消费仍 unknown，既非已证 bug 也非1003根因；不新增 public seq 参数。
+
+当前优先级是材料失败可见性／receiver 接线与有界大 SIGN 正确性并行。Opus 已收到上述三层事实，仅作顾问，未执行源码审查；咨询不代替行为证据 [OS]。完整 Goal 及下列未验收分支保持不变。
+
 ## 1. 目标、基线和职责
 
 目标：固定 QQ 9.9.33-52230 源码及当前候选，完成材料 B 全链：
@@ -313,7 +327,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 | key25 | 完整生产、持久恢复、真实分支 | method6 局部真实 PASS [D]；其他分支未 actual |
 | 完整137 | 正常采集到编码的真实完整输入 | a7返回137；a5 offline schema/order/types仅适用a5；a7当前schema/order及值语义未独立验证 |
 | SDK请求 | 完整载荷、所需 SIGN、真实发送 | 一次真实 binder frame／正常SIGN／sendall已完成，command/body/序号/SIGN3及fresh字段逐bytes匹配；服务返回1003，算法正确性/全交易未证明 [BR1] |
-| SDK回包 / Token | 真实关联回包、校验、解析、安装 | 首143B raw reply的wireseq/cmd匹配；SDK错误1003，无材料密文；20B非空extension源接受资格未知，未认证安装 [BR1] |
+| SDK回包 / Token | 真实关联回包、校验、解析、安装 | 首143B raw reply的wireseq/cmd匹配；SDK错误1003，无材料密文；实际20B extension已获固定源正向结构／getter接受证明，production decoder未接，未认证安装 [BR1][E20] |
 | Qimei | cold / initialized / restored 各自真实契约 | cold 局部受控 PASS [Q]；完整更新未证明 |
 | 通知与回调 | 来源合法、注册、分发、生命周期、安装 | 完整真实通知路径未证明 |
 | protocolTokenHex | 异步真实消费者及绑定、空/非法语义 | Native12/V8 等未闭合 |
@@ -328,8 +342,8 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 ## 7. 最早断点、下一步与完成标准
 
 当前同owner本地SIGN结构返回＋正常close的局部里程碑已在a7达成 [L7]，范围NO_NETWORK。
-`c7226cf` 引入有限 reply complete/cancel 入口，后续 fresh binder 已完成一次真实同 owner request→prepare wirecounter→原正常 SIGN 一次→frame→一次发送并收到首个响应 [BR1]。独立读取保存数据确认 command/body、wire32／SDK64、SIGN三字段及sourcefresh配置 bytes 全部匹配，不是长度比较。**当前最早观察到的业务失败是 SDK 服务错误1003，含义／原因 UNKNOWN**；完整 header extension 源资格另有缺口，尚无新材料认证／安装／发布／后续 SIGN 消费。不能推断 SIGN错误、必须登录或AppID错误。
-本轮策略为先交付已审查实现及此证据，再沿1003／请求生产链中KDF、137cipher或参数的一条最早未证边界调查，并有限核对实际20B extension；不恢复通用proto/zlib、不换appid试错，修复或明确证据假设及Root新GO前不再发网。
+`c7226cf` 引入有限 reply complete/cancel 入口，后续 fresh binder 已完成一次真实同 owner request→prepare wirecounter→原正常 SIGN 一次→frame→一次发送并收到首个响应 [BR1]。独立读取保存数据确认 command/body、wire32／SDK64、SIGN三字段及sourcefresh配置 bytes 全部匹配，不是长度比较。**当前最早观察到的业务失败是 SDK 服务错误1003，源消息“下游服务失败”、根因 UNKNOWN**；实际20B header extension已有静态正向接受证明，但production decoder接线仍缺，尚无新材料认证／安装／发布／后续 SIGN 消费。不能推断 SIGN错误、必须登录或AppID错误。
+当前策略是材料失败可见性／receiver 与有界大 SIGN 正确性并行；1003不被归因于未证的KDF、137cipher或参数错误。实际20B extension的静态证明不等于production接线，不恢复通用proto/zlib、不换appid试错，修复或明确证据假设及Root新GO前不再发网 [OS][SA][E20]。
 a7实际请求AES-256-GCM已用独立cryptography AESGCM完成认证解密并匹配保存plain，wire加密字段与保存ciphertext一致 [AE7]。
 该PASS只覆盖一个实际request AEAD边界，不验证key derivation、137 cipher、SIGN算法或server接受。
 无适用同输入SIGN真值且a7缺完整运行观测；Opus在新事实下撤回全SIGN真值前置闸，停止扩fullSIGN捕获，
@@ -380,7 +394,7 @@ fresh options 已找到真实 producer，旧 config-source 终点③及 input-au
 `encode_own_cold12(originalrequest)` 先用真实 pending 资格检查及绑定配置，再 prepare 消费 wire32，调用一次原正常 owner.sign_result（同 command/body），再 encode，返回 RAM-only frame／wire32／SDK64／原签名 DTO。SIGN 不处于嵌套 `_busy/_operation`；输入端口阶段 busy fence 防止重入，counter 不回滚、不重试，不更改 SDK pending／假称发送。binder 仅管理自己的 encoder 与显式 owned inputs；关闭早于后端卸载，失败保留真实 cleanup debt，borrowed signer／SDK component 不关闭。MODEL 证明支持域的投影、身份、次序和资源行为；随后一次 staged actual 已证明 binder frame 正常 SIGN 字节被实际消费并发送 [BR1]。这不证明服务器材料接受，亦不将本次已安装 identity 的匹配倒推为历史 a7 profile exact binding 相符。证据 `A/cold12-signed-exchange-a1/{listener-effects,fresh-binder-contract,binder-implementation}/`。
 
 本次 staged probe [BR1] 使用既有 Own profile，不改配置／identity；frame完成后仅一次 DNS first-address、connect、sendall，收到首143B一chunk，无extra、超时或重试。socket close、local cancel、WindowsOwner close 正常return，子进程RC0/reaped、draincomplete、debtfalse；逐handle计数仍未知。实验 endpoint `msfwifi.3g.qq.com:8080` 来自既有 canonical51728 connector，仅为本次实验选择；收到SSO header status0不反推52230通道、算法或材料业务成功。
-离线源布局读取：len/version12/type2/flag0、zero-key TEA＋7zero通过，wireseq／完整cmd匹配，SSO signedstatus0、msgempty、compression0。实际extension20B的通用诊断shape为9varint、21varint、22bytes6（nested1var/2var/3bytes0）、25var、27var；NativeReadTag／getter接受仍unknown，productionfixedparser未接。payload仅3B，源派生envelope field2 uint32=1003、无field1材料密文，是非零服务错误路径，未执行材料认证／安装／发布／消费。不得将generic shape当Native接受或将1003赋予未经证实的枚举／原因。
+离线源布局读取：len/version12/type2/flag0、zero-key TEA＋7zero通过，wireseq／完整cmd匹配，SSO signedstatus0、msgempty、compression0。实际extension20B的通用诊断shape为9varint、21varint、22bytes6（nested1var/2var/3bytes0）、25var、27var；在正常分配／copy前提下，该固定20B的NativeReadTag／group／getter路径已有源正向接受证明；未执行Original parser，productionfixedparser仍未接，不外推通用protobuf等价 [E20]。payload仅3B，源派生envelope field2 uint32=1003、无field1材料密文，是非零服务错误路径，未执行材料认证／安装／发布／消费。1003的源消息为“下游服务失败”，根因未证；静态接受证明不是材料认证或服务器成功 [SA][E20]。
 
 major.node cachedData 旧证据仍只覆盖 startup，不是本次字段生产的证据；不再将已恢复 fresh fields 挂在 opaque cache／外部声明缺失上。warm update、空 machineId MachineGuid fallback、其他 MSF selection 及真实端到端发送仍未闭合；不是整包没有 producer 或所有字段都在 V8。
 
@@ -411,9 +425,9 @@ major.node cachedData 旧证据仍只覆盖 startup，不是本次字段生产�
 GCM 失败不使用 primitive 可能附带的 plaintext，status3 不安装；验签 key 来自本次 request.peer_key。
 本方 current 状态与 legacy runtime current 独立；current 先更新 deadline/features 再重读当前 mode，archive 验签不要求未使用的 deadline。
 失败保留按阶段已发生的状态／缓存变化，不声称全局原子回滚。当前实现及 MODEL 分支边界见下方。
-已取得wireseq／cmd匹配的真实raw响应，但完整source资格未通过、SDK拒绝1003、安装／发布仍有限、可复用fixed exchange未实现是不同缺口，不能再统称“本方 public reply API 缺失”，
+已取得wireseq／cmd匹配的真实raw响应及实际20B extension的静态源接受证明，但production fixed decoder未接、SDK拒绝1003、安装／发布仍有限、可复用fixed exchange未实现是不同缺口，不能再统称“本方 public reply API 缺失”，
 也不把尚未证明为首阻塞的 native binding 扩成 receiver/VM/CRT 工程。
-下一次 one-shot 复现须另获Root新GO：先处理1003的一条最早未证请求生产边界及实际extension资格，再以同 owner 已安装身份和显式 env／appid 选择使用 fresh binder，并落实适用传输契约（如采用 authenticated 路线则使用上述交接）→同 owner request/SIGN→发送保存 command/body/SIGN→
+下一次 one-shot 复现须另获Root新GO：先取得针对1003的证据假设并补适用receiver／decoder接线，再以同 owner 已安装身份和显式 env／appid 选择使用 fresh binder，并落实适用传输契约（如采用 authenticated 路线则使用上述交接）→同 owner request/SIGN→发送保存 command/body/SIGN→
 核验wire→SDK sequence及expected command的真实reply→用本次request快照认证解码→成功解析/校验后本方安装发布→同owner后续SIGN实际消费新材料。
 每步均须保留真实失败和所有权状态；已有有限 reply 入口不代表 exchange、完整安装发布或完整 Goal 已完成。
 
@@ -453,7 +467,7 @@ GCM 失败不使用 primitive 可能附带的 plaintext，status3 不安装；�
   a6同owner SIGN返回及source字段结构已核、response cache material String销毁失败、非法指令退出；算法/server及fatal原因unknown。
 - [L7] `A/own-business-bootstrap-a1/independent-live-a7/RESULT.json`：
   同owner本地137/codec/SIGN结构返回、owner及4资源close正常返回、进程RC0/reap/CIM0；仅局部里程碑，算法/server未证。
-- [BR1] `A/cold12-signed-exchange-a1/first-raw-reply-a1/RESULT.json`、`first-reply-offline-a1/RESULT.json` 与 `FIELD-SHAPE.json`：一次真实binder/SIGN/frame/发送/首raw响应及独立bytes匹配；SDK1003、20B extension资格unknown，无材料闭环；关闭仅return级。
+- [BR1] `A/cold12-signed-exchange-a1/first-raw-reply-a1/RESULT.json`、`first-reply-offline-a1/RESULT.json` 与 `FIELD-SHAPE.json`：一次真实binder/SIGN/frame/发送/首raw响应及独立bytes匹配；SDK1003，无材料闭环；关闭仅return级。实际20B extension后续静态资格见[E20]，错误源消息见[SA]。
 - [LC12] `A/source-cold12-encoder-a1/local-inputs-a1/RESULT.json`：真实本地 host／counter producer PASS；API状态及返回级 backend close 已核，逐 handle 未知，不是 frame／padding／网络或材料闭环证据。
 - [AE7] `A/a7-request-aead-independent-a1/RESULT.json`：独立AESGCM认证解密及wire字段匹配PASS；
   仅a7实际请求AEAD，未验证SIGN/key derivation/137 cipher/server/材料安装后续SIGN。
@@ -462,3 +476,8 @@ GCM 失败不使用 primitive 可能附带的 plaintext，status3 不安装；�
 
 本次当前状态校准只修改本权威文档，不执行 tests/native；本方 reply 的 MODEL 证据不替代 a7 原输入的真实执行证据。既有受控 cache 析构证据：
 `A/own-provider-cache-upper-delete-a1/RESULT.md`；a7实际局部结果见 [L7]，完整Goal未完成。
+
+- [OS] `A/overall-signing-service/{service-surface,core-status,runtime-material-status,OPUS-CONTEXT}.md`：整体三层范围、限定入口检索及当前缺口；不是另一份业务状态机，顾问简报不作源码审查或行为验收。
+- [SA] `A/cold12-signed-exchange-a1/sdk1003-request-audit/RESULT.md`：1003源消息、失败保旧／pending释放语义及请求链未证边界，不提供根因诊断。
+- [E20] `A/cold12-signed-exchange-a1/actual20b-extension/RESULT.md`：固定实际20B的静态正向接受证明，依赖正常分配／copy；非Original执行、通用protobuf证明或production接线。
+- [P256] `A/cold12-signed-exchange-a1/independent-p256-a1/RESULT.json`：实际私钥／sharedX未捕获，独立数学检查未执行，结论unknown。
