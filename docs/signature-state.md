@@ -37,7 +37,15 @@ feature46 ON 的默认路径 `encode_record_request→encrypt_device_records→R
 
 P256原受控检查0/24在首个scalar1 raw-scalar oracle差异停止，原FAIL保留。后续known peer private7的6/6 server-side ECDH／HKDF一致；非均匀／highbit的4个正常域case也匹配raw-scalar oracle。保存actual client public精确对应sentbody field2，client／decodedpeer两点均合法；这不证明实际ECDH key正确。source co-Z scalar1 bitcount映射仍未闭合，finding归档、不改算法，不声称QQ故意非标准或已排除所有ECDH问题。Opus先前系统性猜测已撤回，顾问意见不作source证明 [RI]。
 
-fresh command selector值匹配已证，不等于执行原callback或传输资格。137／profile确实进入AEAD/body及SIGN，不是未使用输入；但其完整独立正确性及1003因果仍unknown。完整builtin参数snapshot、原args／返回值不变的wrapper仅在analysis MODEL／HYBRID检查过，下一actual payload尚未整合。下一actual前需绑定代码版本的producer全参snapshot及必要CAPI输入采集；不能以成品DTO替代原始生成输入，ECDH原private仍缺。没有新probe GO。既有VM trace feasibility已确认局部观察接口，尚未执行算法trace；caller metadata来源另作有界核对，不授权重建VM或扩算法研究 [RI]。
+fresh command selector值匹配已证，不等于执行原callback或传输资格。137／profile确实进入AEAD/body及SIGN，不是未使用输入；但其完整独立正确性及1003因果仍unknown。完整builtin参数snapshot、原args／返回值不变的wrapper仅在analysis MODEL／HYBRID检查过，下一actual payload尚未整合。下一actual前需绑定代码版本的producer全参snapshot及必要CAPI输入采集；不能以成品DTO替代原始生成输入，ECDH原private仍缺。没有新probe GO。既有VM trace feasibility已确认局部观察接口，尚未执行算法trace；静态mix bridge／条件mask用法仅是IR/lower假设，native handler展开暂停，不授权重建VM或扩算法研究 [RI][CUR]。
+
+## 本交易AEAD与1003后的请求状态
+
+本笔唯一SDK1003交易现已独立cryptography AESGCM完成41项检查PASS：key32／nonce12／tag16／AAD0，body field5逐bytes等于saved sealed，认证解密逐bytes等于saved plain。该笔证据独立于历史a7 PASS，只证明保存key／plain的本交易对称封装自洽，不证明server key agreement、SIGN、137正确性、1003原因或材料闭环；旧历史报告缺per-input digest等限制不被补写消除 [CUR]。
+
+1003保留的168B current是本地请求crypto状态，不是已安装server材料；1003不设置60s TTL。有效同owner／未过期下一CREATE会复用该状态（regenerated=False但仍mode0），重新序列化并消耗原random流生成nonce，仍可选择Establish，不是新server-confirmed材料或rawbody自动重发。wall-only expiry的native路径是telemetry1BEFC10后AL0复用，不是新throw；Own已有缺clock依赖的Boundary保持，不能把三参runtime helper直接塞给Own一参接口或用noop替代。完整source结论来自leaf；Opus已撤回错误clock patch建议，clock遥测扩张停止 [CUR]。
+
+state17 mix只有静态bridge及有条件的后来byte-mask使用证据，不是native公式、key／IV或finalcipher证明；handler展开暂停。actual-input-capture-completeness目前仅A目录候选及MODEL透传检查，旧actual payload未接入，原四参与CAPI private未恢复，不能称已捕获。固定源已确认原称provider+28是可空generic persistence type-erased callable：callsite1BE5A53，activeptr677BE78／inlinebase677BE60，fixed init1BE5CA7置NULL，NULL直接跳过；非空CALL[vt+28](receiver,keyString,&encryptedString)返回值未用，destructor区分inline／heap slots。C worker／caller queue共享持久化，caller仅在未映射时映射fresh NULL，不强制清空已有对象；非空installer／实际vtable仍unknown，不能称永远external或全局不存在。optional持久化不等于in-memory安装发布，也不是所有fresh成功的必要发布Boundary。合法fresh NULL路径目前未建立无条件必经的未实现postinstall函数；真实成功reply字段仍可能先触发settings通知Boundary [PERSIST]。本轮无新网络，业务真实正材料仍0，完整Goal未完成 [CUR]。
 
 ## 整体大签名服务
 
@@ -337,7 +345,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
   三个owned进程均RC0、reaped、CIM0，无timeout/retry；515项输入不变并复用同profile/state roots。
 - offline结果结构为非空bytes的sign/extra/token（96/12/141B）；逐handle计数未知，debug fd保留至进程退出。
   这是LocalReady层本地局部达成，不代表Active材料业务完成；当前records schema/order未独立核对，
-  记录值语义、137内部cipher、key derivation、SIGN算法、server接受及安装→后续SIGN消费仍未证明；请求AEAD另见 [AE7]。
+  记录值语义、137内部cipher、key derivation、SIGN算法、server接受及安装→后续SIGN消费仍未证明；历史a7请求AEAD见[AE7]，本笔SDK1003交易的独立AEAD自洽证明另见[CUR]。
   a6的关闭失败及fatal原因unknown保留为历史，不因a7正常退出反推其因果已证。
 
 ### SDK、异步消费者与登录
@@ -369,7 +377,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 | 取消 | 在途状态明确、停止异步副作用 | 本次local cancel正常return，不代表外部网络已中止；全业务路径待验收 [BR1] |
 | 关闭与所有权 | 有序停止、自有资源退出、租约正确 | 本次socket/owner close正常return、进程退出/drain完成/debtfalse，逐handle未知；旧Pure Own reply MODEL close FAIL仍保留，不覆盖全生命周期 [L7][BR1] |
 | SIGN消费 | 同runtime选中新材料并实际读取 | 未证明，最终关键门禁 |
-| 登录交接 | 合法会话交给签名owner，版本不混淆 | 另owner；51728不证明52230 |
+| 登录交接 | 合法会话交给签名owner，版本不混淆 | R7公开摘要曾声明注册ACCEPTED／SSO0／ONLINE后关闭；非本轮raw复验。SDK无正材料／qualified adapter，51728不证明52230 [LOGIN] |
 
 ## 7. 最早断点、下一步与完成标准
 
@@ -437,6 +445,8 @@ major.node cachedData 旧证据仍只覆盖 startup，不是本次字段生产�
 `build_service_packet/parse_service_packet/split_frames` 与 `SsoSocket` 可作后续接线候选，不等于已接通。
 来源：`primary_sso_transport.py:50-82/90-128/209-244/283-303`、`primary_sso_codec.py`、`primary_sso_socket.py`。
 
+L旧README不能代表最新状态：R7公开摘要声明注册ACCEPTED／SSO0／ONLINE后关闭，worker终态为非正常退出，本轮未读raw独立复验；R10仅pending SDK_SECURE_A2_ESTABLISH，sdk_complete=False／SDK_WORK_UNSUPPORTED。on_authenticated(sessionmaterial,profile)已有接点，但不交付SIGN owner／existing transport／fixed52230 readiness，finally关闭transport；SDK sender／setSession仍absent，STATUS通知不是材料notify。限定本轮检索未见新的qualified adapter或SDK正材料，不作全局不存在断言。若有更新carrier，仍需公开入口及版本资格证据；不据此推断必须D2、不兼容或1003原因 [LOGIN]。
+
 已有 authenticated 载体交接代码，不能再描述为“没有任何 handoff”或必须移交活 socket：
 `run_authenticated_sdk_session.py:432-439/501-520` 要求 ONLINE、恰好一次 RAM material 回调；
 `:531-543` 正常关闭登录资源，`:561-579` 以 `network.connect_sdk` 新建 `AuthenticatedSdkSession`。
@@ -479,9 +489,11 @@ GCM 失败不使用 primitive 可能附带的 plaintext，status3 不安装；�
 
 有限 reply 实现最初交付于 `c7226cf`，不是当前全部源码的 HEAD 标识；实现输入为 HEAD `2ebd507`／既有 source `680b`，新增路径仅执行纯 MODEL 验证。历史 [L7] a7 的真实137、codec、SIGN及返回级 close 绑定其原输入；未运行本轮 reply 代码，不能自动重标为新版 native 证据。
 
-新增 `complete_own_device_request(originalrequest, responsebody, transport_status=...)` 经 Windows operation、PrimarySigner public_call 在组件内部解码；同组件保留多个原 request identity、不可变 decode material 与实际 pair+48 bound snapshot，支持局部取消／关闭拒绝晚到，不代表网络已中止。mode0 current 先更新 deadline/features，再读取本方独立 current.payload_mode；archive 总是验签，验签用 request.peer_key。GCM失败／status3不安装。空 token 保留旧 cache，非空按源锁、独占 copy、持久化次序更新；失败不回滚已写缓存。
+新增 `complete_own_device_request(originalrequest, responsebody, transport_status=...)` 经 Windows operation、PrimarySigner public_call 在组件内部解码；同组件保留多个原 request identity、不可变 decode material 与实际 pair+48 bound snapshot，支持局部取消／关闭拒绝晚到，不代表网络已中止。mode0 current 先更新 deadline/features，再读取本方独立 current.payload_mode；archive 总是验签，验签用 request.peer_key。GCM失败／status3不安装。空 token 保留旧 cache，非空按源锁、独占copy及可选持久化的源次序更新；失败不回滚已写缓存。
 
-当前 MODEL 空／非空 null-provider 路径真实调用 wrapper 并完成 source2583 root，dispatch_result=0；实际分支未进入 token-setter／expire，不能据此声称下游消费者成功或完整 published。返回字段分别表达原 dispatch_result、root/setter/expire completion 及 cache_updated，没有响应认证凭据或新 proof registry。非空 provider fixture 在缓存已更新后真实命中 `1BE5A54 provider vtable+28` Boundary，未发布。
+当前 MODEL 空／非空 null-provider 路径真实调用 wrapper 并完成 source2583 root，dispatch_result=0；实际分支未进入 token-setter／expire，不能据此声称下游消费者成功或完整 published。返回字段分别表达原 dispatch_result、root/setter/expire completion 及 cache_updated，没有响应认证凭据或新 proof registry。显式非空持久化callable的历史MODEL fixture在缓存已更新后命中当时诊断文本 `1BE5A54 provider vtable+28` Boundary，后续发布未达；fixed callsite已校正为1BE5A53。此历史条件失败不代表fresh NULL路径必经该Boundary，可选持久化不等于内存安装／发布 [PERSIST]。
+
+fresh成功主干的当前缺口是缺少真实认证成功的非空token／cache更新，以及真实feature／expiry／bound条件下同一有效owner下一SIGN选中消费的证据，不是“安装后必撞provider”或“所有下游函数未实现”。非空token先在锁内写timestamp／token／bound，再执行可选持久化；空token保留旧cache。root／setter／expire入口均已有，旧MODEL只返回root不证明全部分支。下一SIGN从同一cache clone；feature1!=1走fallback而不消费new token，valid且无refresh时token可作为_sign_body的d／digest输入；条件refresh中device VT+40非BEE3C0且无匹配binding才是具体Boundary，并非所有fresh必经 [PERSIST]。
 
 有限边界：mode0 缺少源未初始化 stack 字段显式停止；真实 features 已写 map/provider/persist 后若通知命中 `1C41B10` 未实现 continuation，保留副作用并在验签／安装前停止；未补该 callback。纯 PrimarySigner 模型在业务 root 返回后的 registrar.close 仍因缺少正式 direct close scope 而 cleanup_failed，组合 publication+close **未通过**；没有伪造 WindowsOwner／切 backend。MODEL语义断言通过不等于该 teardown 成功，部分虚拟资源债务仍保留。
 
@@ -520,3 +532,9 @@ GCM 失败不使用 primitive 可能附带的 plaintext，status3 不安装；�
 - [TR] `A/overall-signing-service/transport-contract/{fixed52230,login-side}.md`、`transport-contract/readiness-source/RESULT.md`：两侧传输入口与尚未绑定的readiness资格；未证明auth不匹配或1003原因，无新probe授权。
 
 - [RI] `A/overall-signing-service/request-independent-points/` 下 `p256-{controlled-check,interoperability-diag,source-diagnosis}`、`OPUS-P256-OUTCOME-{CONTEXT,ADVICE}.md`、`sdk-command-selection.md`、`establish-input-reachability.md`、`record137-nonzero-sensitivity/RESULT.json`及`actual137-counterfactual/`：受控独立检查／源边界／HYBRID对照与实际输入缺口各按原范围，不作1003归因。
+
+- [CUR] `A/overall-signing-service/request-independent-points/` 下 `actual-request-aead/RESULT.json`、`sdk1003-next-request.md`、`refresh-clock-mismatch/RESULT.md`、`device-mix-static-bridge/RESULT.md`、`state17-first-consumer/ADDENDUM.md`、`actual-input-capture-completeness/RESULT.md`及`OPUS-CLOCK-CORRECTION-{CONTEXT,ADVICE}.md`：本交易AEAD／源状态语义／静态假设／未接入采集候选分别限定范围，顾问更正不作source证据。
+
+- [PERSIST] `A/overall-signing-service/request-independent-points/sdk-publication-provider-target/{RESULT.md,FRESH-PATH-ADDENDUM.md}`：可空generic persistence callable的固定callsite／fresh NULL及未知非空installer；非所有fresh成功的发布门槛。
+
+- [LOGIN] `A/overall-signing-service/request-independent-points/login-sign-integration-new-evidence.md`：R7／R10公开摘要及有界入口核对，非raw独立复验或SDK正材料／52230资格证明。
