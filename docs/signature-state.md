@@ -111,9 +111,9 @@ flowchart TD
 
 | 材料状态 | 进入条件 | 退出条件 / 数据 | 当前证据 |
 | --- | --- | --- | --- |
-| InputPrepared | 真实本方输入完整 | 编码并经所需 SIGN 发请求 | a7真实137、codec及同owner SIGN结果已返回；transport None、未发送网络请求 [L7] |
-| RequestPending | 适用的合法传输 context、完整载荷、真实发送 | 真实响应或明确失败 | 正常 SDK 交易未证明 |
-| ReplyReceived / NotificationReceived | 真实请求关联响应或来源合法通知材料成立 | 直接校验、解析或拒绝 | 未证明完整目标路径 |
+| InputPrepared | 真实本方输入完整 | 编码并经所需 SIGN 发请求 | 本次同owner binder/SIGN/frame一次sendall，command/body/SIGN3/sourcefresh字段逐bytes匹配；a7原无网络证据保持原作用域 [L7][BR1] |
+| RequestPending | 适用的合法传输 context、完整载荷、真实发送 | 真实响应或明确失败 | 一次发送并收到首143B响应；SDK错误1003，不是正常材料交易成功 [BR1] |
+| ReplyReceived / NotificationReceived | 真实请求关联响应或来源合法通知材料成立 | 直接校验、解析或拒绝 | raw reply的wireseq/cmd匹配；20B extension源接受未知，payload服务错误1003，无材料密文；通知路径未证明 [BR1] |
 | Parsed | 格式和业务条件满足 | 安装到正确 owner | 单独 parser 不能算安装 |
 | Installed | 新材料写入当前有效 owner | 发布并可供选材 | 尚无完整真实证据 |
 | Published | 更新对实际消费者可见 | 后续 SIGN 真实选中 | queue/cache 写入不充分 |
@@ -312,23 +312,24 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 | 本地17B | 真实输入、独立重算、资源退出 | 局部真实 PASS [M]，非材料B |
 | key25 | 完整生产、持久恢复、真实分支 | method6 局部真实 PASS [D]；其他分支未 actual |
 | 完整137 | 正常采集到编码的真实完整输入 | a7返回137；a5 offline schema/order/types仅适用a5；a7当前schema/order及值语义未独立验证 |
-| SDK请求 | 完整载荷、所需 SIGN、真实发送 | a7本地codec及SIGN结构返回，transport None；算法正确性/发送/全交易未证明 [S][L7] |
-| SDK回包 / Token | 真实关联回包、校验、解析、安装 | 缺真实闭环，不以 metadata 空代替 |
+| SDK请求 | 完整载荷、所需 SIGN、真实发送 | 一次真实 binder frame／正常SIGN／sendall已完成，command/body/序号/SIGN3及fresh字段逐bytes匹配；服务返回1003，算法正确性/全交易未证明 [BR1] |
+| SDK回包 / Token | 真实关联回包、校验、解析、安装 | 首143B raw reply的wireseq/cmd匹配；SDK错误1003，无材料密文；20B非空extension源接受资格未知，未认证安装 [BR1] |
 | Qimei | cold / initialized / restored 各自真实契约 | cold 局部受控 PASS [Q]；完整更新未证明 |
 | 通知与回调 | 来源合法、注册、分发、生命周期、安装 | 完整真实通知路径未证明 |
 | protocolTokenHex | 异步真实消费者及绑定、空/非法语义 | Native12/V8 等未闭合 |
-| UIN与配置 | 显式配置到实际消费者，身份一致 | 完整运行证据不足，不输出原值 |
+| UIN与配置 | 显式配置到实际消费者，身份一致 | freshOptions源投影及本次已安装machine identity进frame逐bytes匹配；UIN/warm/完整运行仍不足，不输出原值 [BR1] |
 | 刷新 | 真实触发、更新、失败保旧语义 | 仅局部源/受控证据 |
 | 失败与恢复 | 原错误可见，同对象恢复且不伪成功 | key25 一例 [D]，不外推全域 |
-| 取消 | 在途状态明确、停止异步副作用 | 全业务路径待验收 |
-| 关闭与所有权 | 有序停止、自有资源退出、租约正确 | a7 owner及4资源close正常返回、进程退出；逐handle未知，不覆盖全生命周期 [L7] |
+| 取消 | 在途状态明确、停止异步副作用 | 本次local cancel正常return，不代表外部网络已中止；全业务路径待验收 [BR1] |
+| 关闭与所有权 | 有序停止、自有资源退出、租约正确 | 本次socket/owner close正常return、进程退出/drain完成/debtfalse，逐handle未知；旧Pure Own reply MODEL close FAIL仍保留，不覆盖全生命周期 [L7][BR1] |
 | SIGN消费 | 同runtime选中新材料并实际读取 | 未证明，最终关键门禁 |
 | 登录交接 | 合法会话交给签名owner，版本不混淆 | 另owner；51728不证明52230 |
 
 ## 7. 最早断点、下一步与完成标准
 
 当前同owner本地SIGN结构返回＋正常close的局部里程碑已在a7达成 [L7]，范围NO_NETWORK。
-`c7226cf` 引入的有限 reply 实现已提供本方 complete/cancel 入口（该 commit 不代表整个当前候选）；a7 的 transport None 仅描述其原运行。当前缺口是取得合法真实关联响应并通过有限安装／发布路径，使同 owner 后续 SIGN 实际消费新材料；真实发送及接收契约、适用会话前提仍待核实。
+`c7226cf` 引入有限 reply complete/cancel 入口，后续 fresh binder 已完成一次真实同 owner request→prepare wirecounter→原正常 SIGN 一次→frame→一次发送并收到首个响应 [BR1]。独立读取保存数据确认 command/body、wire32／SDK64、SIGN三字段及sourcefresh配置 bytes 全部匹配，不是长度比较。**当前最早观察到的业务失败是 SDK 服务错误1003，含义／原因 UNKNOWN**；完整 header extension 源资格另有缺口，尚无新材料认证／安装／发布／后续 SIGN 消费。不能推断 SIGN错误、必须登录或AppID错误。
+本轮策略为先交付已审查实现及此证据，再沿1003／请求生产链中KDF、137cipher或参数的一条最早未证边界调查，并有限核对实际20B extension；不恢复通用proto/zlib、不换appid试错，修复或明确证据假设及Root新GO前不再发网。
 a7实际请求AES-256-GCM已用独立cryptography AESGCM完成认证解密并匹配保存plain，wire加密字段与保存ciphertext一致 [AE7]。
 该PASS只覆盖一个实际request AEAD边界，不验证key derivation、137 cipher、SIGN算法或server接受。
 无适用同输入SIGN真值且a7缺完整运行观测；Opus在新事实下撤回全SIGN真值前置闸，停止扩fullSIGN捕获，
@@ -356,7 +357,7 @@ receiver `1BE3060` 接收外部 context；`1BE2F90` 调用参数是 `(command_cs
 源证据：`A/OWN-SDK-RECEIVER-CALLERS-AND-NONJOIN-20261124.md` 及
 `A/sdk-receive-registration-maps-source-a1`、`A/sdk-session-messenger-factory-source-a1`、`A/sdk-messenger-send-source-a1`。
 当前参考 SSO 实现允许 session=None；非 `A2.o3.ecdh_access` 分支使用 encrypt_type2 零 TEA、不携 D2。
-该实现源自参考 LLOB；目前 fixed52230 的 packet grammar、reserve 字段及 signature DTO 顺序已有源契约，不能因此沿用参考 profile 的业务值。真实 Session typed options（DWORD0／String8／String20）及 reserve context 的存在性／值仍须调用方显式提供；
+该实现源自参考 LLOB；目前 fixed52230 的 packet grammar、reserve 字段及 signature DTO 顺序已有源契约，不能因此沿用参考 profile 的业务值。fresh ordinary 分支的 Node initConfig→72EC24 producer 现已恢复，下述 binder 可从同 owner 已安装身份及显式业务 env 选择推导字段，不再要求调用方提供9个 opaque 字段；
 既不能据此强制 authenticated live/D2 前置，也不能反称服务器已接受 prelogin。
 
 现有 `primary_source_cold12` 为 fresh cold/type2 的 required-input 编码实现，不发送网络；本轮修复其与 Own 请求之间的真实命令入口不匹配：
@@ -366,14 +367,22 @@ counter 取一次成功4字节熵作 little-endian seed，复用源匹配 MT624/
 已证 fresh 常量限定在该路径：route数字0保留空 String，非零转无符号十进制；peer A0／request reserve overrides absent、R flag0、K 两个 String 空。
 Inner head 使用 `zero10 || hostMarkerBYTE || zero1`，保留 required options／reserve 的 absent 与 present-empty；signature PB1/2/3 为 sign/extra/token，原 adapter 未改。
 TEA 保留16轮／big-endian／双反馈链／长度与随机首字节高5位规则；本轮另补解密末7字节必须全零的源校验。旧实现对8组确定性 last-byte-XOR1 损坏密文全部误接受；修复后8个 valid control 与8个 malformed tail 的 MODEL 断言通过，非零尾报 `SSO_TEA_PADDING`，不改变原空值／pad规则。调用方必须提供真实熵与 host producer，不能拿 MODEL bytes、51728 profile 或全空配置当52230实际输入。
-Windows 输入 producer 复用既有模块／熵后端：两次独立 version 查询，GAA family2／23、flags80、一次6F resize及仅 node+D0→entry+10 的选中地址。已证明的正常转换域可直接判 IPv4=True（含0.0.0.0）、IPv6=any(address16)，不误排除::1、不以文本库猜测；非法 backing／非正常域显式 Boundary。padding 独立成功4字节 seed，每个随机字节消耗一个 MT word，不池化 word bytes；owned 与 borrowed 资源分别关闭／保留，构造失败释放已拥有资源。实现阶段的完整 MODEL API doubles 之外，独立本地 producer 检查现已通过 [LC12]：两次 GetVersionExW 成功，GAA AF2／23 均状态0，host marker=1；真实一次成功4字节熵驱动的 source counter 初值范围／递增检查通过。owned backend close 正常返回，逐 handle 回收状态未测。此结果仅覆盖本地 host／counter 输入 producer，不证明真实 frame、padding 熵、SIGN、服务器、安装后消费或完整关闭；实际 caller typed Options／reserve 仍未绑定，无网络发送。
+Windows 输入 producer 复用既有模块／熵后端：两次独立 version 查询，GAA family2／23、flags80、一次6F resize及仅 node+D0→entry+10 的选中地址。已证明的正常转换域可直接判 IPv4=True（含0.0.0.0）、IPv6=any(address16)，不误排除::1、不以文本库猜测；非法 backing／非正常域显式 Boundary。padding 独立成功4字节 seed，每个随机字节消耗一个 MT word，不池化 word bytes；owned 与 borrowed 资源分别关闭／保留，构造失败释放已拥有资源。实现阶段的完整 MODEL API doubles 之外，独立本地 producer 检查现已通过 [LC12]：两次 GetVersionExW 成功，GAA AF2／23 均状态0，host marker=1；真实一次成功4字节熵驱动的 source counter 初值范围／递增检查通过。owned backend close 正常返回，逐 handle 回收状态未测。此结果仅覆盖本地 host／counter 输入 producer，不证明真实 frame、padding 熵、SIGN、服务器、安装后消费或完整关闭；该次 actual 尚未覆盖后续新增 binder 或实际 frame，不能外推现行绑定／发送成功。
 源证据为 `A/cold-sdk-writer-trace-a1/selected12/` 的 packet-byte/head/signature/request/crypto/host-marker/host-conversion 契约，候选检查见 `A/source-cold12-encoder-a1/`；这些不证明实际 profile 已绑定、packet 已发送或服务器接受。
 
 fixed reply 的源 frame 规则已有静态恢复：实际 decoder 输入包含总长前缀，先按接收 version 选类，本方有限目标仅 version12；response command 是第二个 header String，不是第一个。fresh class 仅对 `GrayUinPro.Check` 且 head 后 remaining>=5 时跳过4字节，其他分支不跳；TEA 解密／尾校验已有源依据与修复。参考 parser 的去前缀输入、head形状及宽松切片不能冒充该 fixed 合同。压缩虽已识别 zlib 路径及10／20／40／80倍尝试，精确失败 status 映射的等价接入、非空 extension 动态 ReadTag／group／typed getters 的接受条件仍未完成；不能以 empty-extension 的局部接受证明整个 decoder。尚未实现新的 fixed reply decoder／signed exchange，也未证明服务器回复会沿用请求 command。
 证据：`A/cold12-signed-exchange-a1/command/`、`response/{RESULT.md,frame,tea,extension}`；命令修复及 TEA 尾校验实际 MODEL 证据分别在 `command/fix/` 与 `response/tea/fix/`。
 
-真实 Options／reserve／routing 输入仍未绑定。配置源确定止于终点③：`B78200` 的第三参数聚合转交 `B78380` 并 copy，`B7DC5E` 另有第二参数 copy/capture 提交独立分支；routing 是独立 MSF config record 的 QWORD0，未证为 UIN，更不能与 Options DWORD0 同名绑定。未恢复这些字段的 property／metadata 赋值，继续闭合将进入多个 factory／session 业务分支，因此停止深追。
-major.node opaque cachedData 只证明 startup 加载，不覆盖请求字段赋值，终点②未成立；不能宣称整包没有 producer 或所有字段都在 V8。已向同版配置 owner 一次性请求 MSF session 配置声明／Nodebridge 赋值入口，无需重扫码或凭据；pending 不阻止本次有限修复交付。依据 `A/cold12-signed-exchange-a1/config-source/{RESULT.md,direct-caller-evidence.json,declaration-metadata-probes.json}`；不以51728值、package buildVersion或空默认补齐。
+fresh options 已找到真实 producer，旧 config-source 终点③及 input-audit unknown 被 `A/cold12-signed-exchange-a1/fresh-options-producer/RESULT.md` 在该 fresh 分支上明确 supersede。Node `initConfig` 的 machineId 非空时直接 copy；空值走未实施的 Composite MachineGuid 分支，不生成替代 UUID。appid typed None／0 取源 fallback `0x20067C69`，uint32非零取自身；不实现未证 JS 字符串词法。String8 空、field16 absent、field26 present101、fresh route0 均有源生产依据。两条实际注册 listener 的 VT8 都为28F0 RET，NativeOptions records absent，所以 field21=False／records=() 可在该 fresh itinerary 内部推导；不延伸到 warm／其他 manager。
+
+本方 `bind_own_cold12(inputs, own_inputs=..., appid_override=..., env_setting=...)` 仅接受成功 own-business setup 后捕获的 immutable metadata.field20；不重读 caller dict 或直接读取 profile。machine bytes 必须非空、无NUL且可严格 UTF8 roundtrip，不支持即显式拒绝，不.hex／容错 decode。env 必须显式 DisabledEnvironment 或 EnabledEnvironment(host,port,sso_env_id,canary)，port 是 typed uint32；自算 active=(host非空且port!=0)或canary非空。inactive／disabled 输出 field13=None、field32空；active id非空才使13 present，canary保留空值。没有 readsuccess/active receipt、config.env.json IO 或全默认 Own profile。
+
+`encode_own_cold12(originalrequest)` 先用真实 pending 资格检查及绑定配置，再 prepare 消费 wire32，调用一次原正常 owner.sign_result（同 command/body），再 encode，返回 RAM-only frame／wire32／SDK64／原签名 DTO。SIGN 不处于嵌套 `_busy/_operation`；输入端口阶段 busy fence 防止重入，counter 不回滚、不重试，不更改 SDK pending／假称发送。binder 仅管理自己的 encoder 与显式 owned inputs；关闭早于后端卸载，失败保留真实 cleanup debt，borrowed signer／SDK component 不关闭。MODEL 证明支持域的投影、身份、次序和资源行为；随后一次 staged actual 已证明 binder frame 正常 SIGN 字节被实际消费并发送 [BR1]。这不证明服务器材料接受，亦不将本次已安装 identity 的匹配倒推为历史 a7 profile exact binding 相符。证据 `A/cold12-signed-exchange-a1/{listener-effects,fresh-binder-contract,binder-implementation}/`。
+
+本次 staged probe [BR1] 使用既有 Own profile，不改配置／identity；frame完成后仅一次 DNS first-address、connect、sendall，收到首143B一chunk，无extra、超时或重试。socket close、local cancel、WindowsOwner close 正常return，子进程RC0/reaped、draincomplete、debtfalse；逐handle计数仍未知。实验 endpoint `msfwifi.3g.qq.com:8080` 来自既有 canonical51728 connector，仅为本次实验选择；收到SSO header status0不反推52230通道、算法或材料业务成功。
+离线源布局读取：len/version12/type2/flag0、zero-key TEA＋7zero通过，wireseq／完整cmd匹配，SSO signedstatus0、msgempty、compression0。实际extension20B的通用诊断shape为9varint、21varint、22bytes6（nested1var/2var/3bytes0）、25var、27var；NativeReadTag／getter接受仍unknown，productionfixedparser未接。payload仅3B，源派生envelope field2 uint32=1003、无field1材料密文，是非零服务错误路径，未执行材料认证／安装／发布／消费。不得将generic shape当Native接受或将1003赋予未经证实的枚举／原因。
+
+major.node cachedData 旧证据仍只覆盖 startup，不是本次字段生产的证据；不再将已恢复 fresh fields 挂在 opaque cache／外部声明缺失上。warm update、空 machineId MachineGuid fallback、其他 MSF selection 及真实端到端发送仍未闭合；不是整包没有 producer 或所有字段都在 V8。
 
 现有 `SsoTransport` 的 protocol12/legacy receiver 接线会在 enqueue 重 SIGN 并 drain，
 不能直接用于发送 Own 组件保存的 SIGN。下层 `SignatureBytes.from_primary_result`、
@@ -402,9 +411,9 @@ major.node opaque cachedData 只证明 startup 加载，不覆盖请求字段赋
 GCM 失败不使用 primitive 可能附带的 plaintext，status3 不安装；验签 key 来自本次 request.peer_key。
 本方 current 状态与 legacy runtime current 独立；current 先更新 deadline/features 再重读当前 mode，archive 验签不要求未使用的 deadline。
 失败保留按阶段已发生的状态／缓存变化，不声称全局原子回滚。当前实现及 MODEL 分支边界见下方。
-真实关联响应尚未取得、安装／发布仍有限、exchange 接线未实现是不同缺口，不能再统称“本方 public reply API 缺失”，
+已取得wireseq／cmd匹配的真实raw响应，但完整source资格未通过、SDK拒绝1003、安装／发布仍有限、可复用fixed exchange未实现是不同缺口，不能再统称“本方 public reply API 缺失”，
 也不把尚未证明为首阻塞的 native binding 扩成 receiver/VM/CRT 工程。
-未来 one-shot 复现（非当前授权）：先落实 fixed52230 required typed options／reserve 的真实调用方输入、host／entropy producer 与适用传输契约（如采用 authenticated 路线则使用上述交接）→同 owner request/SIGN→发送保存 command/body/SIGN→
+下一次 one-shot 复现须另获Root新GO：先处理1003的一条最早未证请求生产边界及实际extension资格，再以同 owner 已安装身份和显式 env／appid 选择使用 fresh binder，并落实适用传输契约（如采用 authenticated 路线则使用上述交接）→同 owner request/SIGN→发送保存 command/body/SIGN→
 核验wire→SDK sequence及expected command的真实reply→用本次request快照认证解码→成功解析/校验后本方安装发布→同owner后续SIGN实际消费新材料。
 每步均须保留真实失败和所有权状态；已有有限 reply 入口不代表 exchange、完整安装发布或完整 Goal 已完成。
 
@@ -428,7 +437,7 @@ GCM 失败不使用 primitive 可能附带的 plaintext，status3 不安装；�
 
 有限边界：mode0 缺少源未初始化 stack 字段显式停止；真实 features 已写 map/provider/persist 后若通知命中 `1C41B10` 未实现 continuation，保留副作用并在验签／安装前停止；未补该 callback。纯 PrimarySigner 模型在业务 root 返回后的 registrar.close 仍因缺少正式 direct close scope 而 cleanup_failed，组合 publication+close **未通过**；没有伪造 WindowsOwner／切 backend。MODEL语义断言通过不等于该 teardown 成功，部分虚拟资源债务仍保留。
 
-证据 `A/own-reply-pipeline-a1/`。固定服务器有效 mode0 签名、真实关联响应、真实通知分支、下游材料消费与后续 SIGN 均未证明；无网络、native、真实存储或 a8 执行。完整 Goal 保持 ACTIVE。
+证据 `A/own-reply-pipeline-a1/`。固定服务器有效 mode0 材料签名、完整源接受资格、真实通知分支、下游材料消费与后续 SIGN 均未证明；该 MODEL 报告未执行网络或native，本次后续实际raw响应证据另见 [BR1]。完整 Goal 保持 ACTIVE。
 
 ## 8. 安全证据索引
 
@@ -444,6 +453,7 @@ GCM 失败不使用 primitive 可能附带的 plaintext，status3 不安装；�
   a6同owner SIGN返回及source字段结构已核、response cache material String销毁失败、非法指令退出；算法/server及fatal原因unknown。
 - [L7] `A/own-business-bootstrap-a1/independent-live-a7/RESULT.json`：
   同owner本地137/codec/SIGN结构返回、owner及4资源close正常返回、进程RC0/reap/CIM0；仅局部里程碑，算法/server未证。
+- [BR1] `A/cold12-signed-exchange-a1/first-raw-reply-a1/RESULT.json`、`first-reply-offline-a1/RESULT.json` 与 `FIELD-SHAPE.json`：一次真实binder/SIGN/frame/发送/首raw响应及独立bytes匹配；SDK1003、20B extension资格unknown，无材料闭环；关闭仅return级。
 - [LC12] `A/source-cold12-encoder-a1/local-inputs-a1/RESULT.json`：真实本地 host／counter producer PASS；API状态及返回级 backend close 已核，逐 handle 未知，不是 frame／padding／网络或材料闭环证据。
 - [AE7] `A/a7-request-aead-independent-a1/RESULT.json`：独立AESGCM认证解密及wire字段匹配PASS；
   仅a7实际请求AEAD，未验证SIGN/key derivation/137 cipher/server/材料安装后续SIGN。

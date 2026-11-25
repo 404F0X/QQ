@@ -305,6 +305,8 @@ class WindowsSigner:
         self._operation_failure = None
         self._operation_outcomes = []
         self._successful_operation_result = None
+        self._own_cold12 = None
+        self._own_business_machine_id = None
         self._worker_wmi_pending = []
         self._worker_system_records_pending = []
         self._worker_hardware_pending = []
@@ -493,6 +495,22 @@ class WindowsSigner:
             raise InputError('own request requires own business initialization')
         return self._operation('initialize_own_sdk_request', **inputs)
 
+    def bind_own_cold12(self, inputs, *, own_inputs, appid_override, env_setting):
+        self._check_owner()
+        if self._state != 'open' or self._busy or self._signer.failed:
+            raise InputError('own cold12 binding requires an idle open signer')
+        if self._own_cold12 is not None:
+            raise InputError('own cold12 binding already exists')
+        from .primary_source_cold12_binding import FreshCold12Binding
+        self._own_cold12 = FreshCold12Binding(self, inputs, own_inputs=own_inputs,
+            appid_override=appid_override, env_setting=env_setting)
+
+    def encode_own_cold12(self, request):
+        self._check_owner()
+        if self._own_cold12 is None:
+            raise InputError('own cold12 binding is not initialized')
+        return self._own_cold12.encode(request)
+
     def create_own_device_request(self, records):
         return self._operation('create_own_device_request', records)
 
@@ -578,6 +596,8 @@ class WindowsSigner:
                 return False
             self._cleanup_outcomes.append({'stage': stage, 'status': 'completed'})
             return True
+        if self._own_cold12 is not None:
+            if not attempt('own_cold12_binding', self._own_cold12.close):return errors
         if self._threads is not None:
             if not attempt('sdk_threads_prepare', self._threads.prepare_close):
                 return errors

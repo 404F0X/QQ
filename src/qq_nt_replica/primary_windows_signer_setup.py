@@ -30,6 +30,7 @@ class IndependentWindowsSetup:
     def prepare_business(self, *, uin, machine_id):
         metadata = business_metadata(uin=uin, machine_id=machine_id)
         self._prepare_provider(metadata)
+        self.owner._own_business_machine_id = bytes(metadata.field_20)
 
     def prepare(self, metadata):
         self._prepare_provider(metadata)
