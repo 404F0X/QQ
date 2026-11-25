@@ -24,7 +24,7 @@ class OwnColdSdkRequestOwner:
         self.runtime=runtime;self.capi=request_capi;self.clocks=dict(clock_inputs)
         self.environment=random_environment;self.state17_owner=state17_owner
         self.transport_context=transport_context;self.material=RequestMaterialState()
-        self.sequence=1;self.flags=0;self.closed=False
+        self.sequence=1;self.flags=0;self.closed=False;self._pending=[];self._completion=None
         self.creator=(os.getpid(),threading.get_native_id())
         self._tag=bytes.fromhex('4d4c5c7b4146494d');self._encoded=True
 
@@ -34,6 +34,7 @@ class OwnColdSdkRequestOwner:
 
     def create_device_request(self, records):
         self._check();runtime=self.runtime
+        bound=bytes(_String.read(runtime,runtime.image_base+0x6751840+48).value())
         feature46=feature(runtime,_logger(runtime),46)
         metadata=_String.read(runtime,runtime.image_base+0x6751840+24).value()
         if self._encoded:
@@ -55,8 +56,41 @@ class OwnColdSdkRequestOwner:
             second=binding.type(self.transport_context)
             a2=second==1
         sequence=self.sequence;self.sequence=(sequence+1)&((1<<64)-1)
-        return finish_record_request(stage,sdk_sequence=sequence,a2=a2,commands=_COMMANDS)
+        request=finish_record_request(stage,sdk_sequence=sequence,a2=a2,commands=_COMMANDS)
+        self._pending.append((request,bound))
+        return request
+
+    def check_device_request(self, request):
+        """Reject inadmissible originals without consuming or mutating the owner."""
+        self._check()
+        if not any(original is request for original, bound in self._pending):
+            raise InputError('response requires its outstanding original Own request')
+
+    def _take(self, request):
+        self.check_device_request(request)
+        for index, (original, bound) in enumerate(self._pending):
+            if original is request:
+                self._pending.pop(index)
+                return bound
+        raise InputError('response requires its outstanding original Own request')
+
+    def cancel_device_request(self, request):
+        self._take(request)
+        return None  # Local cancellation only; no external transport abort claim.
+
+    def complete_device_request(self, request, responsebody, *, transport_status):
+        if type(responsebody) is not bytes or type(transport_status) is not int or not 0 <= transport_status <= 0xFFFFFFFF:
+            raise InputError('response requires immutable bytes and explicit transport DWORD status')
+        if self._completion is not None:
+            raise InputError('Own response completion cannot reenter')
+        bound = self._take(request)
+        self._completion = (request, bound)
+        try:
+            from .primary_own_sdk_response import _complete
+            return _complete(self, request, bound, responsebody, transport_status)
+        finally:
+            self._completion = None
 
     def close(self):
-        self._check();self.closed=True
+        self._check();self.closed=True;self._pending.clear()
         # CAPI, clocks and observation ports are borrowed, not closed here.

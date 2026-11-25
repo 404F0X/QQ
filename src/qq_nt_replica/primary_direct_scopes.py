@@ -861,6 +861,64 @@ class PrimaryDirectScope:
             if self._status_host is claim:
                 self._status_host = None
 
+    def _authorize_own_response_bootstrap(self, vm, name):
+        from .primary_bootstrap_direct import _HOSTS, _BUFFER_HOSTS, PROGRAM_SHA256, _host, _source_frame
+        from .primary_token_family_direct import _PublicationClaim, _own_response_origin_valid
+        runtime = self.runtime
+        claim = runtime.__dict__.get('_primary_token_publication_claim')
+        calls = runtime._program_calls
+        reader = _source_frame(PrimaryRuntime._execute_program.__code__, runtime, name=name)
+        singleton = _source_frame(PrimaryRuntime._singleton.__code__, runtime)
+        wrapper = _source_frame(PrimaryRuntime.invoke.__code__, runtime, rva=0x1BF7520)
+        provider = _source_frame(PrimaryRuntime._register_provider_base.__code__, runtime)
+        registration = _source_frame(PrimaryRuntime._register_callback_group.__code__, runtime)
+        callback = _source_frame(PrimaryRuntime.invoke.__code__, runtime, rva=0x2DE5910)
+        if (type(claim) is not _PublicationClaim or claim.caller != 'own-response' or not claim.active or
+                claim.scope is not self or not self._valid_public() or claim.owner is not self.public_owner or
+                claim.owner.runtime is not runtime or claim.owner.thread != get_ident() or not claim.owner.valid() or
+                claim.thread != get_ident() or claim.serial != claim.owner.serial or claim.generation != runtime._main_generation or
+                not _own_response_origin_valid(claim) or vm.runtime is not runtime or vm.memory is not runtime.memory or
+                vm.image_base != runtime.image_base or runtime._active_main is not None or runtime._active_failed or
+                runtime._execute_thread != get_ident() or runtime._execute_depth != (1 if name == 'singleton-init' else 2) or
+                getattr(runtime, '_consumed_mgf', None) is not None or not runtime.vms or runtime.vms[-1] is not vm or
+                reader is None or reader.f_locals.get('vm') is not vm or singleton is None or wrapper is None or
+                wrapper.f_locals.get('vm') is not claim.carrier or wrapper.f_locals.get('cells') != (0, 1, 2) or
+                provider is None or provider.f_locals.get('vm') is not claim.carrier or registration is None or callback is None or
+                callback.f_locals.get('vm') is not claim.carrier or callback.f_locals.get('cells') != () or
+                registration.f_locals.get('vm') is not claim.carrier or
+                registration.f_locals.get('lock_rva') != 0x677C220 or registration.f_locals.get('start') != 0x6D85F60 or
+                registration.f_locals.get('size') != 72 or registration.f_locals.get('pc') != 0x1BF6463 or
+                registration.f_locals.get('slot') is not None or registration.f_locals.get('target') != 0x2DE5910 or
+                registration.f_locals.get('group') != bytes(72) or runtime.locks.get(runtime.image_base + 0x677C220) != 1 or
+                getattr(vm, '_primary_bootstrap_used', False)):
+            raise PrimarySemanticUnavailable('Own bootstrap requires its actual request publication and provider registration chain')
+        if name == 'singleton-init':
+            if (reader.f_locals.get('arguments') != () or reader.f_locals.get('hosts') != _HOSTS or
+                    len(calls) != 1 or calls[0] != dict(name=name, arguments=(), hosts=_HOSTS) or
+                    getattr(claim, '_bootstrap_used', False)):
+                raise PrimarySemanticUnavailable('bootstrap requires its one-use actual singleton call and empty ABI')
+            claim._bootstrap_used = True
+            claim._bootstrap_root, claim._bootstrap_call = vm, calls[0]
+        else:
+            root = getattr(claim, '_bootstrap_root', None)
+            native = _source_frame(_host.__code__, runtime)
+            child_wrapper = _source_frame(PrimaryRuntime.invoke.__code__, runtime, rva=0x359205B)
+            if (type(root) is not PrimaryVM or root.runtime is not runtime or root.memory is not runtime.memory or
+                    sha256(root.program.raw).hexdigest() != PROGRAM_SHA256 or
+                    (root.pc, root.block, root.predecessor, root.initial_block) != (170, 6, 4, False) or root.halted or
+                    len(runtime.vms) < 2 or runtime.vms[-2] is not root or len(calls) != 2 or
+                    calls[0] is not getattr(claim, '_bootstrap_call', None) or calls[1]['name'] != name or
+                    calls[1]['hosts'] != _BUFFER_HOSTS or len(calls[1]['arguments']) != 2 or
+                    reader.f_locals.get('arguments') != calls[1]['arguments'] or reader.f_locals.get('hosts') != _BUFFER_HOSTS or
+                    not root.host_calls or root.host_calls[-1] != (163, runtime.image_base + 0x359205B, (35, 34), 41) or
+                    getattr(root, '_primary_bootstrap_active_call', None) != (163, 37, (35, 34), 41, None) or
+                    native is None or native.f_locals.get('vm') is not root or child_wrapper is None or
+                    child_wrapper.f_locals.get('vm') is not root or child_wrapper.f_locals.get('cells') != (35, 34) or
+                    getattr(root, '_primary_bootstrap_child', None) is not None):
+                raise PrimarySemanticUnavailable('buffer-init requires its actual one-use singleton word163 parent and ABI')
+            root._primary_bootstrap_child = vm
+        vm._primary_bootstrap_used = True
+
     def _authorize_initialization_bootstrap(self, vm, name):
         from .primary_bootstrap_direct import _HOSTS, _BUFFER_HOSTS, PROGRAM_SHA256, _host
         from .primary_source2581_direct import _ConfigurationClaim, _host as guid_host, PROGRAM_SHA256 as guid_hashes

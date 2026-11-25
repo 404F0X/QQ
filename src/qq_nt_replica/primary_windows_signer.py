@@ -496,6 +496,12 @@ class WindowsSigner:
     def create_own_device_request(self, records):
         return self._operation('create_own_device_request', records)
 
+    def complete_own_device_request(self, request, responsebody, *, transport_status):
+        return self._operation('complete_own_device_request', request, responsebody, transport_status=transport_status)
+
+    def cancel_own_device_request(self, request):
+        return self._operation('cancel_own_device_request', request)
+
     def initialize_provider(self, metadata, *, private_context_tail):
         return self._operation('initialize_provider', metadata, private_context_tail=private_context_tail)
 

@@ -37,6 +37,10 @@ def _authorize(vm, name):
     if type(scope) is PrimaryDirectScope and scope.initialization_owner is not None:
         scope._authorize_initialization_bootstrap(vm, name)
         return
+    claim = getattr(runtime, '_primary_token_publication_claim', None)
+    if type(scope) is PrimaryDirectScope and getattr(claim, 'caller', None) == 'own-response':
+        scope._authorize_own_response_bootstrap(vm, name)
+        return
     owner = getattr(runtime, '_primary_public_direct_owner', None)
     if (runtime is None or type(scope) is not PrimaryDirectScope or scope.runtime is not runtime or
             type(owner) is not _PublicDirectOwner or scope.public_owner is not owner or

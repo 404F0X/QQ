@@ -293,6 +293,40 @@ def audit(runtime, record):
     return None
 
 
+def _apply_parsed_cache(runtime, pair, name, token, rbp, image):
+    memory = runtime.memory
+    memory.store(pair + 0x64, 0, 4, source='BDE1E0.response_failure_reset')
+    name.clone().write_to(rbp - 0x30)
+    token.clone().write_to(rbp - 0x48)
+    record = rbp + 0x40
+    memory.write(record + 8, bytes(48), source='BE0730.token_record_strings')
+    _assign(runtime, record + 8, _String.read(runtime, rbp - 0x48))
+    _assign(runtime, record + 32, _String.read(runtime, rbp - 0x30))
+    memory.store(record, memory.load(rbp + 0x30, 8), 8, source='BE076D.token_record_timestamp')
+    _String.read(runtime, rbp - 0x48).destroy()
+    _String.read(runtime, rbp - 0x30).destroy()
+    _srw(runtime, pair + 0xE0, True)
+    cached = _String.read(runtime, record + 8)
+    if cached.value():
+        memory.store(pair + 16, memory.load(record, 8), 8, source='BDEC55.token_cache_timestamp')
+        _assign(runtime, pair + 24, cached)
+        _assign(runtime, pair + 48, _String.read(runtime, record + 32))
+        raw = cached.value().split(b'\0', 1)[0]
+        _message(runtime, image, rbp, 'success_token', 599, 1, memory.load(record, 8), raw)
+        key = _String.construct(runtime, _decode(image['persistent_prefix']))
+        _append(key, _String.read(runtime, record + 32).value())
+        key.write_to(rbp + 0x90)
+        format_record(runtime, record, rbp + 0x78)
+        _invoke(runtime, 0x1BE59D0, rbp + 0x90, rbp + 0x78)
+        _String.read(runtime, rbp + 0x78).destroy()
+        key.destroy()
+    else:
+        _message(runtime, image, rbp, 'empty_token', 602, 2)
+    _srw(runtime, pair + 0xE0, False)
+    _String.read(runtime, record + 32).destroy()
+    cached.destroy()
+
+
 def respond(runtime, capture, pointer, size, success, error):
     memory, base, image = runtime.memory, runtime.image_base, _image()
     frame, rbp = _frame(runtime, 0x1A8, 'BDCAD0.device_response_frame')
@@ -314,36 +348,7 @@ def respond(runtime, capture, pointer, size, success, error):
             memory.store(pair + 0x64, failed, 4, source='BDE241.response_parse_failure')
             _message(runtime, image, rbp, 'parse_error', 569, 2, reason, failed)
         else:
-            memory.store(pair + 0x64, 0, 4, source='BDE1E0.response_failure_reset')
-            name.clone().write_to(rbp - 0x30)
-            token.clone().write_to(rbp - 0x48)
-            record = rbp + 0x40
-            memory.write(record + 8, bytes(48), source='BE0730.token_record_strings')
-            _assign(runtime, record + 8, _String.read(runtime, rbp - 0x48))
-            _assign(runtime, record + 32, _String.read(runtime, rbp - 0x30))
-            memory.store(record, memory.load(rbp + 0x30, 8), 8, source='BE076D.token_record_timestamp')
-            _String.read(runtime, rbp - 0x48).destroy()
-            _String.read(runtime, rbp - 0x30).destroy()
-            _srw(runtime, pair + 0xE0, True)
-            cached = _String.read(runtime, record + 8)
-            if cached.value():
-                memory.store(pair + 16, memory.load(record, 8), 8, source='BDEC55.token_cache_timestamp')
-                _assign(runtime, pair + 24, cached)
-                _assign(runtime, pair + 48, _String.read(runtime, record + 32))
-                raw = cached.value().split(b'\0', 1)[0]
-                _message(runtime, image, rbp, 'success_token', 599, 1, memory.load(record, 8), raw)
-                key = _String.construct(runtime, _decode(image['persistent_prefix']))
-                _append(key, _String.read(runtime, record + 32).value())
-                key.write_to(rbp + 0x90)
-                format_record(runtime, record, rbp + 0x78)
-                _invoke(runtime, 0x1BE59D0, rbp + 0x90, rbp + 0x78)
-                _String.read(runtime, rbp + 0x78).destroy()
-                key.destroy()
-            else:
-                _message(runtime, image, rbp, 'empty_token', 602, 2)
-            _srw(runtime, pair + 0xE0, False)
-            _String.read(runtime, record + 32).destroy()
-            cached.destroy()
+            _apply_parsed_cache(runtime, pair, name, token, rbp, image)
             memory.write(rbp + 0x90, bytes(5), source='BDF303.device_auxiliary_empty')
             if token.get(0, 1) & 1:
                 auxiliary = memory.read(token.get(16, 8), 4)

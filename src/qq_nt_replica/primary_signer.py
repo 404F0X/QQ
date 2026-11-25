@@ -1179,6 +1179,24 @@ class PrimarySigner:
             raise InputError('own request component is not attached')
         return component.create_device_request(records)
 
+    def complete_own_device_request(self, request, responsebody, *, transport_status):
+        from .primary_sign_lifecycle import public_call
+        component = getattr(self, '_own_sdk_request', None)
+        if component is None:
+            raise InputError('own request component is not attached')
+        component.check_device_request(request)
+        with public_call(self):
+            return component.complete_device_request(request, responsebody, transport_status=transport_status)
+
+    def cancel_own_device_request(self, request):
+        from .primary_sign_lifecycle import public_call
+        component = getattr(self, '_own_sdk_request', None)
+        if component is None:
+            raise InputError('own request component is not attached')
+        component.check_device_request(request)
+        with public_call(self):
+            return component.cancel_device_request(request)
+
     def initialize_provider(self, metadata, *, private_context_tail=_PROVIDER_TAIL_FROM_ENVIRONMENT):
 
         if self.failed:

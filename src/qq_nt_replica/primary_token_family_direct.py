@@ -200,8 +200,71 @@ def response_token_publication(runtime, pointer, carrier):
             raise PrimarySemanticUnavailable('response publication claim changed before exit')
 
 
+def _own_response_origin_valid(claim):
+    from .primary_own_sdk_response import _complete
+    from .primary_own_sdk_request import OwnColdSdkRequestOwner
+    from .primary_signer import PrimarySigner
+    from .primary_tokens import publish_own_response_token
+    runtime = claim.runtime
+    source = _source_frame(_complete.__code__, runtime=runtime)
+    if source is None or claim.source is not source:
+        return False
+    owner = source.f_locals.get('owner')
+    request = source.f_locals.get('request')
+    bound = source.f_locals.get('bound')
+    region = claim.region
+    return (type(owner) is OwnColdSdkRequestOwner and owner.runtime is runtime and not owner.closed and
+            owner._completion is not None and owner._completion[0] is request and owner._completion[1] == bound and
+            claim.scope._valid_public() and claim.scope.public_owner is claim.owner and
+            getattr(claim.owner.signer, '_own_sdk_request', None) is owner and
+            _source_frame(PrimarySigner.complete_own_device_request.__code__, self=claim.owner.signer, request=request) is not None and
+            _source_frame(OwnColdSdkRequestOwner.complete_device_request.__code__, self=owner, request=request) is not None and
+            claim.publication is _source_frame(publish_own_response_token.__code__, runtime=runtime, pointer=claim.pointer) and
+            claim.publication.f_locals.get('carrier') is claim.carrier and
+            claim.publication.f_locals.get('values') == (claim.pointer, 2, 0x2583) and
+            claim.kind == 2 and claim.key == 0x2583 and region is not None and
+            region.name == 'Own.device_response_frame' and len(region.data) == 0x1A8 and
+            source.f_locals.get('frame') == region.address and claim.pointer == region.address + 0x110 and
+            runtime.memory.read(claim.pointer, 5) == source.f_locals.get('auxiliary'))
+
+
+@contextmanager
+def own_response_token_publication(runtime, pointer, carrier):
+    from .primary_direct_scopes import PrimaryDirectScope
+    from .primary_sign_lifecycle import region_at
+    from .primary_own_sdk_response import _complete
+    from .primary_tokens import publish_own_response_token
+    scope = runtime.__dict__.get('_primary_direct_scope')
+    source = _source_frame(_complete.__code__, runtime=runtime)
+    publication = _source_frame(publish_own_response_token.__code__, runtime=runtime, pointer=pointer)
+    if (type(scope) is not PrimaryDirectScope or not scope._valid_public() or source is None or publication is None or
+            runtime._active_main is not None or runtime._program_calls or runtime._execute_depth or
+            runtime._execute_thread is not None or runtime._active_failed or
+            getattr(runtime, '_consumed_mgf', None) is not None or
+            runtime.__dict__.get('_primary_token_publication_claim') is not None):
+        raise PrimarySemanticUnavailable('Own publication requires its active public byte completion')
+    claim = _PublicationClaim(runtime, scope, scope.public_owner, publication, source, pointer, 2, 0x2583,
+                              'own-response', carrier, region_at(runtime.memory, source.f_locals.get('frame')), _CLAIM_FACTORY)
+    if not _own_response_origin_valid(claim):
+        raise PrimarySemanticUnavailable('Own publication lost its original request completion')
+    runtime._primary_token_publication_claim = claim
+    try:
+        yield claim
+        if not _own_response_origin_valid(claim) or claim.root is None or not claim.root.halted or claim.root.pc != 188:
+            raise PrimarySemanticUnavailable('Own response publication did not complete its actual source root')
+    finally:
+        claim.active = False
+        claim.publication = claim.source = None
+        if runtime.__dict__.get('_primary_token_publication_claim') is claim:
+            runtime.__dict__.pop('_primary_token_publication_claim')
+        elif sys.exception() is None:
+            raise PrimarySemanticUnavailable('Own response publication claim changed before exit')
+
+
 def _publication_origin_valid(claim):
     from .primary_sign import PrimaryRuntime
+    if claim.caller == 'own-response':
+        return _own_response_origin_valid(claim)
     if claim.caller == 'response':
         return _response_origin_valid(claim)
     return (_source_frame(PrimaryRuntime.publish_provider_token.__code__, self=claim.runtime, address=claim.pointer,
@@ -222,7 +285,7 @@ def _authorize(vm, name):
             _publication_owner(runtime, claim.scope, claim.caller, claim.source) is not claim.owner or runtime._active_main is not None or
             runtime._active_failed or runtime._execute_thread != get_ident() or getattr(runtime, '_consumed_mgf', None) is not None or
             vm.memory is not runtime.memory or vm.image_base != runtime.image_base or not runtime.vms or runtime.vms[-1] is not vm or
-            region_at(runtime.memory, claim.region.address if claim.caller == 'response' else claim.pointer) is not claim.region or
+            region_at(runtime.memory, claim.region.address if claim.caller in ('response', 'own-response') else claim.pointer) is not claim.region or
             not _publication_origin_valid(claim)):
         raise PrimarySemanticUnavailable('token family lost its actual publication source, public owner or private local')
     claim.scope._require_live()

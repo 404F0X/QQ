@@ -378,6 +378,20 @@ owner检查、create及close；`SdkRecordRequest`保留command/body/sdk_sequence
 4. 后续正常返回的 SIGN 真实选中并读取新材料；证明因果关系而非长度比较。
 5. 适用刷新、空值、失败、取消、关闭及异步所有权验收均成立，资源状态可核对。
 
+### 本方 reply pipeline 当前有限候选
+
+独立审查 r1 已修两处局部缺陷：原 request 资格在 public_call 前纯预检，重复取消／晚到／复制／跨 owner 拒绝不会毒化 signer 或其余 pending；archive mode0 不再要求未使用的 deadline，仍以 request.peer_key 实际验签，current 缺 deadline 仍显式停止。新增 MODEL 公共入口和无 deadline archive 回归通过；不改变下述 root-only 与 teardown FAIL 限制。
+
+本轮代码基于 HEAD `2ebd507`／既有 source `680b`，仅执行纯 MODEL 验证。历史 [L7] a7 的真实137、codec、SIGN及返回级 close 绑定其原输入；未运行本轮 reply 代码，不能自动重标为新版 native 证据。
+
+新增 `complete_own_device_request(originalrequest, responsebody, transport_status=...)` 经 Windows operation、PrimarySigner public_call 在组件内部解码；同组件保留多个原 request identity、不可变 decode material 与实际 pair+48 bound snapshot，支持局部取消／关闭拒绝晚到，不代表网络已中止。mode0 current 先更新 deadline/features，再读取本方独立 current.payload_mode；archive 总是验签，验签用 request.peer_key。GCM失败／status3不安装。空 token 保留旧 cache，非空按源锁、独占 copy、持久化次序更新；失败不回滚已写缓存。
+
+当前 MODEL 空／非空 null-provider 路径真实调用 wrapper 并完成 source2583 root，dispatch_result=0；实际分支未进入 token-setter／expire，不能据此声称下游消费者成功或完整 published。返回字段分别表达原 dispatch_result、root/setter/expire completion 及 cache_updated，没有响应认证凭据或新 proof registry。非空 provider fixture 在缓存已更新后真实命中 `1BE5A54 provider vtable+28` Boundary，未发布。
+
+有限边界：mode0 缺少源未初始化 stack 字段显式停止；真实 features 已写 map/provider/persist 后若通知命中 `1C41B10` 未实现 continuation，保留副作用并在验签／安装前停止；未补该 callback。纯 PrimarySigner 模型在业务 root 返回后的 registrar.close 仍因缺少正式 direct close scope 而 cleanup_failed，组合 publication+close **未通过**；没有伪造 WindowsOwner／切 backend。MODEL语义断言通过不等于该 teardown 成功，部分虚拟资源债务仍保留。
+
+证据 `A/own-reply-pipeline-a1/`。固定服务器有效 mode0 签名、真实关联响应、真实通知分支、下游材料消费与后续 SIGN 均未证明；无网络、native、真实存储或 a8 执行。完整 Goal 保持 ACTIVE。
+
 ## 8. 安全证据索引
 
 - [M] `A/own-device-mix-producer-a1/independent-live-a1/RESULT.json`：本地17B实际与重算、资源0。

@@ -756,7 +756,7 @@
     {
       "path": "src/qq_nt_replica/primary_bootstrap_direct.py",
       "source_sha256": "cf2c18e9a85f5a5d2b73185593f4c51e365e17f97185c2ca13aaaa2211e1e550",
-      "sha256": "aeb11dd697662a1a46a27c3ad1cd11ab3867ffff8b4b58eeb50ca0bb0fde2ca1",
+      "sha256": "11b5a1cf03406316163bef666311701e232c9dc1707931f91ce5c6a0dbb20214",
       "classification": "project_source"
     },
     {
@@ -1154,7 +1154,7 @@
     {
       "path": "src/qq_nt_replica/primary_direct_scopes.py",
       "source_sha256": "d94a59511382ce9e3564a256dac0fdc3c177fff4753f978d482586a38389b3e3",
-      "sha256": "b0dedeea26971ac9f39236fc0b65502c93e76ec4b1614bdfb22a49bcd565ba95",
+      "sha256": "4cc65253694989134994a56f17f153b2cfe8ee3f134dbc2a6b7defff13c807b4",
       "classification": "project_source"
     },
     {
@@ -1824,10 +1824,16 @@
       "origin": "MAT-SIGN-OUTER-PREFIX-IMPLEMENT/a1 source-aligned bounded prefix; first authoring snapshot: outer-prefix-implementation/primary_outer_init.py"
     },
     {
+      "path": "src/qq_nt_replica/primary_own_sdk_response.py",
+      "source_sha256": "193a9ede79abb3fdae7952d533c313c805550a4bceef948ff80005a44bd9bc0e",
+      "sha256": "193a9ede79abb3fdae7952d533c313c805550a4bceef948ff80005a44bd9bc0e",
+      "classification": "project_source"
+    },
+    {
       "path": "src/qq_nt_replica/primary_own_sdk_request.py",
       "classification": "project_source",
-      "source_sha256": "836e91514a5b7c909bcc0abde89440d03fcdf349500453f356765cb890dc4bea",
-      "sha256": "836e91514a5b7c909bcc0abde89440d03fcdf349500453f356765cb890dc4bea"
+      "source_sha256": "58daf33ae3c7a5046f43060232979886c218e14bcce89bae69f919d7c055f639",
+      "sha256": "58daf33ae3c7a5046f43060232979886c218e14bcce89bae69f919d7c055f639"
     },
     {
       "path": "src/qq_nt_replica/primary_payload.py",
@@ -2453,8 +2459,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_signer.py",
-      "source_sha256": "9f328b349a5a4c66ae3afa9f60a9dd7324ee30f8d010f2783fa1571c2977b71b",
-      "sha256": "9f328b349a5a4c66ae3afa9f60a9dd7324ee30f8d010f2783fa1571c2977b71b",
+      "source_sha256": "b849f65205b9c131a5ab6c67b725083772733e1cba423fbdf751ae971544bea7",
+      "sha256": "b849f65205b9c131a5ab6c67b725083772733e1cba423fbdf751ae971544bea7",
       "classification": "project_source"
     },
     {
@@ -2597,8 +2603,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_token_family_direct.py",
-      "source_sha256": "0984cf196658e07f1d1248e4d064b69d11c77d80d9e1573960832b79be7185b6",
-      "sha256": "0984cf196658e07f1d1248e4d064b69d11c77d80d9e1573960832b79be7185b6",
+      "source_sha256": "47a365170d7da50e91163e3870b2aaf8b9aed7e219e0d10edc7768436c2b6f12",
+      "sha256": "47a365170d7da50e91163e3870b2aaf8b9aed7e219e0d10edc7768436c2b6f12",
       "classification": "project_source"
     },
     {
@@ -2609,8 +2615,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_tokens.py",
-      "source_sha256": "0bb8f536d7e9543765306c34833bd8fdfbfd74c89f52ab9ee035b94bc5962302",
-      "sha256": "0bb8f536d7e9543765306c34833bd8fdfbfd74c89f52ab9ee035b94bc5962302",
+      "source_sha256": "45a8bed61520b804052cc0ba71c0a438a213daa33d40ec3ea548c12dffcf38d5",
+      "sha256": "45a8bed61520b804052cc0ba71c0a438a213daa33d40ec3ea548c12dffcf38d5",
       "classification": "project_source"
     },
     {
@@ -2978,8 +2984,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_windows_signer.py",
-      "source_sha256": "517e7c1004debf3d29c07be1e1141a6510ddbad7bf9ebcb6fb2f7aabceb024cb",
-      "sha256": "517e7c1004debf3d29c07be1e1141a6510ddbad7bf9ebcb6fb2f7aabceb024cb",
+      "source_sha256": "38541e833491b46dc632cc4122de820da38c9e31db622f54fe3731d682a630db",
+      "sha256": "38541e833491b46dc632cc4122de820da38c9e31db622f54fe3731d682a630db",
       "classification": "project_source"
     },
     {
@@ -3069,8 +3075,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_worker_response.py",
-      "source_sha256": "3c27efc3386aae84cdf81472aadda5f18aa23633f834d83d6676376bf96238b6",
-      "sha256": "3c27efc3386aae84cdf81472aadda5f18aa23633f834d83d6676376bf96238b6",
+      "source_sha256": "5854173cfa512073aeb3fbce932f11a0b4d13ff2b0c17febce46a13089a71ac8",
+      "sha256": "5854173cfa512073aeb3fbce932f11a0b4d13ff2b0c17febce46a13089a71ac8",
       "classification": "project_source"
     },
     {

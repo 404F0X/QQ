@@ -108,6 +108,18 @@ def publish_response_token(runtime, pointer):
         return runtime.invoke(carrier, 0x1BF7520, (0, 1, 2))
 
 
+def publish_own_response_token(runtime, pointer):
+    from .primary_token_family_direct import own_response_token_publication
+    values = (pointer, 2, 0x2583)
+    carrier = SimpleNamespace(cells=SimpleNamespace(value=lambda index: values[index]))
+    with own_response_token_publication(runtime, pointer, carrier) as claim:
+        result = runtime.invoke(carrier, 0x1BF7520, (0, 1, 2))
+    return dict(dispatch_result=result,
+                root_completed=claim.root is not None and claim.root.halted and claim.root.pc == 188,
+                setter_completed=claim.setter is not None and claim.setter.halted,
+                expire_completed=claim.expire is not None and claim.expire.halted)
+
+
 def dispatch_local(runtime, pointer, kind, key):
     from .primary_sdk import NativeByteReturn
     memory, base = runtime.memory, runtime.image_base
