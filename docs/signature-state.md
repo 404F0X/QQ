@@ -31,13 +31,19 @@ binding active finally始终清理，不嵌套既有public operation；真实com
 
 feature46 ON 的默认路径 `encode_record_request→encrypt_device_records→RecordCipherHost→PrimaryVM` 已核对。fixed source BD69BB..BD69CB 对空value写NULL／len0；adapter现按此投影，不再为空bytes分配非NULL backing。非空值仍按显式len复制并追加NUL，embeddedNUL与原清理所有权不变。该NULL修复已获独立review APPROVE及4项检查PASS。原1105B固定MODEL fixture含key0＋empty，修改前后逐bytes相同，不向actual外推；另以actual137 records＋明确MODEL host参数做baseline／candidate独立CPU各一次，两者均4491B且逐bytes相同。这是HYBRID／MODEL敏感性对照，不是原actual cipher复现或独立cipher真值。
 
-既存actual安全报告确认firstsnapshot137有2条empty、无key0＋empty，savedtuple与plainrecords一致；原值仅在可信本地分析中使用。zero-keyempty PB差异不在本次修复范围，未改。原actual cipher调用的state17／PID／wall_seconds／formatter_options未进入snapshot，因此actual137-counterfactual仍UNKNOWN；虽有records及cipher输出，也不等于保存全部原始inputs。未拿监督PID、currenttime或默认值补齐。VM是否在其他输入观察NULL差别、实际cipher／1003因果仍未证。证据：`A/overall-signing-service/request-independent-points/record137-empty-abi-implementation/{RESULT.md,sensitivity.json}`。
+既存actual安全报告确认firstsnapshot137有2条empty、无key0＋empty，savedtuple与plainrecords一致；原值仅在可信本地分析中使用。zero-keyempty PB差异不在本次修复范围，未改。旧唯一网络交易的actual cipher调用state17／PID／wall_seconds／formatter_options未进入snapshot，因此该旧交易的actual137-counterfactual仍UNKNOWN，不能用新离线交易回填；虽有records及cipher输出，也不等于保存全部原始inputs。未拿监督PID、currenttime或默认值补齐。VM是否在其他输入观察NULL差别、实际cipher／1003因果仍未证。证据：`A/overall-signing-service/request-independent-points/record137-empty-abi-implementation/{RESULT.md,sensitivity.json}`。
 
 ## 请求生产独立检查的当前边界
 
-P256原受控检查0/24在首个scalar1 raw-scalar oracle差异停止，原FAIL保留。后续known peer private7的6/6 server-side ECDH／HKDF一致；非均匀／highbit的4个正常域case也匹配raw-scalar oracle。保存actual client public精确对应sentbody field2，client／decodedpeer两点均合法；这不证明实际ECDH key正确。source co-Z scalar1 bitcount映射仍未闭合，finding归档、不改算法，不声称QQ故意非标准或已排除所有ECDH问题。Opus先前系统性猜测已撤回，顾问意见不作source证明 [RI]。
+P256原受控检查0/24在首个scalar1 raw-scalar oracle差异停止，原FAIL保留。后续known peer private7的6/6 server-side ECDH／HKDF一致；非均匀／highbit的4个正常域case也匹配raw-scalar oracle。旧网络交易保存的client public精确对应sentbody field2，client／decodedpeer两点均合法；这不证明该旧交易ECDH key正确。source co-Z scalar1 bitcount映射仍未闭合，finding归档、不改算法，不声称QQ故意非标准或已排除所有ECDH问题。Opus先前系统性猜测已撤回，顾问意见不作source证明 [RI]。
 
-fresh command selector值匹配已证，不等于执行原callback或传输资格。137／profile确实进入AEAD/body及SIGN，不是未使用输入；但其完整独立正确性及1003因果仍unknown。完整builtin参数snapshot、原args／返回值不变的wrapper仅在analysis MODEL／HYBRID检查过，下一actual payload尚未整合。下一actual前需绑定代码版本的producer全参snapshot及必要CAPI输入采集；不能以成品DTO替代原始生成输入，ECDH原private仍缺。没有新probe GO。既有VM trace feasibility已确认局部观察接口，尚未执行算法trace；静态mix bridge／条件mask用法仅是IR/lower假设，native handler展开暂停，不授权重建VM或扩算法研究 [RI][CUR]。
+fresh command selector值匹配已证，不等于执行原callback或传输资格。137／profile确实进入AEAD/body及SIGN，不是未使用输入；但其完整独立正确性及1003因果仍unknown。原采集方案经修正、审查后已整合进一次新的完全离线actual：完整137／真正四cipher参数、实际CAPI private／blinding、原helper返回sharedX及request／SIGN／frame已完整采集，并完成下述密码与数据绑定核对 [OFF]。旧唯一网络交易的四参／private仍缺且不可回填；以后实际运行仍须保留版本绑定的producer全参及必要CAPI输入，不能只存成品DTO。该新离线运行不授予新的网络probe GO。既有VM trace feasibility已确认局部观察接口，尚未执行算法trace；静态mix bridge／条件mask用法仅是IR/lower假设，native handler展开暂停，不授权重建VM或扩算法研究 [RI][CUR]。
+
+## 新离线生产请求的完整采集与独立核对
+
+一次NEW actual Windows／SystemRequestCapi生产Own初始化→one CREATE→正常SIGN／sourcecold12封帧已完成，同一有效owner，全程无QQ socket／DNS／connect／send／recv、Original DLL或重试。这是新的离线样本，不是旧143B网络交易。12个完整事件包含真正137及state17／PID／wall_seconds／formatter四参、private／blinding真实CAPI前后knownness、原helper sharedX、全部DTO／pending identity／SIGN／frame。独立cryptography实输入28／28比较PASS：pub／固定peer／sharedX／HKDF、body ASCII field4、GCM、cipher／ordered records／plain及frame等 [OFF]。
+
+环境Python3.14.3 optimize0、cryptography46.0.7；14项analysis／11项source及profile／helpers在运行前后未变。public cancel／close正常return，child实际exit0、parent0，匹配owned进程alive0；没有逐native handle全关闭证明，旧Pure PrimarySigner MODEL close FAIL仍保留。一次准备目录pyc自动写入已按精确路径清理，不能称完全没有意外写入；C源码未改。该样本只证明本方新离线请求的密码学／输入绑定比较，不证明server key、完整SIGN数学、137内容真实性、1003原因或正材料闭环；真实网络正材料仍0、同owner下一SIGN消费新材料未证 [OFF]。
 
 ## 本交易AEAD与1003后的请求状态
 
@@ -45,7 +51,7 @@ fresh command selector值匹配已证，不等于执行原callback或传输资�
 
 1003保留的168B current是本地请求crypto状态，不是已安装server材料；1003不设置60s TTL。有效同owner／未过期下一CREATE会复用该状态（regenerated=False但仍mode0），重新序列化并消耗原random流生成nonce，仍可选择Establish，不是新server-confirmed材料或rawbody自动重发。wall-only expiry的native路径是telemetry1BEFC10后AL0复用，不是新throw；Own已有缺clock依赖的Boundary保持，不能把三参runtime helper直接塞给Own一参接口或用noop替代。完整source结论来自leaf；Opus已撤回错误clock patch建议，clock遥测扩张停止 [CUR]。
 
-state17 mix只有静态bridge及有条件的后来byte-mask使用证据，不是native公式、key／IV或finalcipher证明；handler展开暂停。actual-input-capture-completeness目前仅A目录候选及MODEL透传检查，旧actual payload未接入，原四参与CAPI private未恢复，不能称已捕获。固定源已确认原称provider+28是可空generic persistence type-erased callable：callsite1BE5A53，activeptr677BE78／inlinebase677BE60，fixed init1BE5CA7置NULL，NULL直接跳过；非空CALL[vt+28](receiver,keyString,&encryptedString)返回值未用，destructor区分inline／heap slots。C worker／caller queue共享持久化，caller仅在未映射时映射fresh NULL，不强制清空已有对象；非空installer／实际vtable仍unknown，不能称永远external或全局不存在。optional持久化不等于in-memory安装发布，也不是所有fresh成功的必要发布Boundary。合法fresh NULL路径目前未建立无条件必经的未实现postinstall函数；真实成功reply字段仍可能先触发settings通知Boundary [PERSIST]。本轮无新网络，业务真实正材料仍0，完整Goal未完成 [CUR]。
+state17 mix只有静态bridge及有条件的后来byte-mask使用证据，不是native公式、key／IV或finalcipher证明；handler展开暂停。原actual-input-capture-completeness仅是A候选／MODEL证据；后续offline-request-crypto-a1已另行完成一次新离线生产采集及验证，不能反写成旧网络payload当时已接入、旧四参／private已恢复 [OFF]。固定源已确认原称provider+28是可空generic persistence type-erased callable：callsite1BE5A53，activeptr677BE78／inlinebase677BE60，fixed init1BE5CA7置NULL，NULL直接跳过；非空CALL[vt+28](receiver,keyString,&encryptedString)返回值未用，destructor区分inline／heap slots。C worker／caller queue共享持久化，caller仅在未映射时映射fresh NULL，不强制清空已有对象；非空installer／实际vtable仍unknown，不能称永远external或全局不存在。optional持久化不等于in-memory安装发布，也不是所有fresh成功的必要发布Boundary。合法fresh NULL路径目前未建立无条件必经的未实现postinstall函数；真实成功reply字段仍可能先触发settings通知Boundary [PERSIST]。本轮无新网络，业务真实正材料仍0，完整Goal未完成 [CUR]。
 
 ## 整体大签名服务
 
@@ -54,7 +60,7 @@ state17 mix只有静态bridge及有条件的后来byte-mask使用证据，不是
 | 层次 | 当前证据与边界 |
 | --- | --- |
 | ResultProduced | a7 与一次真实 binder 请求已产生正常 SIGN 三字段；后者逐 bytes 核对并实际进入 frame、发送。 |
-| 独立数学 Verified | 完整 SIGN 尚无适用的同输入独立真值。reference/direct 共享 PrimaryRuntime、程序及 host 族，reference 也可进入 direct helper，不能自动充当独立 oracle；限定已知材料未找到可立即执行的完整独立点，不代表全历史不存在。实际P256因未保存同次private scalar／sharedX仍停于输入缺口；受控scalar1 raw-oracle差异与6/6 server互通分别保留其范围，不能外推actual正确或失败 [P256][RI]。 |
+| 独立数学 Verified | 完整 SIGN 尚无适用的同输入独立真值。reference/direct 共享 PrimaryRuntime、程序及 host 族，reference 也可进入 direct helper，不能自动充当独立 oracle；限定已知材料未找到可立即执行的完整独立点，不代表全历史不存在。旧网络交易P256因缺private scalar／sharedX仍不能同次重算；新离线actual样本的独立pub／固定peer／sharedX／HKDF已通过，不泛化全部ECDH或解释旧scalar1／1003。完整SIGN真值仍未证 [P256][RI][OFF]。 |
 | 普通业务 Accepted | 仅一次 SsoEstablishShareKey 关联回复 SDK1003，不能证明服务器校验了全部 SIGN，更不证明普通业务命令已接受。 |
 
 SDK1003 的源消息已知为“下游服务失败”，根因仍 unknown；它不是 owner fatal。上次 actual runtime 已正常返回级关闭，不是当前持续运行中的服务，逐 handle 退出仍 unknown [SA][BR1]。B 的真实新材料认证、安装、发布与同 runtime 后续 SIGN 消费未闭环；它可能影响首次及持续 SIGN，不能只称维护路径。源 counter→BA22B0→signed32 十进制临时量已证，但栈槽多生命周期／alias 传播未闭合，seq 的数学消费仍 unknown，既非已证 bug 也非1003根因；不新增 public seq 参数。
@@ -540,3 +546,7 @@ fresh成功主干的当前缺口是缺少真实认证成功的非空token／cach
 - [LOGIN] `A/overall-signing-service/request-independent-points/login-sign-integration-new-evidence.md`：R7／R10公开摘要及有界入口核对，非raw独立复验或SDK正材料／52230资格证明。
 
 本轮settings notify修复先以受控feature4=2在旧代码复现无条件Boundary；不是历史1003的已知case。修后12项pipeline MODEL通过，新增缺／非法4归2后继续真实零签名验签并拒绝auth3，0／1仍失败；不证明有效材料安装／消费，也不改变真实1003根因。证据：`A/overall-signing-service/settings-notify-implementation/`。
+
+feature4=0有限cold closure的源控制流已收口，尚缺4个native SRW锁在正确public direct调用域中的实现，以及单例／EH／close debt契约；这不是整scheduler已证必需或材料闭环。feature4=1七注册未展开。未授权扩大算法／scheduler或新增网络执行。
+
+- [OFF] `A/overall-signing-service/offline-request-crypto-a1/execution-a1/{RESULT.md,verify.json,preflight.json,actual-provenance.json,process-terminal.json}`：单次新离线actual完整采集／28项独立比较／版本与生命周期事实，仅按该新样本范围复用。
