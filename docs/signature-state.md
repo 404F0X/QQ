@@ -1,6 +1,6 @@
 ﻿# 签名业务状态机、当前进度与验收
 
-唯一权威标识：`SIGNATURE-STATE`；更新日期：2026-11-24。
+唯一权威标识：`SIGNATURE-STATE`；更新日期：2026-11-25。
 
 本文件是签名业务状态、进度和验收的唯一现行入口。完整 Goal **未完成**。
 旧 HANDOFF、报告、输入快照及 Git 历史只作历史证据，不是现行状态入口。
@@ -159,7 +159,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
   warm 仍 refresh；正常域源码及受控集成已通过独立 review，CORE 10 pure 与4项 legacy 检查成立 [W]。
   这些受控结果不是 genuine137 或真实 OS 采集证据。
 - Windows composition 已接入既有 random_device/ANSI helpers，5项纯检查成立 [W]；
-  真实端口尚无 actual 证据，未取得真实137 snapshot。
+  actual a2 已进入初始cold snapshot，但止于 GetCursorPos 观察缺失，未取得真实137 snapshot。
 - WMI 有5项 fake ABI 检查及独立 review：invalid BSTR 不得 clear，失败 clear 不得 retry。
   它们不证明真实 COM 已执行；阶段安全证据在 [W]。
 - adapter ordinary failure 域未实现：ipconfig/all 备份 parser 与第三 backend 仍未知。
@@ -167,7 +167,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 - identifier keys72..76 涉及 delete installStatus、3轮补读、FILETIME、randomdevice/MT、
   硬件 strings，以及 raw/digest/double 生成和配置/cache/installFlag 写入 flush。
   OWN_STORES 使用显式 G 配置/XML cache 与本方 HKCU namespace，不冒充原 QQProtect。
-  尚无该137 actualIO 授权；不执行原 HKCU Tencent QQProtect 删除或写入。
+  actual a2 未完成137；原 HKCU Tencent QQProtect 删除或写入不在本方路径授权内。
   XML 声明/comment 等未支持输入保留 Boundary，不伪装为空。
 
 ### 本方 cold provider/bootstrap 入口
@@ -180,7 +180,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
   machine_id 是本方持久 caller 配置，provider 与后续 SDK27/login handoff 须保持同值。
 - 业务及 diagnostic 分别调用共有 provider-init/Host129 primitive，保留公共 owner operation fencing、
   pending bootstrap 检查及失败清理；不调用 diagnostic prepare 后重标状态。
-  当前仅有受控 pure 检查，不证明 actual provider/bootstrap、SDKReady、材料安装或 actual SIGN。
+  actual a2 的业务初始化已返回（控制流证据），不证明 SDKReady、材料安装或 actual SIGN。
   refresh/complete 仍用原公共入口；notify/update 公开映射仍未证明。
 
 ### 本方独立 cold SDK request component
@@ -196,6 +196,19 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
   feature46 ON要求同owner state17 producer及实际PID/clock/formatter状态，OFF不调用cipher。
 - clock/CAPI/observation接口为借用，不由component关闭；client关闭component逻辑生命周期。
   当前受控组合到既有encoder通过，actual同owner137→policy2 SIGN仍未执行；notify/update及完整Goal仍未完成。
+
+### actual a2 与 cursor 窄绑定
+
+- actual a1 startup 失败历史保留，不重标为业务完成。actual a2 已返回 owner factory/business初始化、
+  SDK cold fields 校验、key25 success、17B producer 和 public request初始化；这些是调用返回证据，
+  不是每份材料独立重算。collector已进入初始cold snapshot，GetCursorPos缺观察使其停止；137未完成，encoder及policy2 SIGN未到达。
+- 独立 collection `take(data, 'GetCursorPos', ())` 现绑定 lazy user32 GetCursorPos(POINT*)：
+  native BOOL + 成功8B POINT（两个signed LONG32）；BOOL0仅返回空effect，不把默认缓冲当真实坐标。
+  GetLastError保留在cursor observation；composition负责其自有DLL引用关闭。新增绑定仅经mock FFI及真实consumer相关copy语句检查，未actual查询光标。
+- a2所有owned进程已reap、CIM剩余0；close路径被调用，但逐资源关闭未instrument，状态unknown，不能报资源0。
+  STATE-SUPPLEMENT仅检查当前attempt树，未识别ownstate/config/cache文件；持久材料可复用性unknown，
+  不证明全局不存在，不据此任意创建fresh状态。后续实际运行须另有具体授权并核对可信状态。
+  安全证据：`A/own-business-bootstrap-a1/independent-live-a2/{BOUNDARY.json,STATE-SUPPLEMENT.json,RESULT.json}`。
 
 ### SDK、异步消费者与登录
 
@@ -214,7 +227,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 | 固定版本及当前候选 | 固定52230源、候选身份与执行绑定 | 源码基线固定；137正常域候选已冻结 [W] |
 | 本地17B | 真实输入、独立重算、资源退出 | 局部真实 PASS [M]，非材料B |
 | key25 | 完整生产、持久恢复、真实分支 | method6 局部真实 PASS [D]；其他分支未 actual |
-| 完整137 | 正常采集到编码的真实完整输入 | 冻结正常域候选，受控检查成立；actualIO 未授权 |
+| 完整137 | 正常采集到编码的真实完整输入 | 正常域受控检查成立；actual a2 初始cold snapshot止于 GetCursorPos |
 | SDK请求 | 完整载荷、所需 SIGN、真实发送 | 正常全交易未证明 [S] |
 | SDK回包 / Token | 真实关联回包、校验、解析、安装 | 缺真实闭环，不以 metadata 空代替 |
 | Qimei | cold / initialized / restored 各自真实契约 | cold 局部受控 PASS [Q]；完整更新未证明 |
@@ -232,7 +245,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 
 当前优先核实四 SDK 命令所需 policy2 SIGN 能否由本方同一 owner 自产；
 外部输入或未知项须先精确定位，不能预先判为外部依赖。该事实核对后再安排真实137采集。
-完整137正常域源码及受控集成已通过独立 review，但 actualOS 仍未运行；
+完整137正常域源码及受控集成已通过独立 review，actual a2 已运行至初始cold snapshot的 GetCursorPos 边界；
 受控编码贯穿不能跳过实际采集资格、持久副作用授权及必需 SIGN 路径。
 准备支持 `A/own-full-device-records-a1/live-prep/PREPARED.json` 仍为 `prepared=false`，不能用于真实 GO。
 尚无真实 OS137、完整 SIGN 或真实发送回包后 next SIGN 的闭环证据。

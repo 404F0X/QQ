@@ -73,6 +73,38 @@ class WindowsOwnIdentifierRegistry:
         return True
 
 
+class _CursorObservation:
+    def __init__(self):
+        self.library = None
+        self.last_error = None
+        self.closed = False
+
+    def take(self):
+        import ctypes
+        if self.closed:
+            raise InputError('cursor observation is closed')
+        point_type = ctypes.c_int32 * 2
+        if self.library is None:
+            self.library = ctypes.WinDLL('user32', use_last_error=True)
+        function = self.library.GetCursorPos
+        function.restype = ctypes.c_int32
+        function.argtypes = (ctypes.POINTER(point_type),)
+        point = point_type()
+        ctypes.set_last_error(0)
+        result = function(ctypes.byref(point))
+        self.last_error = ctypes.get_last_error()
+        return result, bytes(point) if result else b''
+
+    def close(self):
+        if self.closed:
+            return
+        if self.library is not None:
+            import _ctypes
+            _ctypes.FreeLibrary(self.library._handle)
+            self.library = None
+        self.closed = True
+
+
 class WindowsDeviceCollectionObservations:
     """Finite observation composition over own collection data, without a VM."""
     def __init__(self, *, components=None, source_factory=None, helpers=None,
@@ -85,6 +117,7 @@ class WindowsDeviceCollectionObservations:
         self._source = None
         self._random_environment = None
         self._ansi_conversion = None
+        self._cursor = None
         self._source_factory = source_factory
         self._helpers = {} if helpers is None else dict(helpers)
         self._display_factory = display_factory
@@ -120,6 +153,12 @@ class WindowsDeviceCollectionObservations:
         self._data = data
         # Existing ports alone decide foreign-site fallthrough. Never catch a
         # native boundary or a malformed owned request as an unsupported site.
+        if name == 'GetCursorPos':
+            if type(args) is not tuple or args:
+                raise InputError('GetCursorPos requires empty source arguments')
+            if self._cursor is None:
+                self._cursor = _CursorObservation()
+            return self._cursor.take()
         return self._components[0].take(data, name, args)
 
     def cpuid(self, leaf, subleaf=0):
@@ -209,7 +248,7 @@ class WindowsDeviceCollectionObservations:
         if self.closed:
             return
         self._check()
-        ports = (*self._displays, *self._components,
+        ports = (*((self._cursor,) if self._cursor is not None else ()), *self._displays, *self._components,
                  *((self._source,) if self._source is not None else ()),
                  *((self._random_environment,) if self._random_environment is not None else ()))
         first = None

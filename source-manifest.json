@@ -2699,8 +2699,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_windows_device_collection.py",
-      "source_sha256": "eef18dd44c6f0a62df4bafb70ac8ed94ecd5c1138827babba7ffb34bfee68a04",
-      "sha256": "eef18dd44c6f0a62df4bafb70ac8ed94ecd5c1138827babba7ffb34bfee68a04",
+      "source_sha256": "4231eb4f4c894a8d9ec4e548e1c1c90d1d0060df24aa8089e184aa0d29fb7c21",
+      "sha256": "4231eb4f4c894a8d9ec4e548e1c1c90d1d0060df24aa8089e184aa0d29fb7c21",
       "classification": "project_source",
       "origin": "OWN-137-INDEPENDENT-COLLECTOR-IMPLEMENT/a1 first-retained-source/primary_windows_device_collection.py"
     },
