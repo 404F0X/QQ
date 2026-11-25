@@ -222,6 +222,18 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
   不证明全局不存在，不据此任意创建fresh状态。后续实际运行须另有具体授权并核对可信状态。
   安全证据：`A/own-business-bootstrap-a1/independent-live-a2/{BOUNDARY.json,STATE-SUPPLEMENT.json,RESULT.json}`。
 
+### actual a3 FILETIME frontier
+
+- actual a3 的 `owner.get_own_device_value()` 与 GetCursorPos 已返回（trace控制流证据，非独立材料验证）；
+  collector cold snapshot下一处 GetSystemTimeAsFileTime 在composition.filetime因返回形状检查触发InputError。
+  真实值未投影，不能断言观测了错误时间。137、encoder、policy2 SIGN均未到达。
+- 源码定位：既有native backend按void ABI写入8B缓冲，返回 `(None, (raw8,), error)`；
+  SYSTEM/PROCESS ports保留单缓冲tuple，composition原先错误要求flat bytes。filetime现严格解包一个8B输出effect，
+  仍要求void None、真实8B，不填零、不更改底层ABI或失败语义。新增mock kernel FFI→backend→SYSTEM→PROCESS→composition检查通过，未actual运行修复。
+- a3三个owned进程RC1并reaped、CIM剩余0，515项输入未变；close路径调用但逐资源关闭unknown。
+  证据：`A/own-business-bootstrap-a1/independent-live-a3/RESULT.json`。
+  后续须另有具体GO并复用可信ownstate，继续遵守ownG与 `allow_capi_creation=False`；完整Goal仍未完成。
+
 ### SDK、异步消费者与登录
 
 - 四 SDK 命令均消费完整 payload；status0 也加密 payload，没有纯握手空 body 捷径。
@@ -257,7 +269,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 
 当前优先核实四 SDK 命令所需 policy2 SIGN 能否由本方同一 owner 自产；
 外部输入或未知项须先精确定位，不能预先判为外部依赖。该事实核对后再安排真实137采集。
-完整137正常域源码及受控集成已通过独立 review，actual a2 已运行至初始cold snapshot的 GetCursorPos 边界；
+完整137正常域源码及受控集成已通过独立 review，actual a3 已越过共享getter及cursor，当前首个frontier为cold snapshot FILETIME形状契约；
 受控编码贯穿不能跳过实际采集资格、持久副作用授权及必需 SIGN 路径。
 准备支持 `A/own-full-device-records-a1/live-prep/PREPARED.json` 仍为 `prepared=false`，不能用于真实 GO。
 尚无真实 OS137、完整 SIGN 或真实发送回包后 next SIGN 的闭环证据。

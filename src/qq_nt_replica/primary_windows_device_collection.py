@@ -178,7 +178,10 @@ class WindowsDeviceCollectionObservations:
         else:
             if self._data is None:
                 raise PrimarySemanticUnavailable('FILETIME requires bound own collection data')
-            result, raw = self.take(self._data, 'GetSystemTimeAsFileTime', ())
+            result, effects = self.take(self._data, 'GetSystemTimeAsFileTime', ())
+            if type(effects) is not tuple or len(effects) != 1:
+                raise InputError('FILETIME requires its single output buffer effect')
+            raw = effects[0]
             if result is not None or type(raw) is not bytes or len(raw) != 8:
                 raise InputError('FILETIME requires void result and actual eight output bytes')
             value = int.from_bytes(raw, 'little')

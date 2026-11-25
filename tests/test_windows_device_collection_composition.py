@@ -62,7 +62,7 @@ class CompositionTests(unittest.TestCase):
         class Backend:
             _wlan_seen={}
             def request(self,name,args):
-                self.observed=(name,args); return None,(123).to_bytes(8,'little'),0
+                self.observed=(name,args); return None,((123).to_bytes(8,'little'),),0
             def close(self): pass
         backend=Backend(); p._components[2]._backend=backend
         data=SimpleNamespace(events=[])
