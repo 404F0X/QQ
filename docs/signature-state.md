@@ -112,7 +112,7 @@ flowchart TD
 | 材料状态 | 进入条件 | 退出条件 / 数据 | 当前证据 |
 | --- | --- | --- | --- |
 | InputPrepared | 真实本方输入完整 | 编码并经所需 SIGN 发请求 | a7真实137、codec及同owner SIGN结果已返回；transport None、未发送网络请求 [L7] |
-| RequestPending | 合法 session、完整载荷、真实发送 | 真实响应或明确失败 | 正常 SDK 交易未证明 |
+| RequestPending | 适用的合法传输 context、完整载荷、真实发送 | 真实响应或明确失败 | 正常 SDK 交易未证明 |
 | ReplyReceived / NotificationReceived | 真实请求关联响应或来源合法通知材料成立 | 直接校验、解析或拒绝 | 未证明完整目标路径 |
 | Parsed | 格式和业务条件满足 | 安装到正确 owner | 单独 parser 不能算安装 |
 | Installed | 新材料写入当前有效 owner | 发布并可供选材 | 尚无完整真实证据 |
@@ -328,47 +328,78 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 ## 7. 最早断点、下一步与完成标准
 
 当前同owner本地SIGN结构返回＋正常close的局部里程碑已在a7达成 [L7]，范围NO_NETWORK。
-最近缺口是实际transport None、合法52230 live交接及本方独立reply安装入口；真实网络/安装→后续SIGN未闭环。
+当前代码 `c7226cf` 已提供本方 complete/cancel reply 入口；a7 的 transport None 仅描述其原运行。当前缺口是取得合法真实关联响应并通过有限安装／发布路径，使同 owner 后续 SIGN 实际消费新材料；真实发送及接收契约、适用会话前提仍待核实。
 a7实际请求AES-256-GCM已用独立cryptography AESGCM完成认证解密并匹配保存plain，wire加密字段与保存ciphertext一致 [AE7]。
 该PASS只覆盖一个实际request AEAD边界，不验证key derivation、137 cipher、SIGN算法或server接受。
 无适用同输入SIGN真值且a7缺完整运行观测；Opus在新事实下撤回全SIGN真值前置闸，停止扩fullSIGN捕获，
-SIGN正确性保持unknown待真实参考/服务器结果。本单元收敛为AEAD证据、可审阅handoff草案及最后reply入口事实；咨询意见不作行为证据。
+SIGN正确性保持unknown待真实参考/服务器结果。AEAD证据、未实现的 exchange 草案和已实现的有限 reply 入口分别说明如下；咨询意见不作行为证据。
 旧 `A/own-full-device-records-a1/live-prep/PREPARED.json` 仍为prepared=false，不用于真实GO；后续实际运行仍须具体授权。
 不得把独立component当作source native pending/SourceEpoch receipt资格，也不以输出长度替代算法正确性。
 Token/Qimei异步消费者及空值、UIN/config、刷新失败、取消和完整关闭验收仍未完成；两图目标契约保持。
 
-### signed exchange / live handoff 接口草案（未实现，非现有callable API）
+### signed exchange 草案与既有 authenticated 交接
 
-概念签名：`exchange_signed(command, body, sdk_sequence, sign_result, live_session, deadline)`
+尚未实现的概念签名：`exchange_signed(command, body, sdk_sequence, sign_result, transport_context, deadline)`
 返回真实关联的response bytes、command、SDK sequence，或保留实际阶段/在途副作用的错误。
 请求及SIGN必须来自同一有效owner；发送保存的同一command/body及签名，不重SIGN、不走旧receiver admission或drain，
 不默认补材料、不自动重发或跨runtime拼接。wire sequence必须明确映射到SDK sequence并检查expected command；
 超时/取消区分未发送、已发送未响应及已响应，唯一IO owner负责接收/路由、deadline和关闭，不能把unknown当成功。
 
-现有`SsoTransport`仅protocol12/legacy receiver，enqueue会重SIGN并drain，不能直接用于Own组件或接收保存SIGN。
-下层`SignatureBytes.from_primary_result`、`build_service_packet/parse_service_packet/split_frames`与`SsoSocket`
-可作为后续实现候选，不等于已接通。来源：`primary_sso_transport.py:50-82/90-128/209-244/283-303`，codec为`primary_sso_codec.py`，socket为`primary_sso_socket.py`。
-登录侧`L/resident.py`为experimental51728，注册后finally关闭，无live handoff；旧ONLINE不证明52230合法会话。
+固定 52230 cold SDK 是否必须先认证登录仍为 **UNKNOWN**，SDK 层未见 D2 检查。
+receiver `1BE3060` 接收外部 context；`1BE2F90` 调用参数是 `(command_cstr, body_ptr, uint32len, uint64SDKseq)`，
+没有可当作 send-success 的 BOOL。固定 callback producer 已有源链：`72B078/72B70A/72B7DA` 经
+`B9E850→1BE3060` 注册 `72B142`，再到 messenger weakref／VT30；正确 factory `B7C6C0` 对应
+`MSFMessengerImpl` 的 VT30=`1B4E19E`（旧 `72EAF0` 归因已失效），发送经 `B7CE8A` 的状态4/5拒绝分支，
+其余到 work `B7F7B2→D32138`；回包 callback 到 `BA20A0→1CE9930`。
+`B7F7B2/rawB7EBB2` 只构造 callable 代码／管理记录，不是 SSO writer。
+后续选中路径已恢复到 fixed52230 的 fresh cold/type2 writer：实际 outer=12，两个 cold SDK 命令使用 type2／16字节零 key；这仍不是服务器接受 prelogin 或必须登录的证据。
+源证据：`A/OWN-SDK-RECEIVER-CALLERS-AND-NONJOIN-20261124.md` 及
+`A/sdk-receive-registration-maps-source-a1`、`A/sdk-session-messenger-factory-source-a1`、`A/sdk-messenger-send-source-a1`。
+当前参考 SSO 实现允许 session=None；非 `A2.o3.ecdh_access` 分支使用 encrypt_type2 零 TEA、不携 D2。
+该实现源自参考 LLOB；目前 fixed52230 的 packet grammar、reserve 字段及 signature DTO 顺序已有源契约，不能因此沿用参考 profile 的业务值。真实 Session typed options（DWORD0／String8／String20）及 reserve context 的存在性／值仍须调用方显式提供；
+既不能据此强制 authenticated live/D2 前置，也不能反称服务器已接受 prelogin。
 
-一次性外部交接清单（由登录owner提供合法已有输入，非请求其实现本方缺失代码）：
+新增 `primary_source_cold12` 为 fresh cold/type2 的 required-input 编码候选，不发送网络：
+`prepare` 先分配 source old-DWORD counter，调用方随后对同一 command/body SIGN，再将当前 `PrimarySignatureResult` 显式交给 `encode_signed`。
+counter 取一次成功4字节熵作 little-endian seed，复用源匹配 MT624/397、low24拒绝采样到1..10M，再原子取旧值并 DWORD 回绕；它不是原 SDK uint64 关联号，也不引入新的 SIGN 数学序号参数。
+已证 fresh 常量限定在该路径：route数字0保留空 String，非零转无符号十进制；peer A0／request reserve overrides absent、R flag0、K 两个 String 空。
+Inner head 使用 `zero10 || hostMarkerBYTE || zero1`，保留 required options／reserve 的 absent 与 present-empty；signature PB1/2/3 为 sign/extra/token，原 adapter 未改。
+TEA 16轮／big-endian／双反馈链／长度不变，仅纠正随机首字节高5位，不能固定为F8。调用方必须提供真实熵与 host producer，不能拿 MODEL bytes、51728 profile 或全空配置当52230实际输入。
+Windows 输入 producer 复用既有模块／熵后端：两次独立 version 查询，GAA family2／23、flags80、一次6F resize及仅 node+D0→entry+10 的选中地址。已证明的正常转换域可直接判 IPv4=True（含0.0.0.0）、IPv6=any(address16)，不误排除::1、不以文本库猜测；非法 backing／非正常域显式 Boundary。padding 独立成功4字节 seed，每个随机字节消耗一个 MT word，不池化 word bytes；owned 与 borrowed 资源分别关闭／保留，构造失败释放已拥有资源。实现阶段的完整 MODEL API doubles 之外，独立本地 producer 检查现已通过 [LC12]：两次 GetVersionExW 成功，GAA AF2／23 均状态0，host marker=1；真实一次成功4字节熵驱动的 source counter 初值范围／递增检查通过。owned backend close 正常返回，逐 handle 回收状态未测。此结果仅覆盖本地 host／counter 输入 producer，不证明真实 frame、padding 熵、SIGN、服务器、安装后消费或完整关闭；实际 caller typed Options／reserve 仍未绑定，无网络发送。
+源证据为 `A/cold-sdk-writer-trace-a1/selected12/` 的 packet-byte/head/signature/request/crypto/host-marker/host-conversion 契约，候选检查见 `A/source-cold12-encoder-a1/`；这些不证明实际 profile 已绑定、packet 已发送或服务器接受。
 
-- 固定52230合法live session/context/profile及材料的版本、有效期、UIN/config一致性；原值仅在私有交接传递。
-- 仍活跃channel的唯一IO归属、当前wire sequence分配及SDK关联方式、deadline/取消/关闭生命周期和最终归还责任。
-- 一次发送与correlated reply的可复现使用契约；不接受已finally关闭的51728 channel或伪造session。
+现有 `SsoTransport` 的 protocol12/legacy receiver 接线会在 enqueue 重 SIGN 并 drain，
+不能直接用于发送 Own 组件保存的 SIGN。下层 `SignatureBytes.from_primary_result`、
+`build_service_packet/parse_service_packet/split_frames` 与 `SsoSocket` 可作后续接线候选，不等于已接通。
+来源：`primary_sso_transport.py:50-82/90-128/209-244/283-303`、`primary_sso_codec.py`、`primary_sso_socket.py`。
 
-最后有界源码事实确认：**本方尚无Own组件的public reply-install API**。`primary_own_sdk_request.py`只有构造、
-owner检查、create及close；`SdkRecordRequest`保留command/body/sdk_sequence和本次不可变decode_material，未赋予pending/receiver资格。
-后续关联→按该request snapshot解码→认证解析成功后install/publish，是本方实现责任，不交给登录owner。
-草案目标约束为：认证/解析失败不安装或发布新材料，保留真实错误；旧材料与请求状态按已核对的逐类契约处理。
-该约束尚未实现，不冒充全局failure原子性已有证据。
-`primary_request_response.decrypt_request_body(ciphertext, key32)`只返回status与plaintext_orNone；认证失败也可能附plaintext bytes，
-必须status成功才可解析/安装，不能因bytes非空直接写cache。`verify_material_signature`仅primitive，`respond`是runtime descriptor，
-均不是Own公共关联/安装/发布接口。解码必须用request.decode_material的168B快照，不用可被后续请求覆盖的component.material.current。
-本方API缺失、当前未持有合法真实response、native binding unknown是三类不同事实：不能合成response，
-也不把尚未证明为首阻塞的native binding扩成receiver/VM/CRT工程。
-未来one-shot复现（非当前授权）：合法live handoff→同owner request/SIGN→发送保存command/body/SIGN→
+已有 authenticated 载体交接代码，不能再描述为“没有任何 handoff”或必须移交活 socket：
+`run_authenticated_sdk_session.py:432-439/501-520` 要求 ONLINE、恰好一次 RAM material 回调；
+`:531-543` 正常关闭登录资源，`:561-579` 以 `network.connect_sdk` 新建 `AuthenticatedSdkSession`。
+登录侧 `L/registration_overlay/resident_run.py:148-153` 仅在真实 ONLINE 且 bound 相符时调用 `on_authenticated`，
+`:175-177` 明示原连接已关闭。这是一次性 RAM 凭据 → 新 SDK connection 的交接合同。
+它仍属于 experimental51728，`AuthenticatedSession` 强制 51728；
+`A/authenticated-sdk-integration-a1/RESULT.md` 只有代码证据，没有本项 actual QR/network/factory 运行证据，不能证明 52230 互通。
+
+**采用该 authenticated 载体路线时**，外部一次性交接清单如下；它不是固定源 cold SDK 的唯一已证前置：
+
+- 登录 owner 提供合法已有 RAM session/context/profile 材料及版本、有效期、UIN/config 一致性；原值仅私下交接，固定52230适用性另核。
+- 明确新 SDK connection 的 connector、唯一 IO owner、wire sequence 到 SDK sequence 的关联，以及 deadline／局部取消／关闭和归还责任；不要求复用已关闭的登录 socket。
+- 明确一次发送与 correlated reply 的使用契约，不接受伪造 session，不把51728代码或旧 ONLINE 当52230互操作证据。
+
+本方已实现 `PrimarySigner.complete_own_device_request(request, responsebody, transport_status=...)` 与
+`cancel_own_device_request(request)`，Windows 包装经 `_operation` 调用。组件维护真实原 request identity、
+不可变 decode material、实际 pair+48 bound snapshot 和多个 pending；复制／跨 owner／已取消／已关闭请求被拒绝。
+资格预检不改变其他 pending 或毒化 signer；局部取消不表示外部网络已中止。
+公共入口内部执行关联、认证解码、token 解析及源序 cache/persist/root 调用，不接受“已认证 bool”或 parsed material 直接安装。
+GCM 失败不使用 primitive 可能附带的 plaintext，status3 不安装；验签 key 来自本次 request.peer_key。
+本方 current 状态与 legacy runtime current 独立；current 先更新 deadline/features 再重读当前 mode，archive 验签不要求未使用的 deadline。
+失败保留按阶段已发生的状态／缓存变化，不声称全局原子回滚。当前实现及 MODEL 分支边界见下方。
+真实关联响应尚未取得、安装／发布仍有限、exchange 接线未实现是不同缺口，不能再统称“本方 public reply API 缺失”，
+也不把尚未证明为首阻塞的 native binding 扩成 receiver/VM/CRT 工程。
+未来 one-shot 复现（非当前授权）：先落实 fixed52230 required typed options／reserve 的真实调用方输入、host／entropy producer 与适用传输契约（如采用 authenticated 路线则使用上述交接）→同 owner request/SIGN→发送保存 command/body/SIGN→
 核验wire→SDK sequence及expected command的真实reply→用本次request快照认证解码→成功解析/校验后本方安装发布→同owner后续SIGN实际消费新材料。
-每步均须保留真实失败和所有权状态；安装入口未落实前不宣称可执行或完整Goal完成。
+每步均须保留真实失败和所有权状态；已有有限 reply 入口不代表 exchange、完整安装发布或完整 Goal 已完成。
 
 仅当全部适用验收成立，且以下连续证据绑定同一有效 runtime，才能把完整 Goal 标为 complete：
 
@@ -378,11 +409,11 @@ owner检查、create及close；`SdkRecordRequest`保留command/body/sdk_sequence
 4. 后续正常返回的 SIGN 真实选中并读取新材料；证明因果关系而非长度比较。
 5. 适用刷新、空值、失败、取消、关闭及异步所有权验收均成立，资源状态可核对。
 
-### 本方 reply pipeline 当前有限候选
+### 本方 reply pipeline 当前有限实现
 
 独立审查 r1 已修两处局部缺陷：原 request 资格在 public_call 前纯预检，重复取消／晚到／复制／跨 owner 拒绝不会毒化 signer 或其余 pending；archive mode0 不再要求未使用的 deadline，仍以 request.peer_key 实际验签，current 缺 deadline 仍显式停止。新增 MODEL 公共入口和无 deadline archive 回归通过；不改变下述 root-only 与 teardown FAIL 限制。
 
-本轮代码基于 HEAD `2ebd507`／既有 source `680b`，仅执行纯 MODEL 验证。历史 [L7] a7 的真实137、codec、SIGN及返回级 close 绑定其原输入；未运行本轮 reply 代码，不能自动重标为新版 native 证据。
+当前有限实现已交付于 `c7226cf`；实现输入为 HEAD `2ebd507`／既有 source `680b`，新增路径仅执行纯 MODEL 验证。历史 [L7] a7 的真实137、codec、SIGN及返回级 close 绑定其原输入；未运行本轮 reply 代码，不能自动重标为新版 native 证据。
 
 新增 `complete_own_device_request(originalrequest, responsebody, transport_status=...)` 经 Windows operation、PrimarySigner public_call 在组件内部解码；同组件保留多个原 request identity、不可变 decode material 与实际 pair+48 bound snapshot，支持局部取消／关闭拒绝晚到，不代表网络已中止。mode0 current 先更新 deadline/features，再读取本方独立 current.payload_mode；archive 总是验签，验签用 request.peer_key。GCM失败／status3不安装。空 token 保留旧 cache，非空按源锁、独占 copy、持久化次序更新；失败不回滚已写缓存。
 
@@ -406,10 +437,11 @@ owner检查、create及close；`SdkRecordRequest`保留command/body/sdk_sequence
   a6同owner SIGN返回及source字段结构已核、response cache material String销毁失败、非法指令退出；算法/server及fatal原因unknown。
 - [L7] `A/own-business-bootstrap-a1/independent-live-a7/RESULT.json`：
   同owner本地137/codec/SIGN结构返回、owner及4资源close正常返回、进程RC0/reap/CIM0；仅局部里程碑，算法/server未证。
+- [LC12] `A/source-cold12-encoder-a1/local-inputs-a1/RESULT.json`：真实本地 host／counter producer PASS；API状态及返回级 backend close 已核，逐 handle 未知，不是 frame／padding／网络或材料闭环证据。
 - [AE7] `A/a7-request-aead-independent-a1/RESULT.json`：独立AESGCM认证解密及wire字段匹配PASS；
   仅a7实际请求AEAD，未验证SIGN/key derivation/137 cipher/server/材料安装后续SIGN。
 - [W] `A/own-full-device-records-a1/{core,windows,wmi}`：正常域源码及受控集成已通过独立 review；
   检查仅按冻结输入及各报告覆盖复用，不代表 actualOS 已运行；不得读取或发布 raw 捕获补正文。
 
-本次a7状态同步只读安全报告并修改文档，不执行tests/native。既有受控cache析构证据：
+本次当前状态校准只修改本权威文档，不执行 tests/native；本方 reply 的 MODEL 证据不替代 a7 原输入的真实执行证据。既有受控 cache 析构证据：
 `A/own-provider-cache-upper-delete-a1/RESULT.md`；a7实际局部结果见 [L7]，完整Goal未完成。

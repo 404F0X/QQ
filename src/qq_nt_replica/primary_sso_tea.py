@@ -44,7 +44,7 @@ def tea_encrypt(data, key, *, random_padding):
     if len(_bytes(random_padding)) != fill:
         raise InputError('SSO_TEA_ENTROPY_LENGTH')
     plain = bytearray(random_padding + data + bytes(7))
-    plain[0] = ((fill - 3) & 7) | 0xF8
+    plain[0] = (random_padding[0] & 0xF8) | ((fill - 3) & 7)
     output = bytearray()
     last_hi = last_lo = previous_hi = previous_lo = 0
     for offset in range(0, len(plain), 8):
