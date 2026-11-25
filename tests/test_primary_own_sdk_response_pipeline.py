@@ -26,6 +26,34 @@ class OwnPipeline(unittest.TestCase):
         cipher=encrypt_request_body(payload,request.decode_material.key,bytes(12))
         self.assertLess(len(cipher),128)
         return b'\x0a'+bytes([len(cipher)])+cipher
+    def test_failure_results_are_observable_without_poisoning_owner(self):
+        from qq_nt_replica.primary_custom_allocator import dispose_model_allocator
+        from dataclasses import FrozenInstanceError
+        s,r,reg=self.fixture()
+        try:
+            first=self.create(s); second=self.create(s)
+            current=s._own_sdk_request.material.current
+            # MODEL known status-node lookup; real normalization and completion execute.
+            node=r._operator_new(64)
+            _String.construct(r,b'MODEL downstream failure').write_to(node+40)
+            try:
+                with patch('qq_nt_replica.primary_request_response._status_node',return_value=node):
+                    result=s.complete_own_device_request(first,b'\x10\xeb\x07',transport_status=0)
+            finally:
+                _String.read(r,node+40).destroy();r._free_allocation(node)
+            self.assertEqual((result.outcome,result.stage,result.code),('failed','sdk_status',1003))
+            self.assertFalse(result.cache_updated);self.assertIsNone(result.publication)
+            with self.assertRaises(FrozenInstanceError):result.code=0
+            self.assertFalse(s.failed);self.assertIs(s._own_sdk_request.material.current,current)
+            self.assertEqual([q for q,b in s._own_sdk_request._pending],[second])
+            malformed=s.complete_own_device_request(second,b'\x0a\x05',transport_status=0)
+            self.assertEqual((malformed.outcome,malformed.stage,malformed.code),('failed','sdk_envelope',None))
+            self.assertFalse(s.failed);self.assertEqual(s._own_sdk_request._pending,[])
+            third=self.create(s)
+            result=s.complete_own_device_request(third,b'',transport_status=9)
+            self.assertEqual((result.stage,result.code),('transport',9))
+        finally:reg.close();dispose_model_allocator(r)
+
     def test_mode0_current_reread_and_archive_signature_failure(self):
         from qq_nt_replica.primary_custom_allocator import dispose_model_allocator
         from qq_nt_replica.primary_own_sdk_response import _decode
@@ -40,14 +68,14 @@ class OwnPipeline(unittest.TestCase):
             owner.material.current=RequestMaterial(bytes(raw))
             body=b'\x10\x01\x18\x02\x22\x01p\x2a\x02\x50\x01'
             with reg.operation():
-                self.assertEqual(_decode(owner,request,self.wire(request,body)),(0,b'p'))
+                self.assertEqual(_decode(owner,request,self.wire(request,body)),('auth',0,b'p'))
             self.assertEqual(owner.material.current.wall_deadline,2)
             self.assertEqual(owner.material.current.monotonic_deadline,60)
             raw=bytearray(owner.material.current.raw);raw[80]=0
             owner.material.current=RequestMaterial(bytes(raw))
             rejected=b'\x0a\x40'+bytes(64)+body
             with reg.operation():
-                self.assertEqual(_decode(owner,request,self.wire(request,rejected)),(3,None))
+                self.assertEqual(_decode(owner,request,self.wire(request,rejected)),('auth',3,None))
             self.assertEqual(owner.material.current.wall_deadline,2)
             self.assertEqual(owner.material.current.payload_mode,0)
             raw=bytearray(owner.material.current.raw);raw[48]=ord('z')
@@ -56,7 +84,7 @@ class OwnPipeline(unittest.TestCase):
             # Archive always verifies; a complete zero signature is rejected by real EC verifier.
             body=b'\x0a\x40'+bytes(64)+body
             with reg.operation():
-                self.assertEqual(_decode(owner,request,self.wire(request,body)),(3,None))
+                self.assertEqual(_decode(owner,request,self.wire(request,body)),('auth',3,None))
             self.assertIs(owner.material.current,before)
         finally:reg.close();dispose_model_allocator(r)
 
@@ -142,7 +170,7 @@ class OwnPipeline(unittest.TestCase):
             raw=bytearray(before.raw);raw[48]^=1
             owner.material.current=RequestMaterial(bytes(raw));before=owner.material.current
             with reg.operation():
-                self.assertEqual(_decode(owner,request,self.wire(request,body)),(3,None))
+                self.assertEqual(_decode(owner,request,self.wire(request,body)),('auth',3,None))
             self.assertIs(owner.material.current,before)
         finally:reg.close();dispose_model_allocator(r)
 
@@ -181,10 +209,10 @@ class OwnPipeline(unittest.TestCase):
             self.assertEqual(r.memory.load(r.image_base+0x677BE78,8),0)
             request=self.create(s)
             result=s.complete_own_device_request(request,self.wire(request,b'\x0a\x03abc\x10\x05'),transport_status=0)
-            self.assertEqual(result['dispatch_result'],0)
-            self.assertTrue(result['root_completed'])
-            self.assertFalse(result['setter_completed'])
-            self.assertFalse(result['expire_completed'])
+            self.assertEqual(result.publication['dispatch_result'],0)
+            self.assertTrue(result.publication['root_completed'])
+            self.assertFalse(result.publication['setter_completed'])
+            self.assertFalse(result.publication['expire_completed'])
             programs=s.last_direct_report['tokenFamilyPrograms']
             self.assertEqual([x['program'] for x in programs],['source2583'])
             self.assertTrue(all(x['completed'] for x in programs))
@@ -202,10 +230,10 @@ class OwnPipeline(unittest.TestCase):
             request=self.create(s)
             _String.construct(r,b'old-cache').write_to(r.image_base+0x6751840+24)
             result=s.complete_own_device_request(request,self.wire(request,b'\x12\x00'),transport_status=0)
-            self.assertEqual(result['dispatch_result'],0)
-            self.assertTrue(result['root_completed'])
-            self.assertFalse(result['setter_completed'])
-            self.assertFalse(result['expire_completed'])
+            self.assertEqual(result.publication['dispatch_result'],0)
+            self.assertTrue(result.publication['root_completed'])
+            self.assertFalse(result.publication['setter_completed'])
+            self.assertFalse(result.publication['expire_completed'])
             programs=s.last_direct_report['tokenFamilyPrograms']
             self.assertEqual([x['program'] for x in programs],['source2583'])
             self.assertTrue(all(x['completed'] for x in programs))

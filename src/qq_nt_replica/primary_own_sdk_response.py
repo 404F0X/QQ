@@ -1,10 +1,22 @@
 """Own response byte parsing. Parsing alone never authorizes installation."""
+from dataclasses import dataclass
+
 from .errors import InputError
 from .primary_vm import PrimaryProgramLimit, PrimarySemanticUnavailable
 from .primary_worker_response import _varint
 from .primary_request_response import decrypt_request_body
 
 _LIMIT = 1 << 20
+
+
+@dataclass(frozen=True, repr=False)
+class OwnCompletionResult:
+    """Completion observation, not proof of downstream material consumption."""
+    outcome: str
+    stage: str
+    code: int | None
+    cache_updated: bool
+    publication: dict | None
 
 
 def _fields(raw, strings, integers, initial=None, messages=None):
@@ -97,7 +109,7 @@ def _decode(owner, request, response):
     mode = request.encoded.status
     valid, outer = _envelope(response, mode)
     if not valid:
-        return mode, None
+        return 'sdk_envelope', None, None
     if outer[2]:
         from .primary_request_response import error_message
         from .primary_logger import _String
@@ -108,26 +120,26 @@ def _decode(owner, request, response):
             _String.read(runtime, rbp + 0x148).destroy()
             if code != 1003 and snapshot.device_random == owner.material.current.device_random:
                 owner.material.reset()
-            return code, None
+            return 'sdk_status', code, None
         finally:
             runtime.memory.unmap(frame)
     if not outer[1]:
-        return 0, b''
+        return 'auth', 0, b''
     plain = _authenticated_plaintext(outer[1], snapshot)
     if plain is None:
-        return 2, None
+        return 'auth', 2, None
     if mode:
-        return 0, plain
+        return 'auth', 0, plain
     valid, fields, settings = _establish_fields(plain)
     if not valid:
-        return 5, None
+        return 'material', 5, None
     archived = snapshot.device_random != owner.material.current.device_random
     def verify():
         if len(fields[1]) < 64:
             raise PrimarySemanticUnavailable('mode0 verification requires complete source signature storage')
         return verify_material_signature(fields[1][:64], fields[2], snapshot.message_id, snapshot.peer_key)
     if archived:
-        return (0, fields[4]) if verify() else (3, None)
+        return ('auth', 0, fields[4]) if verify() else ('auth', 3, None)
     if 3 not in fields:
         raise PrimarySemanticUnavailable('mode0 current response deadline requires uninitialized source stack input')
     raw = bytearray(owner.material.current.raw)
@@ -151,7 +163,7 @@ def _decode(owner, request, response):
         owner.material.current = RequestMaterial(bytes(raw))
     else:
         accepted = True
-    return (0, fields[4]) if accepted else (3, None)
+    return ('auth', 0, fields[4]) if accepted else ('auth', 3, None)
 
 
 def _complete(owner, request, bound, responsebody, transport_status):
@@ -163,11 +175,11 @@ def _complete(owner, request, bound, responsebody, transport_status):
     pair = runtime.image_base + 0x6751840
     if transport_status:
         memory.store(pair + 0x64, (memory.load(pair + 0x64, 4) + 1) & 0xFFFFFFFF, 4, source='Own.response_transport_failure')
-        return None
-    code, payload = _decode(owner, request, responsebody)
+        return OwnCompletionResult('failed', 'transport', transport_status, False, None)
+    stage, code, payload = _decode(owner, request, responsebody)
     if code or payload is None:
         memory.store(pair + 0x64, (memory.load(pair + 0x64, 4) + 1) & 0xFFFFFFFF, 4, source='Own.response_decode_failure')
-        return None
+        return OwnCompletionResult('failed', stage, code, False, None)
     frame, rbp = _frame(runtime, 0x1A8, 'Own.device_response_frame')
     pointer = None
     token = name = None
@@ -177,7 +189,7 @@ def _complete(owner, request, bound, responsebody, transport_status):
         parsed, reason, token = _parse(runtime, pointer, len(payload), rbp)
         if not parsed:
             memory.store(pair + 0x64, (memory.load(pair + 0x64, 4) + 1) & 0xFFFFFFFF, 4, source='Own.response_parse_failure')
-            return None
+            return OwnCompletionResult('failed', 'token_parse', reason, False, None)
         name = _String.construct(runtime, bound)
         _apply_parsed_cache(runtime, pair, name, token, rbp, _image())
         # Only the token parser's zero-initialized 32B storage justifies padding.
@@ -185,7 +197,7 @@ def _complete(owner, request, bound, responsebody, transport_status):
         memory.write(rbp + 0x90, auxiliary, source='Own.device_auxiliary')
         result = publish_own_response_token(runtime, rbp + 0x90)
         result['cache_updated'] = bool(token.value())
-        return result
+        return OwnCompletionResult('processed', 'publication', None, result['cache_updated'], result)
     finally:
         if token is not None: token.destroy()
         if name is not None: name.destroy()

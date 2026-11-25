@@ -1825,8 +1825,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_own_sdk_response.py",
-      "source_sha256": "193a9ede79abb3fdae7952d533c313c805550a4bceef948ff80005a44bd9bc0e",
-      "sha256": "193a9ede79abb3fdae7952d533c313c805550a4bceef948ff80005a44bd9bc0e",
+      "source_sha256": "12e9436dd6df5102bdfec31bc66810dc4f4db020aceff4b06aa05709457bfdfc",
+      "sha256": "12e9436dd6df5102bdfec31bc66810dc4f4db020aceff4b06aa05709457bfdfc",
       "classification": "project_source"
     },
     {
