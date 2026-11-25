@@ -291,7 +291,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
   三个owned进程均RC0、reaped、CIM0，无timeout/retry；515项输入不变并复用同profile/state roots。
 - offline结果结构为非空bytes的sign/extra/token（96/12/141B）；逐handle计数未知，debug fd保留至进程退出。
   这是LocalReady层本地局部达成，不代表Active材料业务完成；当前records schema/order未独立核对，
-  记录值语义、独立body解密、算法正确性、server接受和材料响应安装→后续SIGN消费仍未证明。
+  记录值语义、137内部cipher、key derivation、SIGN算法、server接受及安装→后续SIGN消费仍未证明；请求AEAD另见 [AE7]。
   a6的关闭失败及fatal原因unknown保留为历史，不因a7正常退出反推其因果已证。
 
 ### SDK、异步消费者与登录
@@ -328,11 +328,47 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 ## 7. 最早断点、下一步与完成标准
 
 当前同owner本地SIGN结构返回＋正常close的局部里程碑已在a7达成 [L7]，范围NO_NETWORK。
-最近缺口是实际transport None、独立签名正确性证据不足；真实网络发送/回包及材料安装→后续SIGN仍未闭环。
-下一步按实际Opus建议做有界独立验证，并行核对transport交接；咨询意见不是行为证据，不扩close计数或CRT范围。
+最近缺口是实际transport None、合法52230 live交接及本方独立reply安装入口；真实网络/安装→后续SIGN未闭环。
+a7实际请求AES-256-GCM已用独立cryptography AESGCM完成认证解密并匹配保存plain，wire加密字段与保存ciphertext一致 [AE7]。
+该PASS只覆盖一个实际request AEAD边界，不验证key derivation、137 cipher、SIGN算法或server接受。
+无适用同输入SIGN真值且a7缺完整运行观测；Opus在新事实下撤回全SIGN真值前置闸，停止扩fullSIGN捕获，
+SIGN正确性保持unknown待真实参考/服务器结果。本单元收敛为AEAD证据、可审阅handoff草案及最后reply入口事实；咨询意见不作行为证据。
 旧 `A/own-full-device-records-a1/live-prep/PREPARED.json` 仍为prepared=false，不用于真实GO；后续实际运行仍须具体授权。
 不得把独立component当作source native pending/SourceEpoch receipt资格，也不以输出长度替代算法正确性。
 Token/Qimei异步消费者及空值、UIN/config、刷新失败、取消和完整关闭验收仍未完成；两图目标契约保持。
+
+### signed exchange / live handoff 接口草案（未实现，非现有callable API）
+
+概念签名：`exchange_signed(command, body, sdk_sequence, sign_result, live_session, deadline)`
+返回真实关联的response bytes、command、SDK sequence，或保留实际阶段/在途副作用的错误。
+请求及SIGN必须来自同一有效owner；发送保存的同一command/body及签名，不重SIGN、不走旧receiver admission或drain，
+不默认补材料、不自动重发或跨runtime拼接。wire sequence必须明确映射到SDK sequence并检查expected command；
+超时/取消区分未发送、已发送未响应及已响应，唯一IO owner负责接收/路由、deadline和关闭，不能把unknown当成功。
+
+现有`SsoTransport`仅protocol12/legacy receiver，enqueue会重SIGN并drain，不能直接用于Own组件或接收保存SIGN。
+下层`SignatureBytes.from_primary_result`、`build_service_packet/parse_service_packet/split_frames`与`SsoSocket`
+可作为后续实现候选，不等于已接通。来源：`primary_sso_transport.py:50-82/90-128/209-244/283-303`，codec为`primary_sso_codec.py`，socket为`primary_sso_socket.py`。
+登录侧`L/resident.py`为experimental51728，注册后finally关闭，无live handoff；旧ONLINE不证明52230合法会话。
+
+一次性外部交接清单（由登录owner提供合法已有输入，非请求其实现本方缺失代码）：
+
+- 固定52230合法live session/context/profile及材料的版本、有效期、UIN/config一致性；原值仅在私有交接传递。
+- 仍活跃channel的唯一IO归属、当前wire sequence分配及SDK关联方式、deadline/取消/关闭生命周期和最终归还责任。
+- 一次发送与correlated reply的可复现使用契约；不接受已finally关闭的51728 channel或伪造session。
+
+最后有界源码事实确认：**本方尚无Own组件的public reply-install API**。`primary_own_sdk_request.py`只有构造、
+owner检查、create及close；`SdkRecordRequest`保留command/body/sdk_sequence和本次不可变decode_material，未赋予pending/receiver资格。
+后续关联→按该request snapshot解码→认证解析成功后install/publish，是本方实现责任，不交给登录owner。
+草案目标约束为：认证/解析失败不安装或发布新材料，保留真实错误；旧材料与请求状态按已核对的逐类契约处理。
+该约束尚未实现，不冒充全局failure原子性已有证据。
+`primary_request_response.decrypt_request_body(ciphertext, key32)`只返回status与plaintext_orNone；认证失败也可能附plaintext bytes，
+必须status成功才可解析/安装，不能因bytes非空直接写cache。`verify_material_signature`仅primitive，`respond`是runtime descriptor，
+均不是Own公共关联/安装/发布接口。解码必须用request.decode_material的168B快照，不用可被后续请求覆盖的component.material.current。
+本方API缺失、当前未持有合法真实response、native binding unknown是三类不同事实：不能合成response，
+也不把尚未证明为首阻塞的native binding扩成receiver/VM/CRT工程。
+未来one-shot复现（非当前授权）：合法live handoff→同owner request/SIGN→发送保存command/body/SIGN→
+核验wire→SDK sequence及expected command的真实reply→用本次request快照认证解码→成功解析/校验后本方安装发布→同owner后续SIGN实际消费新材料。
+每步均须保留真实失败和所有权状态；安装入口未落实前不宣称可执行或完整Goal完成。
 
 仅当全部适用验收成立，且以下连续证据绑定同一有效 runtime，才能把完整 Goal 标为 complete：
 
@@ -356,6 +392,8 @@ Token/Qimei异步消费者及空值、UIN/config、刷新失败、取消和完�
   a6同owner SIGN返回及source字段结构已核、response cache material String销毁失败、非法指令退出；算法/server及fatal原因unknown。
 - [L7] `A/own-business-bootstrap-a1/independent-live-a7/RESULT.json`：
   同owner本地137/codec/SIGN结构返回、owner及4资源close正常返回、进程RC0/reap/CIM0；仅局部里程碑，算法/server未证。
+- [AE7] `A/a7-request-aead-independent-a1/RESULT.json`：独立AESGCM认证解密及wire字段匹配PASS；
+  仅a7实际请求AEAD，未验证SIGN/key derivation/137 cipher/server/材料安装后续SIGN。
 - [W] `A/own-full-device-records-a1/{core,windows,wmi}`：正常域源码及受控集成已通过独立 review；
   检查仅按冻结输入及各报告覆盖复用，不代表 actualOS 已运行；不得读取或发布 raw 捕获补正文。
 
