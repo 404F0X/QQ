@@ -5,7 +5,8 @@ from .primary_sso_tea import tea_encrypt
 from .primary_sso_reserved import NativeReserveInputs, NativeReserveRecord, SignatureBytes, build_native_reserved_field
 from .primary_source_cold12_counter import SourceCounter
 
-_COMMANDS = (b'EcdhAccess.SsoEstablishShareKey', b'EcdhAccess.SsoSecureAccess')
+_COMMANDS = (b'trpc.o3.ecdh_access.EcdhAccess.SsoEstablishShareKey',
+             b'trpc.o3.ecdh_access.EcdhAccess.SsoSecureAccess')
 
 
 def _uint(value, bits):

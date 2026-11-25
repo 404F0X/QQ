@@ -45,7 +45,7 @@ class Cold12(unittest.TestCase):
         for route in (0,12345):
             for optional in (None,b''):
                 inputs=Inputs();encoder=SourceCold12Encoder(inputs,routing_number=route,own_inputs=False)
-                request=encoder.prepare(b'EcdhAccess.SsoEstablishShareKey',b'payload')
+                request=encoder.prepare(b'trpc.o3.ecdh_access.EcdhAccess.SsoEstablishShareKey',b'payload')
                 # Counter consumed before any supplied SIGN result or packet observations.
                 self.assertEqual(inputs.calls,['seed'])
                 frame=encoder.encode_signed(request,options=self.options(optional),signature_result=PrimarySignatureResult(b'S',b'E',b'T'))
@@ -71,6 +71,27 @@ class Cold12(unittest.TestCase):
                 self.assertNotIn(15,reserve);self.assertEqual(reserve[16],[b''])
                 self.assertEqual(reserve[21],[32]);self.assertEqual(fields(reserve[24][0]),{1:[b'S'],2:[b'E'],3:[b'T']})
                 encoder.close();self.assertFalse(inputs.closed)
+
+    def test_exact_own_commands_preserve_bytes_and_reject_other_branches(self):
+        from qq_nt_replica.primary_request_transport import _COMMANDS as own_commands
+        inputs=Inputs();encoder=SourceCold12Encoder(inputs,routing_number=0,own_inputs=True)
+        try:
+            for command in own_commands[:2]:
+                body=b'MODEL body\0unchanged'
+                request=encoder.prepare(command,body)
+                self.assertEqual((request.command,request.body),(command,body))
+                result=PrimarySignatureResult(b'S',b'E',b'T')
+                frame=encoder.encode_signed(request,options=self.options(None),signature_result=result)
+                plain=tea_decrypt(frame[18:],bytes(16))
+                # Source grammar: 28B fixed portion, 4B empty peer, L32(command).
+                length=int.from_bytes(plain[32:36],'big')
+                self.assertEqual(plain[36:32+length],command)
+                head=int.from_bytes(plain[:4],'big')
+                self.assertEqual(plain[head+4:],body)
+                self.assertEqual((request.command,request.body),(command,body))
+            for command in (b'EcdhAccess.SsoEstablishShareKey',b'EcdhAccess.SsoSecureAccess',*own_commands[2:]):
+                with self.assertRaises(InputError):encoder.prepare(command,b'MODEL')
+        finally:encoder.close()
 
     def test_tea_entropy_header_all_pad_residues_and_block_kat(self):
         self.assertEqual(_block(0,0,(0,0,0,0)),(0xA889F798,0x182D8083))
@@ -102,7 +123,7 @@ class Cold12(unittest.TestCase):
     def test_required_inputs_and_owned_failure_cleanup(self):
         inputs=Inputs();encoder=SourceCold12Encoder(inputs,routing_number=0,own_inputs=True)
         with self.assertRaises(InputError):encoder.prepare(b'unknown',b'')
-        request=encoder.prepare(b'EcdhAccess.SsoSecureAccess',b'')
+        request=encoder.prepare(b'trpc.o3.ecdh_access.EcdhAccess.SsoSecureAccess',b'')
         with self.assertRaises(TypeError):encoder.encode_signed(request,signature_result=PrimarySignatureResult(b'S',b'',b''))
         self.assertEqual(encoder.counter._value,request.wire_sequence+1)
         encoder.close();self.assertTrue(inputs.closed)

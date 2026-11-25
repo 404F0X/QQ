@@ -84,7 +84,7 @@ class WindowsInputs(unittest.TestCase):
         backend=Backend();provider=WindowsCold12Inputs(backend=backend)
         encoder=SourceCold12Encoder(provider,routing_number=0,own_inputs=True)
         try:
-            request=encoder.prepare(b'EcdhAccess.SsoSecureAccess',b'MODEL')
+            request=encoder.prepare(b'trpc.o3.ecdh_access.EcdhAccess.SsoSecureAccess',b'MODEL')
             options=SourceCold12Options(123,b'MODEL-8',b'MODEL-20',SourceCold12Reserve(None,None,None,(),None,b''))
             frame=encoder.encode_signed(request,options=options,signature_result=PrimarySignatureResult(b's',b'e',b't'))
             plain=tea_decrypt(frame[18:],bytes(16))

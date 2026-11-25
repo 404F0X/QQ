@@ -72,4 +72,6 @@ def tea_decrypt(data, key):
     start, end = (plain[0] & 7) + 3, len(data) - 7
     if start >= end:
         raise InputError('SSO_TEA_PADDING')
+    if plain[end:] != bytes(7):
+        raise InputError('SSO_TEA_PADDING')
     return bytes(plain[start:end])

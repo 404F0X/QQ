@@ -328,7 +328,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 ## 7. 最早断点、下一步与完成标准
 
 当前同owner本地SIGN结构返回＋正常close的局部里程碑已在a7达成 [L7]，范围NO_NETWORK。
-当前代码 `c7226cf` 已提供本方 complete/cancel reply 入口；a7 的 transport None 仅描述其原运行。当前缺口是取得合法真实关联响应并通过有限安装／发布路径，使同 owner 后续 SIGN 实际消费新材料；真实发送及接收契约、适用会话前提仍待核实。
+`c7226cf` 引入的有限 reply 实现已提供本方 complete/cancel 入口（该 commit 不代表整个当前候选）；a7 的 transport None 仅描述其原运行。当前缺口是取得合法真实关联响应并通过有限安装／发布路径，使同 owner 后续 SIGN 实际消费新材料；真实发送及接收契约、适用会话前提仍待核实。
 a7实际请求AES-256-GCM已用独立cryptography AESGCM完成认证解密并匹配保存plain，wire加密字段与保存ciphertext一致 [AE7]。
 该PASS只覆盖一个实际request AEAD边界，不验证key derivation、137 cipher、SIGN算法或server接受。
 无适用同输入SIGN真值且a7缺完整运行观测；Opus在新事实下撤回全SIGN真值前置闸，停止扩fullSIGN捕获，
@@ -359,14 +359,21 @@ receiver `1BE3060` 接收外部 context；`1BE2F90` 调用参数是 `(command_cs
 该实现源自参考 LLOB；目前 fixed52230 的 packet grammar、reserve 字段及 signature DTO 顺序已有源契约，不能因此沿用参考 profile 的业务值。真实 Session typed options（DWORD0／String8／String20）及 reserve context 的存在性／值仍须调用方显式提供；
 既不能据此强制 authenticated live/D2 前置，也不能反称服务器已接受 prelogin。
 
-新增 `primary_source_cold12` 为 fresh cold/type2 的 required-input 编码候选，不发送网络：
+现有 `primary_source_cold12` 为 fresh cold/type2 的 required-input 编码实现，不发送网络；本轮修复其与 Own 请求之间的真实命令入口不匹配：
+固定表精确支持 `trpc.o3.ecdh_access.EcdhAccess.SsoEstablishShareKey` 与 `trpc.o3.ecdh_access.EcdhAccess.SsoSecureAccess`。原 encoder 错误接受裸名、拒绝 Own 完整名，已用 MODEL required inputs 复现并修正；4项受影响 MODEL 方法通过，prepare／encode 保留原 command/body，不在 SIGN 后 strip 或 alias。裸名及 A2 命令不是此 type2 encoder 的适用分支，仍显式拒绝。
 `prepare` 先分配 source old-DWORD counter，调用方随后对同一 command/body SIGN，再将当前 `PrimarySignatureResult` 显式交给 `encode_signed`。
 counter 取一次成功4字节熵作 little-endian seed，复用源匹配 MT624/397、low24拒绝采样到1..10M，再原子取旧值并 DWORD 回绕；它不是原 SDK uint64 关联号，也不引入新的 SIGN 数学序号参数。
 已证 fresh 常量限定在该路径：route数字0保留空 String，非零转无符号十进制；peer A0／request reserve overrides absent、R flag0、K 两个 String 空。
 Inner head 使用 `zero10 || hostMarkerBYTE || zero1`，保留 required options／reserve 的 absent 与 present-empty；signature PB1/2/3 为 sign/extra/token，原 adapter 未改。
-TEA 16轮／big-endian／双反馈链／长度不变，仅纠正随机首字节高5位，不能固定为F8。调用方必须提供真实熵与 host producer，不能拿 MODEL bytes、51728 profile 或全空配置当52230实际输入。
+TEA 保留16轮／big-endian／双反馈链／长度与随机首字节高5位规则；本轮另补解密末7字节必须全零的源校验。旧实现对8组确定性 last-byte-XOR1 损坏密文全部误接受；修复后8个 valid control 与8个 malformed tail 的 MODEL 断言通过，非零尾报 `SSO_TEA_PADDING`，不改变原空值／pad规则。调用方必须提供真实熵与 host producer，不能拿 MODEL bytes、51728 profile 或全空配置当52230实际输入。
 Windows 输入 producer 复用既有模块／熵后端：两次独立 version 查询，GAA family2／23、flags80、一次6F resize及仅 node+D0→entry+10 的选中地址。已证明的正常转换域可直接判 IPv4=True（含0.0.0.0）、IPv6=any(address16)，不误排除::1、不以文本库猜测；非法 backing／非正常域显式 Boundary。padding 独立成功4字节 seed，每个随机字节消耗一个 MT word，不池化 word bytes；owned 与 borrowed 资源分别关闭／保留，构造失败释放已拥有资源。实现阶段的完整 MODEL API doubles 之外，独立本地 producer 检查现已通过 [LC12]：两次 GetVersionExW 成功，GAA AF2／23 均状态0，host marker=1；真实一次成功4字节熵驱动的 source counter 初值范围／递增检查通过。owned backend close 正常返回，逐 handle 回收状态未测。此结果仅覆盖本地 host／counter 输入 producer，不证明真实 frame、padding 熵、SIGN、服务器、安装后消费或完整关闭；实际 caller typed Options／reserve 仍未绑定，无网络发送。
 源证据为 `A/cold-sdk-writer-trace-a1/selected12/` 的 packet-byte/head/signature/request/crypto/host-marker/host-conversion 契约，候选检查见 `A/source-cold12-encoder-a1/`；这些不证明实际 profile 已绑定、packet 已发送或服务器接受。
+
+fixed reply 的源 frame 规则已有静态恢复：实际 decoder 输入包含总长前缀，先按接收 version 选类，本方有限目标仅 version12；response command 是第二个 header String，不是第一个。fresh class 仅对 `GrayUinPro.Check` 且 head 后 remaining>=5 时跳过4字节，其他分支不跳；TEA 解密／尾校验已有源依据与修复。参考 parser 的去前缀输入、head形状及宽松切片不能冒充该 fixed 合同。压缩虽已识别 zlib 路径及10／20／40／80倍尝试，精确失败 status 映射的等价接入、非空 extension 动态 ReadTag／group／typed getters 的接受条件仍未完成；不能以 empty-extension 的局部接受证明整个 decoder。尚未实现新的 fixed reply decoder／signed exchange，也未证明服务器回复会沿用请求 command。
+证据：`A/cold12-signed-exchange-a1/command/`、`response/{RESULT.md,frame,tea,extension}`；命令修复及 TEA 尾校验实际 MODEL 证据分别在 `command/fix/` 与 `response/tea/fix/`。
+
+真实 Options／reserve／routing 输入仍未绑定。配置源确定止于终点③：`B78200` 的第三参数聚合转交 `B78380` 并 copy，`B7DC5E` 另有第二参数 copy/capture 提交独立分支；routing 是独立 MSF config record 的 QWORD0，未证为 UIN，更不能与 Options DWORD0 同名绑定。未恢复这些字段的 property／metadata 赋值，继续闭合将进入多个 factory／session 业务分支，因此停止深追。
+major.node opaque cachedData 只证明 startup 加载，不覆盖请求字段赋值，终点②未成立；不能宣称整包没有 producer 或所有字段都在 V8。已向同版配置 owner 一次性请求 MSF session 配置声明／Nodebridge 赋值入口，无需重扫码或凭据；pending 不阻止本次有限修复交付。依据 `A/cold12-signed-exchange-a1/config-source/{RESULT.md,direct-caller-evidence.json,declaration-metadata-probes.json}`；不以51728值、package buildVersion或空默认补齐。
 
 现有 `SsoTransport` 的 protocol12/legacy receiver 接线会在 enqueue 重 SIGN 并 drain，
 不能直接用于发送 Own 组件保存的 SIGN。下层 `SignatureBytes.from_primary_result`、
@@ -413,7 +420,7 @@ GCM 失败不使用 primitive 可能附带的 plaintext，status3 不安装；�
 
 独立审查 r1 已修两处局部缺陷：原 request 资格在 public_call 前纯预检，重复取消／晚到／复制／跨 owner 拒绝不会毒化 signer 或其余 pending；archive mode0 不再要求未使用的 deadline，仍以 request.peer_key 实际验签，current 缺 deadline 仍显式停止。新增 MODEL 公共入口和无 deadline archive 回归通过；不改变下述 root-only 与 teardown FAIL 限制。
 
-当前有限实现已交付于 `c7226cf`；实现输入为 HEAD `2ebd507`／既有 source `680b`，新增路径仅执行纯 MODEL 验证。历史 [L7] a7 的真实137、codec、SIGN及返回级 close 绑定其原输入；未运行本轮 reply 代码，不能自动重标为新版 native 证据。
+有限 reply 实现最初交付于 `c7226cf`，不是当前全部源码的 HEAD 标识；实现输入为 HEAD `2ebd507`／既有 source `680b`，新增路径仅执行纯 MODEL 验证。历史 [L7] a7 的真实137、codec、SIGN及返回级 close 绑定其原输入；未运行本轮 reply 代码，不能自动重标为新版 native 证据。
 
 新增 `complete_own_device_request(originalrequest, responsebody, transport_status=...)` 经 Windows operation、PrimarySigner public_call 在组件内部解码；同组件保留多个原 request identity、不可变 decode material 与实际 pair+48 bound snapshot，支持局部取消／关闭拒绝晚到，不代表网络已中止。mode0 current 先更新 deadline/features，再读取本方独立 current.payload_mode；archive 总是验签，验签用 request.peer_key。GCM失败／status3不安装。空 token 保留旧 cache，非空按源锁、独占 copy、持久化次序更新；失败不回滚已写缓存。
 
