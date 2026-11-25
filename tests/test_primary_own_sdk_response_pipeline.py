@@ -54,6 +54,39 @@ class OwnPipeline(unittest.TestCase):
             self.assertEqual((result.stage,result.code),('transport',9))
         finally:reg.close();dispose_model_allocator(r)
 
+    def test_settings_notification_return_resumes_real_auth_and_keeps_boundaries(self):
+        from qq_nt_replica.primary_own_sdk_response import _decode
+        from qq_nt_replica.primary_feature_notifications import _logger,register
+        from qq_nt_replica.primary_logger import feature
+        from qq_nt_replica.primary_custom_allocator import dispose_model_allocator
+        from qq_nt_replica.primary_vm import PrimarySemanticUnavailable
+        for setting in (None, 7, 0, 1):
+            s,r,reg=self.fixture();owner=s._own_sdk_request
+            try:
+                raw=bytearray(owner.material.current.raw);raw[80]=0
+                owner.material.current=RequestMaterial(bytes(raw));request=self.create(s)
+                with reg.operation():
+                    logger=_logger(r);carrier=r._operator_new(40)
+                    r.memory.write(carrier,bytes(40),source='MODEL source callable carrier')
+                    r.memory.store(carrier+8,r.image_base+0x414A2C8,8,source='MODEL fixed constructor callable')
+                    r.memory.store(carrier+32,carrier+8,8,source='MODEL inline owner')
+                    register(r,logger,carrier)
+                    settings=b'\x08\x00\x10\x00'+(b'' if setting is None else b'\x20'+bytes([setting]))
+                    body=b'\x0a\x40'+bytes(64)+b'\x10\x01\x18\x02\x22\x01p'+b'\x2a'+bytes([len(settings)])+settings
+                    if setting in (0,1):
+                        with self.assertRaisesRegex(PrimarySemanticUnavailable,'feature4='+str(setting)):
+                            _decode(owner,request,self.wire(request,body))
+                        self.assertTrue(r._logger_locks[logger+112])
+                    else:
+                        # Real zero-signature verification rejects: notification return never authenticates.
+                        self.assertEqual(_decode(owner,request,self.wire(request,body)),('auth',3,None))
+                        self.assertFalse(r._logger_locks[logger+112])
+                    self.assertEqual(owner.material.current.wall_deadline,2)
+                    self.assertEqual(feature(r,logger,4),setting if setting in (0,1) else 2)
+                    self.assertEqual(owner.material.current.payload_mode,0)
+                    r._free_allocation(carrier)
+            finally:reg.close();dispose_model_allocator(r)
+
     def test_mode0_current_reread_and_archive_signature_failure(self):
         from qq_nt_replica.primary_custom_allocator import dispose_model_allocator
         from qq_nt_replica.primary_own_sdk_response import _decode

@@ -803,8 +803,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_client_configuration.py",
-      "source_sha256": "438759198ea727769f67e5a6bf7f944c5612c0167c1d88eb60b431a8be6eddfa",
-      "sha256": "5cfd49c7740972125c5d5e56a1e01d50912a6b599cedff93504700c333cd9826",
+      "source_sha256": "eb3171dbdf46f6be10dda592957e4aaabb18b149f21d5f32ed35219190509e15",
+      "sha256": "eb3171dbdf46f6be10dda592957e4aaabb18b149f21d5f32ed35219190509e15",
       "classification": "project_source"
     },
     {

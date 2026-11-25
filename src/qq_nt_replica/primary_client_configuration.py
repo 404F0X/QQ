@@ -414,8 +414,15 @@ def invoke(runtime, rva, values):
         return loop(runtime, values[0])
     if rva in (0x760050, 0x787A70) and len(values) == 1:
         return (duration_sleep if rva == 0x760050 else millisecond_sleep)(runtime, values[0])
-    if rva == 0x1C41B10:
-        raise PrimarySemanticUnavailable('queued configuration retry or feature callback continuation is not implemented')
+    if rva == 0x1C41B10 and len(values) == 1:
+        from .primary_feature_notifications import _logger
+        from .primary_logger import feature
+        result = feature(runtime, _logger(runtime), 4)
+        if result == 0:
+            raise PrimarySemanticUnavailable('1C41B10 feature4=0 requires 1C32860 then 1C415F0')
+        if result == 1:
+            raise PrimarySemanticUnavailable('1C41B10 feature4=1 requires 1C41C20')
+        return result  # RET retains the feature getter EAX; receiver is unused.
     if rva == 0x1C50FE0 and len(values) == 1:
         return produce(runtime, values[0])
     if rva == 0x1C513C0 and len(values) == 2:

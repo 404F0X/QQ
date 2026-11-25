@@ -495,7 +495,7 @@ GCM 失败不使用 primitive 可能附带的 plaintext，status3 不安装；�
 
 fresh成功主干的当前缺口是缺少真实认证成功的非空token／cache更新，以及真实feature／expiry／bound条件下同一有效owner下一SIGN选中消费的证据，不是“安装后必撞provider”或“所有下游函数未实现”。非空token先在锁内写timestamp／token／bound，再执行可选持久化；空token保留旧cache。root／setter／expire入口均已有，旧MODEL只返回root不证明全部分支。下一SIGN从同一cache clone；feature1!=1走fallback而不消费new token，valid且无refresh时token可作为_sign_body的d／digest输入；条件refresh中device VT+40非BEE3C0且无匹配binding才是具体Boundary，并非所有fresh必经 [PERSIST]。
 
-有限边界：mode0 缺少源未初始化 stack 字段显式停止；真实 features 已写 map/provider/persist 后若通知命中 `1C41B10` 未实现 continuation，保留副作用并在验签／安装前停止；未补该 callback。纯 PrimarySigner 模型在业务 root 返回后的 registrar.close 仍因缺少正式 direct close scope 而 cleanup_failed，组合 publication+close **未通过**；没有伪造 WindowsOwner／切 backend。MODEL语义断言通过不等于该 teardown 成功，部分虚拟资源债务仍保留。
+有限边界：mode0 缺少源未初始化 stack 字段显式停止；真实 features 已写 map/provider/persist 后通知命中 `1C41B10` 时，feature4的所有非0／1值现按固定117B的RET分支返回真实getter EAX；缺／非法settings4按源归2，可正常销毁callable副本、解锁并回原验签。feature4=0仍在1C32860→1C415F0、=1仍在1C41C20精确Boundary，保留已写deadline／features／可选persist副作用；没有实现这两个continuation。纯 PrimarySigner 模型在业务 root 返回后的 registrar.close 仍因缺少正式 direct close scope 而 cleanup_failed，组合 publication+close **未通过**；没有伪造 WindowsOwner／切 backend。MODEL语义断言通过不等于该 teardown 成功，部分虚拟资源债务仍保留。
 
 证据 `A/own-reply-pipeline-a1/`。固定服务器有效 mode0 材料签名、完整源接受资格、真实通知分支、下游材料消费与后续 SIGN 均未证明；该 MODEL 报告未执行网络或native，本次后续实际raw响应证据另见 [BR1]。完整 Goal 保持 ACTIVE。
 
@@ -538,3 +538,5 @@ fresh成功主干的当前缺口是缺少真实认证成功的非空token／cach
 - [PERSIST] `A/overall-signing-service/request-independent-points/sdk-publication-provider-target/{RESULT.md,FRESH-PATH-ADDENDUM.md}`：可空generic persistence callable的固定callsite／fresh NULL及未知非空installer；非所有fresh成功的发布门槛。
 
 - [LOGIN] `A/overall-signing-service/request-independent-points/login-sign-integration-new-evidence.md`：R7／R10公开摘要及有界入口核对，非raw独立复验或SDK正材料／52230资格证明。
+
+本轮settings notify修复先以受控feature4=2在旧代码复现无条件Boundary；不是历史1003的已知case。修后12项pipeline MODEL通过，新增缺／非法4归2后继续真实零签名验签并拒绝auth3，0／1仍失败；不证明有效材料安装／消费，也不改变真实1003根因。证据：`A/overall-signing-service/settings-notify-implementation/`。
