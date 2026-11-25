@@ -509,6 +509,9 @@ class WindowsSigner:
     def sign_result(self, command, payload, *, now=None):
         return self._operation('sign_result', command, payload, now=now)
 
+    def get_own_device_value(self):
+        return self._operation('get_own_device_value')
+
     def device_refresh_is_async(self) -> bool:
         return self._operation('device_refresh_is_async')
 

@@ -141,6 +141,18 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 - CAPI method5 创建/null DACL 未授权、未 actual；profile fallback 未 actual。
   不得把权限拒绝吞为普通失败后强行走 fallback。
 
+### 同owner共享设备值
+
+- `owner.get_own_device_value() -> bytes` 经 WindowsSigner 原 `_operation`、PrimarySigner `public_call`
+  调用 `caller_device_value(runtime)`，返回 owning bytes；它与正常 SIGN 使用同一 SLOT6751838 cached_value/1BE77F0。
+  业务collector必须使用该getter返回值作为record25输入，不把provider d/token当设备值，也不注入factory缓存。
+- actual a2 standalone producer 返回success并不证明其结果已发布到owner singleton；standalone own-state与owner client根不同，
+  时间与rand_s header也可不同。当前结论是共享未绑定、可能不同，未观察到实际mismatch；既有独立producer算法证据仍有效。
+  薄getter只经pure检查，可能继续遇到Native819输入Boundary，不绕guard；完整137及SIGN仍未完成。
+- 存储仍沿用owner factory的显式DirectoryCheckpointStorage root；实际运行须绑定已有可信ownG root并保持
+  `allow_capi_creation=False`。既有API允许显式opt-in，路径校验并非全局G盘限制；getter未增改该政策。
+  既有WindowsCapiObservations在禁创建时拒绝0x68/GenKey及安全描述符/ACL/SetProvParam创建路径。
+
 ### Qimei 与 SDK 缓存
 
 - `99611c` 的 QimeiGetterOwner 显式 UNINITIALIZED：ready0、module0、70B cache 零。

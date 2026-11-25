@@ -702,6 +702,12 @@ class PrimarySigner:
 
 
 
+    def get_own_device_value(self):
+        """Return owning bytes from the same singleton used by normal SIGN."""
+        from .primary_sign_lifecycle import public_call
+        with public_call(self):
+            return caller_device_value(self.runtime)
+
     def device_refresh_is_async(self) -> bool:
         """Read the source refresh selector without changing feature flags."""
         from .primary_sign_lifecycle import public_call
