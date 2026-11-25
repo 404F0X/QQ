@@ -14,7 +14,8 @@ class RecordCipherHost:
         if type(state17)is not bytes or len(state17)!=17:raise InputError('consistent immutable material16/seed8 required')
         if type(process_id)is not int or not 0<=process_id<=0xFFFFFFFF:raise InputError('explicit process DWORD required')
         if type(wall_seconds)is not int or not -(1<<63)<=wall_seconds<1<<63:raise InputError('explicit signed wall seconds required')
-        if type(formatter_options)is not int or formatter_options!=0:raise PrimarySemanticUnavailable('record formatter supports explicit options0 only')
+        if type(formatter_options)is not int or formatter_options not in (0,0x24):raise PrimarySemanticUnavailable('record formatter supports explicit options0 or normal0x24 only')
+        # Legacy-wide/standard-rounding bits do not affect this bounded narrow %d.
         self.state17=state17;self.pid=process_id;self.wall=wall_seconds;self.random=None
         self.memory=PrimaryMemory();self.image_base=0x180000000;self.next=0x500000000;self.owned={}
         image_raw=(Path(__file__).with_name('data')/'primary_sign_qq52230/runtime-image.json').read_bytes()

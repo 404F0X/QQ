@@ -1072,8 +1072,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_device_record_adapter.py",
-      "source_sha256": "5677de1ec25d84923fb8085ff1bc667585fc9a03571690f56c5626150dd11905",
-      "sha256": "5677de1ec25d84923fb8085ff1bc667585fc9a03571690f56c5626150dd11905",
+      "source_sha256": "512b6d9b548f25a67454759ae6d5c88ca836449a0f3482bd397aa8e83310f65a",
+      "sha256": "512b6d9b548f25a67454759ae6d5c88ca836449a0f3482bd397aa8e83310f65a",
       "classification": "project_source",
       "origin": "OWN-SDK-FEATURE46-ISOLATED-CIPHER-IMPLEMENT/a1 first-retained-source/primary_device_record_adapter.py"
     },
@@ -1826,8 +1826,8 @@
     {
       "path": "src/qq_nt_replica/primary_own_sdk_request.py",
       "classification": "project_source",
-      "source_sha256": "c6bc3b1252e123f38f560cd1002b0875518a94cd0594c5ac110ca2fd54258d0c",
-      "sha256": "c6bc3b1252e123f38f560cd1002b0875518a94cd0594c5ac110ca2fd54258d0c"
+      "source_sha256": "836e91514a5b7c909bcc0abde89440d03fcdf349500453f356765cb890dc4bea",
+      "sha256": "836e91514a5b7c909bcc0abde89440d03fcdf349500453f356765cb890dc4bea"
     },
     {
       "path": "src/qq_nt_replica/primary_payload.py",

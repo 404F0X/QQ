@@ -42,8 +42,9 @@ class OwnColdSdkRequestOwner:
         cipher=None
         if feature46==1:
             if self.state17_owner is None:raise PrimarySemanticUnavailable('feature46 requires current own state17 producer')
+            from .primary_crt_stdio_options import read_options
             cipher=dict(state17=self.state17_owner(),process_id=self.creator[0],wall_seconds=self.clocks['wall_seconds'](),
-                formatter_options=runtime.memory.load(runtime.image_base+0x6749CC0,8))
+                formatter_options=read_options(runtime))
         stage=encode_record_request(records,metadata,feature46=feature46,tag=self._tag,material_state=self.material,
             cipher_inputs=cipher,
             encoding_inputs=dict(self.clocks,random_word=lambda:int.from_bytes(self.environment.random_bytes(4),'little'),capi=self.capi))
