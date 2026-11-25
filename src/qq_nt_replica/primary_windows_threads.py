@@ -891,9 +891,9 @@ class WindowsSDKThreadService(WorkerObservations):
         if not owner_close or not release or getattr(record,'close_lease',None) is not None:
             raise InputError('creator close lease requires original private owner close path')
         saved=self._save_domain();d=record.domain
-        try:
-            with _ExecutionLease(self._registrar,closing=True) as lease:
-                record.close_lease=lease
+        with _ExecutionLease(self._registrar,closing=True) as lease:
+            record.close_lease=lease
+            try:
                 if d is not None:
                     d['active']=True
                     values=_safe_restore(self,d['value']['state'])
@@ -903,11 +903,13 @@ class WindowsSDKThreadService(WorkerObservations):
                     if record.ptd is not None and not record.ptd['consumed']:
                         _activate_creator_module_tls(self._runtime,self,d['value'])
                 yield
-        finally:
-            _invalidate_module_tls(self._runtime)
-            if d is not None:d['value']['state']=self._save_domain();d['active']=False
-            record.close_lease=None
-            self._restore_domain(saved)
+            finally:
+                try:
+                    _invalidate_module_tls(self._runtime)
+                    if d is not None:d['value']['state']=self._save_domain();d['active']=False
+                    self._restore_domain(saved)
+                finally:
+                    record.close_lease=None
 
     @contextmanager
     def _creator_crt_context(self):
@@ -1334,20 +1336,22 @@ class WindowsSDKThreadService(WorkerObservations):
         self._queues_empty(task)
         saved = self._save_domain()
         lease = self._registrar.current_lease()
-        with lease.suspend():
-            self._active_owner, self._execution_tid = False, None
-            self._execution.release()
-            try:
-                for row in rows:
-                    self._issue_ticket(row, 'close')
-                for row in rows:
-                    if not row['_checkpoint'].wait(self._timeout_ms / 1000):
-                        raise PrimarySemanticUnavailable('source task shutdown has not returned through its native epilogue')
-                    self._join_secondary(row, report_failure=False)
-            finally:
-                self._execution.acquire()
-                self._active_owner, self._execution_tid = True, self._owner[1]
-                self._restore_domain(saved)
+        try:
+            with lease.suspend():
+                self._active_owner, self._execution_tid = False, None
+                self._execution.release()
+                try:
+                    for row in rows:
+                        self._issue_ticket(row, 'close')
+                    for row in rows:
+                        if not row['_checkpoint'].wait(self._timeout_ms / 1000):
+                            raise PrimarySemanticUnavailable('source task shutdown has not returned through its native epilogue')
+                        self._join_secondary(row, report_failure=False)
+                finally:
+                    self._execution.acquire()
+                    self._active_owner, self._execution_tid = True, self._owner[1]
+        finally:
+            self._restore_domain(saved)
         self._retire_joined_domains()
         for row in rows:
             if not self._secondary_quiescent(row):

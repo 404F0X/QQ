@@ -72,7 +72,7 @@ stateDiagram-v2
 | --- | --- | --- | --- |
 | Uninitialized | 显式新 owner，尚无初始化成功资格 | 有效配置或关闭 | Qimei 局部 cold 合同成立 [Q] |
 | Configured | 版本、UIN、配置及 owner 身份明确 | 完成本地依赖或真实失败 | 局部配置模型；整体待验收 |
-| LocalReady | 完整本方请求输入与生命周期可用 | 合法会话和入口就绪 | key25、17B 局部真实；137 未实际完成 |
+| LocalReady | 完整本方请求输入与生命周期可用 | 合法会话和入口就绪 | a5返回137并完成请求codec；本地SIGN及正常close未完成 |
 | Active | 当前会话可用且 runtime/epoch 有效 | 正常运行、失败或关闭 | 正常全 SIGN/SSO SDK 交易未证明 |
 | Failed | 保留原错误、阶段和可恢复性 | 合法恢复或关闭 | key25 真实失败及恢复一例 [D] |
 | Closing | 禁止新任务，处理已有消费者和租约 | 资源回收或明确 CloseBlocked | 历史局部 close，不覆盖全生命周期 |
@@ -111,7 +111,7 @@ flowchart TD
 
 | 材料状态 | 进入条件 | 退出条件 / 数据 | 当前证据 |
 | --- | --- | --- | --- |
-| InputPrepared | 真实本方输入完整 | 编码并经所需 SIGN 发请求 | 完整137正常域候选已冻结；尚无真实 OS137 |
+| InputPrepared | 真实本方输入完整 | 编码并经所需 SIGN 发请求 | a5真实137与请求codec已返回；SIGN未完成 |
 | RequestPending | 合法 session、完整载荷、真实发送 | 真实响应或明确失败 | 正常 SDK 交易未证明 |
 | ReplyReceived / NotificationReceived | 真实请求关联响应或来源合法通知材料成立 | 直接校验、解析或拒绝 | 未证明完整目标路径 |
 | Parsed | 格式和业务条件满足 | 安装到正确 owner | 单独 parser 不能算安装 |
@@ -148,7 +148,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
   业务collector必须使用该getter返回值作为record25输入，不把provider d/token当设备值，也不注入factory缓存。
 - actual a2 standalone producer 返回success并不证明其结果已发布到owner singleton；standalone own-state与owner client根不同，
   时间与rand_s header也可不同。当前结论是共享未绑定、可能不同，未观察到实际mismatch；既有独立producer算法证据仍有效。
-  薄getter只经pure检查，可能继续遇到Native819输入Boundary，不绕guard；完整137及SIGN仍未完成。
+  薄getter在a3已返回；a5返回137但SIGN未完成。Native819未覆盖输入仍保留Boundary，不绕guard。
 - 存储仍沿用owner factory的显式DirectoryCheckpointStorage root；实际运行须绑定已有可信ownG root并保持
   `allow_capi_creation=False`。既有API允许显式opt-in，路径校验并非全局G盘限制；getter未增改该政策。
   既有WindowsCapiObservations在禁创建时拒绝0x68/GenKey及安全描述符/ACL/SetProvParam创建路径。
@@ -207,7 +207,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
   编码/type失败不提前消耗SDKcounter，已发生material/MT变化不回滚；当前transport None不表示网络可用。
   feature46 ON要求同owner state17 producer及实际PID/clock/formatter状态，OFF不调用cipher。
 - clock/CAPI/observation接口为借用，不由component关闭；client关闭component逻辑生命周期。
-  当前受控组合到既有encoder通过，actual同owner137→policy2 SIGN仍未执行；notify/update及完整Goal仍未完成。
+  a5已完成实际请求codec并进入同owner policy2 SIGN，但SIGN未返回；notify/update及完整Goal仍未完成。
 
 ### actual a2 与 cursor 窄绑定
 
@@ -246,6 +246,25 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
   源依据：`A/mmkv-stdio-state/RESULT.md`、stdio-getter-consumers、stdio-options-ref-closure；
   SDK10.0.26100 corecrt_stdio_config.h的04/20位定义。完整SDK/Token/Qimei异步链及Goal仍未完成。
 
+### actual a5：请求codec完成，SIGN与正常close仍未完成
+
+- a5实际返回137、request encoder完成，并以同owner的request.command/body进入SIGN；
+  701774整数formatter因正常global options0x24被拒绝，SIGN未完成，未取得完整SIG。
+- 后续OFFLINE-DATAFLOW已核对137 key顺序/schema/types、两个records快照相等、cold command选择、
+  初始ordinary SDK序号、immutable168B decode snapshot及body/encoded wire结构关系。
+  它不证明独立body解密、记录值语义、服务器接受或完整签名；初始RESULT中的offline not_run不替代后续检查。
+- a5 cleanup实际因缺少unsuspended lease失败，最终进程AV退出（-1073741819）；CIM0仅证明进程消失。
+  资源释放为failed/unknown，AV因果仍unknown。源码核对定位：stop_checkpoint在suspend内部restore，
+  creator_closing在closing lease退出后restore，均不满足既有lease语义。
+- 当前close候选只调整两处restore顺序，不改HostServices验证/counter、回调重试或模块释放规则；
+  2个pure方法/7个subcase及独立review通过，尚未native复验，也不能据此宣称AV已修复。
+- main701774现从qualified read_options取得GLOBAL exact0/0x24（wrapper有效2/26），
+  仅支持精准窄 `%d` signed32、完整容纳、非重叠及NUL语义；未知位/格式/截断仍Boundary。
+  3项pure及独立review通过，未证明actual SIG完成；原完整stdio fixture的PTD失败不是pass。
+- 证据：`A/own-business-bootstrap-a1/independent-live-a5/{RESULT.json,OFFLINE-DATAFLOW.json}`、
+  `A/own-main-sign-printf24-a1/`、`A/own-failed-close-lease-a1/`。
+  a1至a4原记录及证据保留；本候选不包含C外crashhandler支持，不授予a6运行权限。
+
 ### SDK、异步消费者与登录
 
 - 四 SDK 命令均消费完整 payload；status0 也加密 payload，没有纯握手空 body 捷径。
@@ -263,7 +282,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 | 固定版本及当前候选 | 固定52230源、候选身份与执行绑定 | 源码基线固定；137正常域候选已冻结 [W] |
 | 本地17B | 真实输入、独立重算、资源退出 | 局部真实 PASS [M]，非材料B |
 | key25 | 完整生产、持久恢复、真实分支 | method6 局部真实 PASS [D]；其他分支未 actual |
-| 完整137 | 正常采集到编码的真实完整输入 | 正常域受控检查成立；actual a2 初始cold snapshot止于 GetCursorPos |
+| 完整137 | 正常采集到编码的真实完整输入 | a5真实返回137；offline schema/order/types通过，值语义未独立验证 |
 | SDK请求 | 完整载荷、所需 SIGN、真实发送 | 正常全交易未证明 [S] |
 | SDK回包 / Token | 真实关联回包、校验、解析、安装 | 缺真实闭环，不以 metadata 空代替 |
 | Qimei | cold / initialized / restored 各自真实契约 | cold 局部受控 PASS [Q]；完整更新未证明 |
@@ -273,19 +292,18 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 | 刷新 | 真实触发、更新、失败保旧语义 | 仅局部源/受控证据 |
 | 失败与恢复 | 原错误可见，同对象恢复且不伪成功 | key25 一例 [D]，不外推全域 |
 | 取消 | 在途状态明确、停止异步副作用 | 全业务路径待验收 |
-| 关闭与所有权 | 有序停止、自有资源退出、租约正确 | 历史局部结果不覆盖完整B |
+| 关闭与所有权 | 有序停止、自有资源退出、租约正确 | a5 cleanup失败/AV；两处lease修复pure+review通过，未native复验 |
 | SIGN消费 | 同runtime选中新材料并实际读取 | 未证明，最终关键门禁 |
 | 登录交接 | 合法会话交给签名owner，版本不混淆 | 另owner；51728不证明52230 |
 
 ## 7. 最早断点、下一步与完成标准
 
-当前优先核实四 SDK 命令所需 policy2 SIGN 能否由本方同一 owner 自产；
-外部输入或未知项须先精确定位，不能预先判为外部依赖。该事实核对后再安排真实137采集。
-完整137正常域源码及受控集成已通过独立 review，actual a3 已越过共享getter及cursor，当前首个frontier为cold snapshot FILETIME形状契约；
-受控编码贯穿不能跳过实际采集资格、持久副作用授权及必需 SIGN 路径。
-准备支持 `A/own-full-device-records-a1/live-prep/PREPARED.json` 仍为 `prepared=false`，不能用于真实 GO。
-尚无真实 OS137、完整 SIGN 或真实发送回包后 next SIGN 的闭环证据。
-不以空载荷、免签、假 adapter、默认 token 或不同 runtime 拼接绕过此断点。
+当前下一里程碑必须同时满足：**同owner本地SIGN完成与正常close完成**，运行范围为NO_NETWORK。
+a5已返回137并完成codec、进入SIGN，但未得到完整SIG且cleanup失败；当前formatter及close修复仅pure与独立review通过。
+下一native前必须具备close修复的有效检查及审查证据，具体运行仍须Root另行GO；a6当前未授权。
+旧 `A/own-full-device-records-a1/live-prep/PREPARED.json` 仍为prepared=false，不用于真实GO。
+不得把独立component当作source native pending/SourceEpoch receipt资格，也不以进程消失替代正常close。
+真实网络、Token/Qimei异步消费者及空值、UIN/config、刷新失败、取消和完整关闭验收仍未完成；两图目标契约保持。
 
 仅当全部适用验收成立，且以下连续证据绑定同一有效 runtime，才能把完整 Goal 标为 complete：
 

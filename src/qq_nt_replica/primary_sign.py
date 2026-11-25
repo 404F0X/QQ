@@ -2864,8 +2864,10 @@ class PrimaryRuntime:
                     vm.program.type(argument_types[3]).raw != 7 or
                     vm.program.size(argument_types[3]) != 4):
                 raise PrimarySemanticUnavailable("integer formatter requires an explicit DWORD variadic tail")
-            if self.memory.load(self.image_base + 0x6749CC0, 8) != 0:
-                raise PrimarySemanticUnavailable("integer formatter nondefault current options are unavailable")
+            from .primary_crt_stdio_options import read_options
+            options = read_options(self)
+            if type(options) is not int or options not in (0, 0x24):
+                raise PrimarySemanticUnavailable("integer formatter requires global options0 or normal0x24")
             output, capacity, format_address = arg(0), arg(1), arg(2)
             if self.memory.read(format_address, 3) != b"%d\0":
                 raise PrimarySemanticUnavailable("integer formatter only implements the actual %d format")

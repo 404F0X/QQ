@@ -2411,8 +2411,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_sign.py",
-      "source_sha256": "afbfcb10eca02fcdc2442bdbac3f5a9e3f132cd022fc60a3e3c10b9dbe010a4f",
-      "sha256": "a557a9cc7242e9e865da66498e45d252a37afe3325de438fbbe2e60768eec141",
+      "source_sha256": "c1f7570198bae89c6536ea328d011a48b097c1d45001ab37ce1f304e31df16d8",
+      "sha256": "c1f7570198bae89c6536ea328d011a48b097c1d45001ab37ce1f304e31df16d8",
       "classification": "project_source"
     },
     {
@@ -2996,8 +2996,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_windows_threads.py",
-      "source_sha256": "2023f50fc6d66e8112238b87c180b2bba9497cec7cbc919a575df5b9770c14d7",
-      "sha256": "ea7b0a9a33f905c181fe63185adfbe3916419a162671944bb6fdc5df1e765a32",
+      "source_sha256": "d7502e274fd016ac87fae63f06b6db94524931a8f5b88ffd84807daa905023c7",
+      "sha256": "d7502e274fd016ac87fae63f06b6db94524931a8f5b88ffd84807daa905023c7",
       "classification": "project_source"
     },
     {
