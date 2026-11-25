@@ -14,8 +14,8 @@ def _release_owner(runtime, slot):
 
 
 def _destroy_string(runtime, address):
-    if runtime.memory.load(address, 1) & 1:
-        runtime._free_allocation(runtime.memory.load(address + 16, 8))
+    from .primary_logger import _String
+    _String.read(runtime, address).destroy()
 
 
 def destroy_cache(runtime, address=None):

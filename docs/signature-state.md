@@ -273,7 +273,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
   这仅证明实际返回及source字段结构契约，长度匹配不等于SIGN算法正确；内容/算法语义及server接受仍unknown。
 - 首个cleanup失败位于provider cache destroy_cache → _destroy_string → current runtime `_free_allocation`，
   报告待释放对象不是当前runtime拥有的allocation。已定位为provider response cache+0x18的material value String，
-  不是singleton device value本体。源契约要求long>22B独占deep-copy或explicit move；当前首要unknown是该payload的分配→发布→临时回收身份链。
+  不是singleton device value本体。源契约要求long>22B独占deep-copy或explicit move；当前受控RCA已确认 response cache 长字符串属于 upper allocator，原析构误走 lower runtime heap free；固定源 BCD2D3 → B75029 支持匹配 upper delete。现已复用 `_String.destroy()`，纯模型回归通过；a6 实际指针家族与非法指令原因仍 unknown，不能外推实际关闭已修复。a7 NO GO，等待独立审查与 Root 后续授权。
   main temporary cleanup可能回收已发布persistent payload仅为疑点，尚无allocation身份链，RCA unknown；保留_free_allocation guard。
   不绕freeguard，不把进程消失当作正常close；资源状态FAILED/UNKNOWN。
 - 最终退出-1073741795（STATUS_ILLEGAL_INSTRUCTION）；三个owned进程均reaped、CIM0。
@@ -311,7 +311,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 | 刷新 | 真实触发、更新、失败保旧语义 | 仅局部源/受控证据 |
 | 失败与恢复 | 原错误可见，同对象恢复且不伪成功 | key25 一例 [D]，不外推全域 |
 | 取消 | 在途状态明确、停止异步副作用 | 全业务路径待验收 |
-| 关闭与所有权 | 有序停止、自有资源退出、租约正确 | a6 response cache material String unowned allocation关闭失败，资源FAILED/UNKNOWN；fatal原因unknown [L6] |
+| 关闭与所有权 | 有序停止、自有资源退出、租约正确 | a6 response cache material String allocation guard关闭失败，资源FAILED/UNKNOWN；fatal原因unknown [L6] |
 | SIGN消费 | 同runtime选中新材料并实际读取 | 未证明，最终关键门禁 |
 | 登录交接 | 合法会话交给签名owner，版本不混淆 | 另owner；51728不证明52230 |
 
@@ -349,4 +349,4 @@ fatal非法指令原因unknown，不把freeguard错误与fatal建立未经证明
 - [W] `A/own-full-device-records-a1/{core,windows,wmi}`：正常域源码及受控集成已通过独立 review；
   检查仅按冻结输入及各报告覆盖复用，不代表 actualOS 已运行；不得读取或发布 raw 捕获补正文。
 
-本次文档修订仅核对现行契约与执行者证据，不执行代码、native、网络或旧测试。
+本次增量已执行纯模型聚焦回归；未执行 native、网络或真实 a7。受控证据：`A/own-provider-cache-upper-delete-a1/RESULT.md`。a6 实际137、本地codec及SIGN三段bytes结构96/12/141已核；算法/server仍未证明。
