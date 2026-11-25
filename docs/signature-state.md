@@ -72,7 +72,7 @@ stateDiagram-v2
 | --- | --- | --- | --- |
 | Uninitialized | 显式新 owner，尚无初始化成功资格 | 有效配置或关闭 | Qimei 局部 cold 合同成立 [Q] |
 | Configured | 版本、UIN、配置及 owner 身份明确 | 完成本地依赖或真实失败 | 局部配置模型；整体待验收 |
-| LocalReady | 完整本方请求输入与生命周期可用 | 合法会话和入口就绪 | a5返回137并完成请求codec；本地SIGN及正常close未完成 |
+| LocalReady | 完整本方请求输入与生命周期可用 | 合法会话和入口就绪 | a6返回137、codec及SIGN结果；输出结构已核、算法未证，close失败 [L6] |
 | Active | 当前会话可用且 runtime/epoch 有效 | 正常运行、失败或关闭 | 正常全 SIGN/SSO SDK 交易未证明 |
 | Failed | 保留原错误、阶段和可恢复性 | 合法恢复或关闭 | key25 真实失败及恢复一例 [D] |
 | Closing | 禁止新任务，处理已有消费者和租约 | 资源回收或明确 CloseBlocked | 历史局部 close，不覆盖全生命周期 |
@@ -111,7 +111,7 @@ flowchart TD
 
 | 材料状态 | 进入条件 | 退出条件 / 数据 | 当前证据 |
 | --- | --- | --- | --- |
-| InputPrepared | 真实本方输入完整 | 编码并经所需 SIGN 发请求 | a5真实137与请求codec已返回；SIGN未完成 |
+| InputPrepared | 真实本方输入完整 | 编码并经所需 SIGN 发请求 | a6真实137、codec及SIGN结果已返回；未发送网络请求 [L6] |
 | RequestPending | 合法 session、完整载荷、真实发送 | 真实响应或明确失败 | 正常 SDK 交易未证明 |
 | ReplyReceived / NotificationReceived | 真实请求关联响应或来源合法通知材料成立 | 直接校验、解析或拒绝 | 未证明完整目标路径 |
 | Parsed | 格式和业务条件满足 | 安装到正确 owner | 单独 parser 不能算安装 |
@@ -207,7 +207,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
   编码/type失败不提前消耗SDKcounter，已发生material/MT变化不回滚；当前transport None不表示网络可用。
   feature46 ON要求同owner state17 producer及实际PID/clock/formatter状态，OFF不调用cipher。
 - clock/CAPI/observation接口为借用，不由component关闭；client关闭component逻辑生命周期。
-  a5已完成实际请求codec并进入同owner policy2 SIGN，但SIGN未返回；notify/update及完整Goal仍未完成。
+  a6已完成实际请求codec，且同owner sign_result已返回并保存artifact；独立输出结构已核，内容/算法未证，notify/update及完整Goal仍未完成 [L6]。
 
 ### actual a2 与 cursor 窄绑定
 
@@ -257,13 +257,32 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
   资源释放为failed/unknown，AV因果仍unknown。源码核对定位：stop_checkpoint在suspend内部restore，
   creator_closing在closing lease退出后restore，均不满足既有lease语义。
 - 当前close候选只调整两处restore顺序，不改HostServices验证/counter、回调重试或模块释放规则；
-  2个pure方法/7个subcase及独立review通过，尚未native复验，也不能据此宣称AV已修复。
+  2个pure方法/7个subcase及独立review通过，已随6b4f6f交付；a6未报告旧lease错误，但close仍失败，不能据此宣称AV因果已闭合。
 - main701774现从qualified read_options取得GLOBAL exact0/0x24（wrapper有效2/26），
   仅支持精准窄 `%d` signed32、完整容纳、非重叠及NUL语义；未知位/格式/截断仍Boundary。
-  3项pure及独立review通过，未证明actual SIG完成；原完整stdio fixture的PTD失败不是pass。
+  3项pure及独立review通过，已随6b4f6f交付；a6的SIGN返回事实另见 [L6]，原完整stdio fixture的PTD失败不是pass。
 - 证据：`A/own-business-bootstrap-a1/independent-live-a5/{RESULT.json,OFFLINE-DATAFLOW.json}`、
   `A/own-main-sign-printf24-a1/`、`A/own-failed-close-lease-a1/`。
-  a1至a4原记录及证据保留；本候选不包含C外crashhandler支持，不授予a6运行权限。
+  a1至a4原记录及证据保留；该离线候选当时不包含C外crashhandler支持，也不授予后续运行权限。
+
+### actual a6：SIGN返回且结构已核，response cache material String关闭失败
+
+- a6 full137及request编码已返回；同owner `sign_result(request.command, request.body)` 已返回，
+  结果artifact已保存；offline只读pickle opcode核对确认为PrimarySignatureResult，非pending/None或空物料 [L6]。
+  source字段sign96B、extra12B、token141B均为非空bytes，各≤255B；当前类型无protocolTokenHex字段，外部映射未验证。
+  这仅证明实际返回及source字段结构契约，长度匹配不等于SIGN算法正确；内容/算法语义及server接受仍unknown。
+- 首个cleanup失败位于provider cache destroy_cache → _destroy_string → current runtime `_free_allocation`，
+  报告待释放对象不是当前runtime拥有的allocation。已定位为provider response cache+0x18的material value String，
+  不是singleton device value本体。源契约要求long>22B独占deep-copy或explicit move；当前首要unknown是该payload的分配→发布→临时回收身份链。
+  main temporary cleanup可能回收已发布persistent payload仅为疑点，尚无allocation身份链，RCA unknown；保留_free_allocation guard。
+  不绕freeguard，不把进程消失当作正常close；资源状态FAILED/UNKNOWN。
+- 最终退出-1073741795（STATUS_ILLEGAL_INSTRUCTION）；三个owned进程均reaped、CIM0。
+  faulthandler文件0B未给出具体nativepoint；fatal原因unknown，不能断言由freeguard导致。
+  a6未报告旧lease错误，但不能推广为所有关闭路径已正确。
+- a5 offline [L5]的137 schema/order/types、快照相等、request cold command/seq及immutable168B结构证据
+  仍只适用于其绑定artifact；a6 records schema/order未另核。记录值语义、独立body解密、server接受仍unknown，不能由SIGN结构验证推导。
+  本地“SIGN返回＋正常close”双条件仅前半的控制流达到，完整材料更新→安装→后续SIGN消费Goal未完成。
+  Native a7 HOLD；未获新GO不得再次实际运行。
 
 ### SDK、异步消费者与登录
 
@@ -282,8 +301,8 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 | 固定版本及当前候选 | 固定52230源、候选身份与执行绑定 | 源码基线固定；137正常域候选已冻结 [W] |
 | 本地17B | 真实输入、独立重算、资源退出 | 局部真实 PASS [M]，非材料B |
 | key25 | 完整生产、持久恢复、真实分支 | method6 局部真实 PASS [D]；其他分支未 actual |
-| 完整137 | 正常采集到编码的真实完整输入 | a5真实返回137；offline schema/order/types通过，值语义未独立验证 |
-| SDK请求 | 完整载荷、所需 SIGN、真实发送 | 正常全交易未证明 [S] |
+| 完整137 | 正常采集到编码的真实完整输入 | a6返回137；a5 offline schema/order/types通过；a6 records schema/order未另核，值语义未独立验证 |
+| SDK请求 | 完整载荷、所需 SIGN、真实发送 | a6本地codec及SIGN结果结构已核，算法未证/未发送；正常全交易未证明 [S][L6] |
 | SDK回包 / Token | 真实关联回包、校验、解析、安装 | 缺真实闭环，不以 metadata 空代替 |
 | Qimei | cold / initialized / restored 各自真实契约 | cold 局部受控 PASS [Q]；完整更新未证明 |
 | 通知与回调 | 来源合法、注册、分发、生命周期、安装 | 完整真实通知路径未证明 |
@@ -292,15 +311,17 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 | 刷新 | 真实触发、更新、失败保旧语义 | 仅局部源/受控证据 |
 | 失败与恢复 | 原错误可见，同对象恢复且不伪成功 | key25 一例 [D]，不外推全域 |
 | 取消 | 在途状态明确、停止异步副作用 | 全业务路径待验收 |
-| 关闭与所有权 | 有序停止、自有资源退出、租约正确 | a5 cleanup失败/AV；两处lease修复pure+review通过，未native复验 |
+| 关闭与所有权 | 有序停止、自有资源退出、租约正确 | a6 response cache material String unowned allocation关闭失败，资源FAILED/UNKNOWN；fatal原因unknown [L6] |
 | SIGN消费 | 同runtime选中新材料并实际读取 | 未证明，最终关键门禁 |
 | 登录交接 | 合法会话交给签名owner，版本不混淆 | 另owner；51728不证明52230 |
 
 ## 7. 最早断点、下一步与完成标准
 
-当前下一里程碑必须同时满足：**同owner本地SIGN完成与正常close完成**，运行范围为NO_NETWORK。
-a5已返回137并完成codec、进入SIGN，但未得到完整SIG且cleanup失败；当前formatter及close修复仅pure与独立review通过。
-下一native前必须具备close修复的有效检查及审查证据，具体运行仍须Root另行GO；a6当前未授权。
+当前本地里程碑仍要求：**同owner本地SIGN返回并验证输出，以及正常close完成**，运行范围NO_NETWORK。
+a6已返回SIGN结果并保存artifact，独立输出结构已核，内容/算法语义未证；close仍在response cache material String销毁失败 [L6]。
+首要unknown是该payload分配→发布→临时回收ownership身份链；temporary cleanup疑点尚非RCA。
+fatal非法指令原因unknown，不把freeguard错误与fatal建立未经证明的因果；保留原guard。
+先完成只读定位和对应最小修复/有效验证；Native a7 HOLD，须Root新的明确GO才能再运行。
 旧 `A/own-full-device-records-a1/live-prep/PREPARED.json` 仍为prepared=false，不用于真实GO。
 不得把独立component当作source native pending/SourceEpoch receipt资格，也不以进程消失替代正常close。
 真实网络、Token/Qimei异步消费者及空值、UIN/config、刷新失败、取消和完整关闭验收仍未完成；两图目标契约保持。
@@ -321,6 +342,10 @@ a5已返回137并完成codec、进入SIGN，但未得到完整SIG且cleanup失�
 - [Q] `A/OWN-QIMEI-GETTER-CONTRACT-20261124.md` 与
   `A/own-qimei-cold-record-input-a1/{RESULT.json,checks.txt}`：源语义与3项受控检查。
 - [S] `A/OWN-SDK-GENUINE-PAYLOAD-DEPENDENCIES-20261124.md`：载荷、SIGN依赖及缓存语义。
+- [L5] `A/own-business-bootstrap-a1/independent-live-a5/{RESULT.json,OFFLINE-DATAFLOW.json}`：
+  a5实际阶段、cleanup失败及其后offline结构检查；不验证记录值/独立body解密/server。
+- [L6] `A/own-business-bootstrap-a1/independent-live-a6/{RESULT.json,OFFLINE-SIGN-STRUCTURE.json}`：
+  a6同owner SIGN返回及source字段结构已核、response cache material String销毁失败、非法指令退出；算法/server及fatal原因unknown。
 - [W] `A/own-full-device-records-a1/{core,windows,wmi}`：正常域源码及受控集成已通过独立 review；
   检查仅按冻结输入及各报告覆盖复用，不代表 actualOS 已运行；不得读取或发布 raw 捕获补正文。
 
