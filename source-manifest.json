@@ -2132,8 +2132,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_qimei_request_pipeline.py",
-      "source_sha256": "e36ed07bf26c0c40c0868051d023feb723e35f2bb5bde4267dcaf2494e7ddd38",
-      "sha256": "2e0523e390c000ab7e70723fa243c9b093a6bce8be3c3e19d35c7ce065da125b",
+      "source_sha256": "7caf612dd7494e2624a4c6d18441cc2f95b441bcd6a9d3b982e46b18f941fc62",
+      "sha256": "7caf612dd7494e2624a4c6d18441cc2f95b441bcd6a9d3b982e46b18f941fc62",
       "classification": "project_source"
     },
     {
@@ -2920,6 +2920,12 @@
       "sha256": "d54431d6a772ac5b8a34c749c45c74e40d80a0bedd259c8d91c288c67e8286e8",
       "classification": "project_source",
       "origin": "MAT-QIMEI-CONFIG-IMPLEMENT/a1 new source-derived implementation; authoring snapshot: qimei-config-implementation/primary_windows_qimei_config.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_windows_qimei_carrier.py",
+      "source_sha256": "f5004480abb76331b8fde5ac7f5bb24be3842e35908758c03421dbf3b1862a8d",
+      "sha256": "f5004480abb76331b8fde5ac7f5bb24be3842e35908758c03421dbf3b1862a8d",
+      "classification": "project_source"
     },
     {
       "path": "src/qq_nt_replica/primary_windows_qimei_context.py",

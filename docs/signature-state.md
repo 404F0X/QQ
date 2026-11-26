@@ -9,7 +9,7 @@ COORDINATION 只记录调度和操作，不另立业务状态机。
 
 ## 当前结论（实际输入源码 e846a5b，2026-11-26）
 
-当前实际 Qimei 启动运行绑定源码 `e846a5b9afaf84886262f7bc8e7ac8b2da7e0480`；本次仅同步文档，不改写实际运行版本。该版本承接 `2cee40dc888f26bca62c537de7ca28edd3fca3b5` 的 selected12 reply 可选 extension 修复。原 Own type1 实际收到184B，当时止于旧 parser；修复后对同一保存 frame 的离线解包得到关联 command/wire、SSO -10003 与空 payload，不追记为当时已完成 public completion。该 SSO 负状态与历史143B的 SDK1003分属不同层，均无已证根因。
+当前实际 Qimei 启动运行绑定源码 `e846a5b9afaf84886262f7bc8e7ac8b2da7e0480`；后续实现与文档增量不改写该实际运行版本。该版本承接 `2cee40dc888f26bca62c537de7ca28edd3fca3b5` 的 selected12 reply 可选 extension 修复。原 Own type1 实际收到184B，当时止于旧 parser；修复后对同一保存 frame 的离线解包得到关联 command/wire、SSO -10003 与空 payload，不追记为当时已完成 public completion。该 SSO 负状态与历史143B的 SDK1003分属不同层，均无已证根因。
 
 PUBLIC LLOneBot8.3.2 支持 `send_pb`，但唯一一次实际 NativeEnvelope SDK-body 控制失败：OneBot status=failed／retcode1200，携带 PMHQ code=-2／`build scratch failed`，data=null；outer echo 匹配，回复 command 关联未建立，无 SDK reply。1200不是 SDK retcode；也不能据此断言 SDK 请求未上网或服务器未检查 body。该控制绕过 Own SSO/header/initial SIGN，Native 是否改写／再签未知，可能依赖 Original SIGN，不能作为 fullOwn 证明。
 
@@ -21,7 +21,7 @@ PUBLIC LLOneBot8.3.2 支持 `send_pb`，但唯一一次实际 NativeEnvelope SDK
 
 `primary_qimei_application_binding.start_application` 现消费原 ApplicationBinding 与调用方共享 StartupState、context／selector／raw-cipher observations，cold mode1显式folder API先0x23、仅失败再0x1A，成功路径追加Tencent/qimei并检查／创建目录。复用原StartupState、codec及identity parser，main.profile_records实际进入assemble_provider_profile；返回bool仅指identity未变，普通缺失／坏文件可正常置once，异常保留前缀且不强制once。callback引用由调用方跨appid共享、非NULL首次获胜，arg7仅NULL gate；无callback调用／Native注册证明。
 
-该组合实现的原证据为Source／MODEL输入链；后续实际identity1读取见下节，不将其外推为非空record1恢复、Qimei发行或完整a2。getter.initialize/restore及cold bootstrap保持原Boundary；697FA后续任务、AUX690A5、ready与完整模块生命周期仍未闭合。SDK认证安装发布／同runtime新材料消费仍0，Full Goal ACTIVE。实现证据：`A/overall-signing-service/qimei-startup-composition-implementation/`。
+该组合实现的原证据为Source／MODEL输入链；后续实际identity1读取见下节，不将其外推为非空record1恢复、Qimei发行或完整a2。getter.initialize/restore及cold bootstrap保持原Boundary；697FA及后续有限cold job组合见下节；完整任务调度、AUX690A5、ready与模块生命周期仍未闭合。SDK认证安装发布／同runtime新材料消费仍0，Full Goal ACTIVE。实现证据：`A/overall-signing-service/qimei-startup-composition-implementation/`。
 
 ## Qimei 实际启动：identity changed，main 按 Source 跳过
 
@@ -31,7 +31,15 @@ PUBLIC LLOneBot8.3.2 支持 `send_pb`，但唯一一次实际 NativeEnvelope SDK
 
 backend/context/core显式close返回，child RC0并已reap；folder WinDLL引用由child退出释放，没有explicit close。本地静止，无cache内容写入、SDK／网络调用或本探针Native pending。实际1次special-folder createTRUE及1次directory check，无CreateDirectory调用；special-folder原先是否存在／是否由该调用创建UNKNOWN，Source持久目录效果按授权保留，实际路径仅在T。未生成Qimei发行材料，fulla2／getter initialize/restore／AUX／ready仍未闭合，真实install/publication/next SIGN新材料消费仍0，Full Goal ACTIVE。
 
-证据与身份补充：`A/overall-signing-service/qimei-actual-startup-probe/OUTCOME.md`、`OUTCOME.json`。最新取舍见 `A/overall-signing-service/QIMEI-POSTSTARTUP-PRIORITY-OPUS.md`：下一步仅沿Source a2启动后697FA及必要相连链研究第一个合法main.record1 producer/install；不是新actual GO，不读取被跳过main、不换key／MAC或绕过identity changed。既有14项Source／MODEL测试按原输入范围复用，不将其重标为此次实际材料验收。
+证据与身份补充：`A/overall-signing-service/qimei-actual-startup-probe/OUTCOME.md`、`OUTCOME.json`。最新取舍见 `A/overall-signing-service/QIMEI-POSTSTARTUP-PRIORITY-OPUS.md`：后续Source研究已闭合有限cold material job接口并实现下节组合；真实材料仍要求合法当前请求的匹配服务回复，不是新actual GO，不读取被跳过main、不换key／MAC或绕过identity changed。既有14项Source／MODEL测试按原输入范围复用，不将其重标为此次实际材料验收。
+
+## 有限 Own cold material job 与 Windows carrier（Source／MODEL）
+
+原 `QimeiRequestPipeline.run_cold_material_job` 现组合单次同步任务：要求原ApplicationBinding、同settings/context、shared startup.once1且main逻辑空、原pipeline/dispatch组件与未完成reply，错绑或warm状态在IO前拒绝。实际beacon globals.refresh_config先行；50D00语义直接调用同settings.refresh，再读record[1:9]，随后调用Source日历秒时钟；unsigned64 elapsed>=86400先判断，未达才读mainempty。原producer.populate/ANSI encode生成body，固定Source logical kind1（不是attempt budget3），仅一次既有dispatch保留原sequence/key/context；原reply.receive的accepted非空结果才commit_server_reply，main persist后identity依次persist，异常保留已发生前缀及原pending。persist由调用方显式绑定授权存储，无默认写QQ系统cache；借用资源由调用方负责，不隐式取消或重试。
+
+新增WindowsQimeiCarrier提供独立permit约定下的同步clean-EOF WinINet载体，own域curl_table=None。每请求沿用Source flags 0x80E03000（包含忽略证书CN/date的Source标志，仅此请求句柄，不修改全局设置），固定请求字段与原body长度。调用方须在最后一次perform返回或抛出后、在创建线程显式关闭借用NativeWinInetPort；close通过_ctypes.FreeLibrary释放自有模块引用，幂等关闭；释放失败保留所有权，未清HINTERNET债务阻止卸载，关闭后拒绝调用。不能以Python引用回收冒充卸载。send_attempted与send_return_success分别记录尝试和返回值，HttpSendRequest false或抛出均保守保留remote-send uncertainty，不能据false断言未发送；原异常cause和partial bytes保留。没有查询HTTP status，不把API/source_status与HTTP状态等同；read失败即使已有partial bytes也抛出并保留失败/关闭证据，不作为正常completion。未实现Source curl fallback、certificate diagnostic bookkeeping、CreateThread/软等待/线程状态映射；同步API可能阻塞，不声称完整Source传输或scheduler生命周期。
+
+验证仅为Source／MODEL：5项新job与4项既有dispatch测试共9 PASS；另14项carrier scripted-API测试PASS，当前合计23项有效MODEL检查（复用未变job9项）。原producer/dispatch/reply/ordered commit/profile实际在MODEL中接通，field／envelope／material ports显式受控，不证明全部数学或真实服务材料。manifest guarded loader只导入新入口与carrier类并关闭core，不实例化载体或加载Windows库。既有e846的144B identity changed／main skip实际证据保持原范围，无新增OS／HTTP／用户文件／SDK／Native调用；真实Qimei材料、SDK安装发布及同runtime新材料SIGN消费仍0，Full Goal ACTIVE。fulla2 scheduler／callback mutex／retry budget3／getter-ready／AUX与独立Own SDK缺口仍未闭合。证据：`A/overall-signing-service/qimei-cold-job-implementation/`、`qimei-wininet-carrier-implementation/`。
 
 ## Own completion 的可观察结果
 
