@@ -1506,6 +1506,9 @@ class PrimaryDirectScope:
             result = run_primary_singleton_destroy(vm)
             segment['completed'] = True
             return result
+        if name in ('request-fingerprint', 'request-fingerprint-nested'):
+            from .primary_request_fingerprint import execute_program
+            return execute_program(self, name, vm)
         if name == 'main':
             return runtime._run_primary_main(vm)
         if name == 'material-block':

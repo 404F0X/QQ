@@ -794,6 +794,40 @@
       "selected_source_bytes": 4076,
       "captured_source_bytes": 4076,
       "captured_source_sha256": "a86c9397ee9d51220153a1a18bcb8b7f1a41fdc1af508a2df8289f22e57ceb78"
+    },
+    {
+      "path": "request-fingerprint.bin",
+      "rva": "0x41b3c74",
+      "bytes": 796,
+      "sha256": "f582859ede1276a188b9ff6c0a439ba5ce7e554230a9919c964a408efb850567",
+      "source": "fixed-wrapper-RVA:0x41b3c74"
+    },
+    {
+      "path": "request-fingerprint-nested.bin",
+      "rva": "0x41b2394",
+      "bytes": 5428,
+      "sha256": "9ddc06a7cccfe1bfe5dd43b185b3c7f27a6dd577580c03c0ca09f008a143a213",
+      "source": "fixed-wrapper-RVA:0x41b2394"
+    },
+    {
+      "path": "request-fingerprint-nested-table.bin",
+      "rva": "0x41afca0",
+      "bytes": 8192,
+      "sha256": "aa033bd1ed00c2486e9e5e5502f791f6322025cc99d0d589c2bbb4a6afd8b00f",
+      "source": "fixed-wrapper-RVA:0x41afca0"
+    },
+    {
+      "path": "request-fingerprint-vm-key.bin",
+      "rva": "0x41b1ca0",
+      "bytes": 16,
+      "sha256": "c045eedf69d256794ea4b4ea0cc0a6da07d51267579b50e0d71bbf80c66bc638",
+      "source": "fixed-wrapper-RVA:0x41b1ca0"
+    },
+    {
+      "path": "request-fingerprint-host-tables.bin",
+      "bytes": 409600,
+      "sha256": "09dfc50c5c610b7f660fbb953fdf628679c9e43904114cd6d7b7beefb7f12bb3",
+      "source": "fixed-wrapper-RVA:0x414bca0"
     }
   ],
   "meaning": "Identity-checked fixed compiled syntax and metadata; current memory, environment events and private stack padding remain explicit inputs; assets alone do not establish complete signature equivalence"

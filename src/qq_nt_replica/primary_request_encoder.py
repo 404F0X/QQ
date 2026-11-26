@@ -195,6 +195,7 @@ def encrypt_request_body(plain, key, nonce):
 
 
 def request_fingerprint(digest, nonce):
+    """Built-in CF0 fingerprint; runtime provider selection is a separate operation."""
     _bytes(digest, 32, 'request ciphertext digest')
     _bytes(nonce, 16, 'request fingerprint nonce')
     image = _image()
@@ -231,12 +232,13 @@ def _request_plain(tag, payload, material, device_random, message_id):
 
 
 def _encode_material_request(tag, payload, material, device_random, message_id, nonce, fingerprint_nonce,
-                             public_key_flag=1):
+                             public_key_flag=1, *, fingerprint_operation=request_fingerprint):
     require_uint(public_key_flag, 8, 'request public key flag')
     plain = _request_plain(tag, payload, material, device_random, message_id)
     ciphertext = encrypt_request_body(plain, material.key, nonce())
     digest = hashlib.sha256(ciphertext).digest()
-    fingerprint = request_fingerprint(digest, fingerprint_nonce())
+    fingerprint = fingerprint_operation(digest, fingerprint_nonce())
+    _bytes(fingerprint, 48, 'request fingerprint result')
     wire = message(bytes_field(1, tag) if tag else b'', bytes_field(2, material.public_key),
                    u64_field(3, 1) if public_key_flag != 1 else b'',
                    bytes_field(4, material.encoded_peer.hex().encode('ascii')), bytes_field(5, ciphertext),
@@ -257,7 +259,8 @@ def encode_material_request_with_random(tag, payload, material, device_random, m
 
 
 def encode_cached_material_request(tag, payload, material, device_random, message_id, random, *,
-                                   payload_mode=0, public_key_flag=1):
+                                   payload_mode=0, public_key_flag=1,
+                                   fingerprint_operation=request_fingerprint):
     require_uint(payload_mode, 8, 'request payload mode')
     require_uint(public_key_flag, 8, 'request public key flag')
     if not isinstance(random, RequestRandom):
@@ -265,7 +268,7 @@ def encode_cached_material_request(tag, payload, material, device_random, messag
     if payload_mode == 0:
         return _encode_material_request(tag, payload, material, device_random, message_id,
                                         lambda: random.draw_bytes(12), lambda: random.draw_bytes(16),
-                                        public_key_flag)
+                                        public_key_flag, fingerprint_operation=fingerprint_operation)
     require_bytes(tag, 'request operation tag')
     require_bytes(payload, 'request payload')
     if not isinstance(material, RequestKeyMaterial):

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import time
 
 from .errors import InputError
-from .primary_request_encoder import RequestKeyMaterial, EncodedMaterialRequest, _bytes, _image, derive_request_material, encode_cached_material_request
+from .primary_request_encoder import RequestKeyMaterial, EncodedMaterialRequest, _bytes, _image, derive_request_material, encode_cached_material_request, request_fingerprint
 from .primary_request_random import RequestRandom, _system_word, _word, device_random_bytes
 from .primary_request_capi import SystemRequestCapi, derive_request_material_with_capi
 from .primary_vm import PrimarySemanticUnavailable
@@ -186,7 +186,8 @@ class RequestMaterialState:
     def encode(self, tag, payload, *, private_entropy=None, blinding_entropy=None,
                wall_seconds=_wall_seconds, monotonic_ns=time.perf_counter_ns,
                clock_ns=time.perf_counter_ns, random_word=_system_word, clock_mismatch=None,
-               capi=None, private_scratch=None, blinding_scratch=None):
+               capi=None, private_scratch=None, blinding_scratch=None,
+               fingerprint_operation=request_fingerprint):
         require_bytes(tag, 'request operation tag')
         require_bytes(payload, 'request payload')
         if capi is not None and (private_entropy is not None or blinding_entropy is not None):
@@ -211,7 +212,8 @@ class RequestMaterialState:
         request = encode_cached_material_request(tag, payload, material, current.device_random,
                                                  current.message_id, self.random,
                                                  payload_mode=current.payload_mode,
-                                                 public_key_flag=current.public_key_flag)
+                                                 public_key_flag=current.public_key_flag,
+                                                 fingerprint_operation=fingerprint_operation)
         return MaterialStateRequest(request, int(current.payload_mode != 0), current.device_random, 0, regenerated)
 
     def encode_with_capi(self, tag, payload, *, capi=None, **inputs):

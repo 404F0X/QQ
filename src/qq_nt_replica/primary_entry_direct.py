@@ -41,12 +41,18 @@ def _authorize(vm, name):
     from .primary_sign import PrimaryRuntime
     from .primary_signer import PrimarySigner
     runtime = vm.runtime
+    from .primary_request_fingerprint import source_request_fingerprint
+    from .primary_request_entry import encode as encode_source_request
+    fingerprint = _source_frame(source_request_fingerprint.__code__, runtime)
+    request_entry = _source_frame(encode_source_request.__code__, runtime)
+    source_entry = name == 'sdk-table-init' and fingerprint is not None and request_entry is not None
     scope = getattr(runtime, '_primary_direct_scope', None)
     if (type(scope) is not PrimaryDirectScope or scope.runtime is not runtime or
             vm.memory is not runtime.memory or vm.image_base != runtime.image_base or
-            not runtime.primary_core or runtime._active_main is not None or runtime._active_failed or
-            runtime._execute_thread != get_ident() or runtime._execute_depth != 1 or
-            runtime._program_calls != [dict(name=name, arguments=(), hosts=None)] or
+            not runtime.primary_core or (runtime._active_main is not None and not source_entry) or runtime._active_failed or
+            runtime._execute_thread != get_ident() or (runtime._execute_depth != 1 and not source_entry) or
+            (runtime._program_calls != [dict(name=name, arguments=(), hosts=None)] and
+             not (source_entry and runtime._program_calls[-1] == dict(name=name, arguments=(), hosts=None))) or
             not runtime.vms or runtime.vms[-1] is not vm):
         raise PrimarySemanticUnavailable('entry family requires its actual public initialized reader')
     scope._require_live()
@@ -64,6 +70,9 @@ def _authorize(vm, name):
                 registration.get('lock') != runtime.image_base + 0x677C230 or
                 runtime.locks.get(runtime.image_base + 0x677C230) != 1):
             raise PrimarySemanticUnavailable('SDK table requires its actual locked source registration')
+        if source_entry:
+            vm._primary_entry_direct_used = True
+            return
         caller = scope._caller
         preparation = _source_frame(prepare.__code__, runtime)
         if caller is not None:
@@ -72,6 +81,16 @@ def _authorize(vm, name):
                     _invoke_frame(runtime, 0x1BF8090) is None):
                 raise PrimarySemanticUnavailable('SDK table lacks its actual caller prepare wrapper')
         else:
+            from .primary_request_fingerprint import source_request_fingerprint
+            from .primary_own_sdk_request import OwnColdSdkRequestOwner
+            fingerprint = _source_frame(source_request_fingerprint.__code__, runtime)
+            create = _source_frame(PrimarySigner.create_own_device_request.__code__, scope.public_owner.signer)
+            component = getattr(scope.public_owner.signer, '_own_sdk_request', None)
+            own = _source_frame(OwnColdSdkRequestOwner.create_device_request.__code__, component) if component is not None else None
+            if (fingerprint is not None and create is not None and own is not None and
+                    component.runtime is runtime and own.get('runtime') is runtime):
+                vm._primary_entry_direct_used = True
+                return
             adapter = _source_frame(PrimaryRuntime._execute_caller_adapter_continued.__code__, runtime)
             sign = _source_frame(PrimarySigner._sign_body.__code__, scope.public_owner.signer)
             if (adapter is None or sign is None or adapter.get('classification') not in (1, 2) or

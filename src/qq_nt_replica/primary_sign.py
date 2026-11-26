@@ -18,6 +18,8 @@ from .primary_memory import UnknownMemory
 
 _DATA = Path(__file__).with_name("data") / "primary_sign_qq52230"
 _PROGRAMS = {
+    "request-fingerprint": "f582859ede1276a188b9ff6c0a439ba5ce7e554230a9919c964a408efb850567",
+    "request-fingerprint-nested": "9ddc06a7cccfe1bfe5dd43b185b3c7f27a6dd577580c03c0ca09f008a143a213",
     "sdk-table-init": "999cd6aa948d3562adac0b15dcd9985a2edfe600faa4e643e6a8da7ad837e4fa",
     "entry-prepare": "da98f1ee6c39ffa41336ddc19681e0f1aaefbbdfa585ebda02442f3dbe0a5370",
     "main": "28afc919ac1b8783ecbe6ddea52ebba5ea41492573609fa7cf634467ecaa00b9",
@@ -1946,6 +1948,9 @@ class PrimaryRuntime:
             self.raw_core_observations.validate_export_abi(self.image_base + rva, vm, cells, argument_types)
         def arg(n):
             return vm.cells.value(cells[n])
+        if rva in (0x1D2C9BA, 0x1D2CA42, 0x1D2C690, 0x1D2AB3E, 0x3EB1EE0):
+            from .primary_request_fingerprint import invoke_host
+            return invoke_host(self, vm, rva, cells)
         if rva in (0x2DE4CBD, 0x1BFD3E0, 0x1BFD570, 0x3EB2AC0):
             from .primary_signature_encoding import invoke
             return invoke(self, rva, tuple(arg(index) for index in range(len(cells))))

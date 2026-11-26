@@ -368,9 +368,11 @@ def encode(runtime, output, payload, tag, status, metadata, extra_status):
     result_status = int(current.payload_mode != 0)
     memory.store(status, result_status, 4, source='request.encoded_status')
     material = RequestKeyMaterial(state.encoded_peer, current.public_key, current.peer_key, b'', current.key)
+    from .primary_request_fingerprint import source_request_fingerprint
     request = encode_cached_material_request(tag_bytes, payload_bytes, material, current.device_random,
                                              current.message_id, state.random, payload_mode=current.payload_mode,
-                                             public_key_flag=current.public_key_flag)
+                                             public_key_flag=current.public_key_flag,
+                                             fingerprint_operation=lambda digest, nonce: source_request_fingerprint(runtime, digest, nonce))
     result = MaterialStateRequest(request, result_status, current.device_random, 0, regenerated)
     metadata_value = _String.construct(runtime, result.metadata)
     _assign(runtime, metadata, metadata_value)

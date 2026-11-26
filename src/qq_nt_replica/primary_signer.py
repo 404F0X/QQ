@@ -1177,7 +1177,9 @@ class PrimarySigner:
         component = getattr(self, '_own_sdk_request', None)
         if component is None:
             raise InputError('own request component is not attached')
-        return component.create_device_request(records)
+        from .primary_sign_lifecycle import public_call
+        with public_call(self):
+            return component.create_device_request(records)
 
     def complete_own_device_request(self, request, responsebody, *, transport_status):
         from .primary_sign_lifecycle import public_call
@@ -1430,6 +1432,10 @@ class PrimarySigner:
         from .primary_sign import install_singleton_destroy_image
 
         install_singleton_destroy_image(self.memory, self.image_base)
+
+        from .primary_request_fingerprint import install_image as install_fingerprint_image
+
+        install_fingerprint_image(self.memory, self.image_base)
 
         # Fixed PE .data virtual tail gives these two selector bytes fresh-image zero.
 

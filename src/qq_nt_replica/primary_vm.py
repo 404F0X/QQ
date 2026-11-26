@@ -1377,6 +1377,11 @@ class PrimaryVM:
                 self._write(destination, value, 8, "high.flag1_xor_q")
             else:
                 raise PrimarySemanticUnavailable("high class6 invalid-flag error route is unavailable")
+        elif low is None and (((raw >> 24) & 0xF0) | (raw & 15)) == 4:
+            typ, left, right, destination = tuple(operand() for _ in range(4))
+            a = self._signed_cell(left, typ)
+            b = self._signed_cell(right, typ)
+            self._write(destination, int(a >= b), 4, "high.signed_ge_d")
         elif low is None and (((raw >> 24) & 0xF0) | (raw & 15)) == 5:
             self.execute_typed(tuple(operand() for _ in range(4)))
         elif low is None and (((raw >> 24) & 0xF0) | (raw & 15)) in (0, 1, 2, 3):

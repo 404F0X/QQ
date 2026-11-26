@@ -46,17 +46,20 @@ class OwnColdSdkRequestOwner:
             from .primary_crt_stdio_options import read_options
             cipher=dict(state17=self.state17_owner(),process_id=self.creator[0],wall_seconds=self.clocks['wall_seconds'](),
                 formatter_options=read_options(runtime))
+        from .primary_request_fingerprint import source_request_fingerprint
         stage=encode_record_request(records,metadata,feature46=feature46,tag=self._tag,material_state=self.material,
             cipher_inputs=cipher,
-            encoding_inputs=dict(self.clocks,random_word=lambda:int.from_bytes(self.environment.random_bytes(4),'little'),capi=self.capi))
+            encoding_inputs=dict(self.clocks,random_word=lambda:int.from_bytes(self.environment.random_bytes(4),'little'),capi=self.capi,
+                fingerprint_operation=lambda digest,nonce:source_request_fingerprint(runtime,digest,nonce)))
         binding=runtime.request_transport
         first=None if binding is None else binding.type(self.transport_context)
         if first in (None,0):a2=bool(self.flags&1)
         else:
             second=binding.type(self.transport_context)
             a2=second==1
-        sequence=self.sequence;self.sequence=(sequence+1)&((1<<64)-1)
+        sequence=self.sequence
         request=finish_record_request(stage,sdk_sequence=sequence,a2=a2,commands=_COMMANDS)
+        self.sequence=(sequence+1)&((1<<64)-1)
         self._pending.append((request,bound))
         return request
 
