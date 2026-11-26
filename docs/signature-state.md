@@ -7,6 +7,16 @@
 COORDINATION 只记录调度和操作，不另立业务状态机。
 原长篇过程记录已由 Git 历史及既有 before/input-versions 快照保留，不再复制归档。
 
+## 当前结论（2cee40d，2026-11-26）
+
+当前行为源码为 `2cee40dc888f26bca62c537de7ca28edd3fca3b5`：selected12 reply 的可选 extension 缺省已修复。原 Own type1 实际收到184B，当时止于旧 parser；修复后对同一保存 frame 的离线解包得到关联 command/wire、SSO -10003 与空 payload，不追记为当时已完成 public completion。该 SSO 负状态与历史143B的 SDK1003分属不同层，均无已证根因。
+
+PUBLIC LLOneBot8.3.2 支持 `send_pb`，但唯一一次实际 NativeEnvelope SDK-body 控制失败：OneBot status=failed／retcode1200，携带 PMHQ code=-2／`build scratch failed`，data=null；outer echo 匹配，回复 command 关联未建立，无 SDK reply。1200不是 SDK retcode；也不能据此断言 SDK 请求未上网或服务器未检查 body。该控制绕过 Own SSO/header/initial SIGN，Native 是否改写／再签未知，可能依赖 Original SIGN，不能作为 fullOwn 证明。
+
+本次 genuine137、Source f7 call/return 各1，CAPI acquire/generate/release 各2，CREATE1、运输初始 Own SIGN0、completion0、next SIGN0，真实认证／安装／发布／消费均未达，install/consume仍0。Local pending cancel1→0；socket、owner、core及4个借用采集资源 close 返回，child已reap，session87493已退出。仅本地资源静止，remote Native pending UNKNOWN。
+
+安全结果及错误补充见 `A/overall-signing-service/native-sdk-body-control/OUTCOME.md`、`OUTCOME.json`。既定一次 exact error boundary 只读核对已完成，见 `A/overall-signing-service/PMHQ-SCRATCH-ERROR-BOUNDARY.md`：公开／已装JS与已知binary ASCII未找到确切literal／-2出处；llbot.js:72789–72794仅封装收到的res.code/message，未发现可实施的caller contract修复，实际Native失败步骤仍opaque，不能证明未发送。Root已搁置此诊断信道，等待上游支持契约或可用替代地址；用户地址问题仍待答，不要求内部keys。无SDK重试或新GO。取舍背景见 `A/overall-signing-service/POST-NATIVE-FAILURE-OPUS.md`。完整 Goal ACTIVE；SDK／Token／Qimei、合法通知及 protocolTokenHex 异步消费者仍待完整验收，禁止将 SIGN.token 别名为 protocolTokenHex。
+
 ## Own completion 的可观察结果
 
 `complete_own_device_request` 返回 frozen `OwnCompletionResult(outcome, stage, code, cache_updated, publication)`；outcome为failed／processed。stage仅覆盖现有transport、sdk_envelope、sdk_status、auth、material、token_parse、publication路径，code按stage区分namespace，无源数值时为None。非法envelope不再把mode冒充状态码。1003经原状态树规范化后返回failed/sdk_status/1003，保留current及其他pending；不新增retry／refresh／callback／owner关闭策略。
@@ -53,7 +63,7 @@ fresh command selector值匹配已证，不等于执行原callback或传输资�
 
 state17 mix只有静态bridge及有条件的后来byte-mask使用证据，不是native公式、key／IV或finalcipher证明；handler展开暂停。原actual-input-capture-completeness仅是A候选／MODEL证据；后续offline-request-crypto-a1已另行完成一次新离线生产采集及验证，不能反写成旧网络payload当时已接入、旧四参／private已恢复 [OFF]。固定源已确认原称provider+28是可空generic persistence type-erased callable：callsite1BE5A53，activeptr677BE78／inlinebase677BE60，fixed init1BE5CA7置NULL，NULL直接跳过；非空CALL[vt+28](receiver,keyString,&encryptedString)返回值未用，destructor区分inline／heap slots。C worker／caller queue共享持久化，caller仅在未映射时映射fresh NULL，不强制清空已有对象；非空installer／实际vtable仍unknown，不能称永远external或全局不存在。optional持久化不等于in-memory安装发布，也不是所有fresh成功的必要发布Boundary。合法fresh NULL路径目前未建立无条件必经的未实现postinstall函数；真实成功reply字段仍可能先触发settings通知Boundary [PERSIST]。本轮无新网络，业务真实正材料仍0，完整Goal未完成 [CUR]。
 
-## 最新真实fresh诊断：关联completion通过，SDK仍拒绝
+## 历史真实fresh诊断：关联completion通过，SDK仍拒绝
 
 本轮ONE真实Own fresh请求保存137条真实records、真正cipher四参、实际CAPI private／blinding／sharedX及全部request／SIGN／frame，发送8850B，收到143B；同一个有效owner的原pending经正式receive_own_cold12完成wire／command关联并进入public complete，正常返回failed/sdk_status/1003、cache_updated=False、publication=None。诊断前缀PASS，真实SDK业务／材料Goal FAIL；这不是异常或正材料 [RF]。
 
@@ -400,8 +410,8 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 | 本地17B | 真实输入、独立重算、资源退出 | 局部真实 PASS [M]，非材料B |
 | key25 | 完整生产、持久恢复、真实分支 | method6 局部真实 PASS [D]；其他分支未 actual |
 | 完整137 | 正常采集到编码的真实完整输入 | a7返回137；a5 offline schema/order/types仅适用a5；a7当前schema/order及值语义未独立验证 |
-| SDK请求 | 完整载荷、所需 SIGN、真实发送 | 一次真实 binder frame／正常SIGN／sendall已完成，command/body/序号/SIGN3及fresh字段逐bytes匹配；服务返回1003，算法正确性/全交易未证明 [BR1] |
-| SDK回包 / Token | 真实关联回包、校验、解析、安装 | 首143B raw reply的wireseq/cmd匹配；SDK错误1003，无材料密文；有限puredecoder已实现并对保存143B完成16项逐值PASS；实际20B extension已支持；C正式receiver已实现MODEL10，本轮真实同owner接收／public completion已到SDK1003，认证安装未达[RF] [BR1][E20] |
+| SDK请求 | 完整载荷、所需 SIGN、真实发送 | Own 历史 SDK1003与后续184B SSO -10003分开保留；最新 NativeEnvelope 控制为 API1200／PMHQ -2 build scratch failed，不证明服务器 body 接受，见当前结论。 |
+| SDK回包 / Token | 真实关联回包、校验、解析、安装 | 当前2cee修复optional extension；184B离线解包为SSO -10003／空payload。最新控制无SDK reply／completion，认证、安装、发布及消费仍0；历史143B SDK1003证据仅限原交易。 |
 | Qimei | cold / initialized / restored 各自真实契约 | cold 局部受控 PASS [Q]；完整更新未证明 |
 | 通知与回调 | 来源合法、注册、分发、生命周期、安装 | 完整真实通知路径未证明 |
 | protocolTokenHex | 异步真实消费者及绑定、空/非法语义 | Native12/V8 等未闭合 |
@@ -418,8 +428,8 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 传输两侧只读事实已核对：L raw connector本身不认证；C现authenticated51728入口要求ONLINE／session／D2等材料，另建socket并以mode1封包。这不证明fixed52230必须同样；fixed cold12构造未显式D2也不证明prelogin许可。fixed sender更底层readiness实际U类型／vtable尚未绑定，TCP／握手／登录／D2语义均unknown，未证match或mismatch，更未证1003因果；51728标签不等于不兼容，同host也不等于资格完备。最终证据见[TR]，不据临时producer推断扩展结论。
 
 当前同owner本地SIGN结构返回＋正常close的局部里程碑已在a7达成 [L7]，范围NO_NETWORK。
-`c7226cf` 引入有限 reply complete/cancel 入口，后续 fresh binder 已完成一次真实同 owner request→prepare wirecounter→原正常 SIGN 一次→frame→一次发送并收到首个响应 [BR1]。独立读取保存数据确认 command/body、wire32／SDK64、SIGN三字段及sourcefresh配置 bytes 全部匹配，不是长度比较。**当前最早观察到的业务失败仍是 SDK 服务错误1003，源消息“下游服务失败”、根因 UNKNOWN**；有限puredecoder已支持实际20B header extension并完成保存143B的16项逐值PASS，C正式receiver已实现MODEL10；本轮真实同owner接收／public completion已到SDK1003，认证安装未达[RF]，完整发布／后续SIGN消费未闭环。不能推断 SIGN错误、必须登录或AppID错误。
-当前A／B／C已交付但真实材料链未闭合；大SIGN独立真值／seq alias调查已止于unknown。先从具有具体可独立检查输入的请求生产边界形成证据假设，再决定下一动作；1003不归因于未证的KDF、137cipher、参数或auth错误。不为消除unknown重建MSF／VM，不试换appid／身份／endpoint；第二次probe未获GO [SA][POST]。
+`c7226cf` 引入有限 reply complete/cancel 入口，后续 fresh binder 已完成一次真实同 owner request→prepare wirecounter→原正常 SIGN 一次→frame→一次发送并收到首个响应 [BR1]。独立读取保存数据确认 command/body、wire32／SDK64、SIGN三字段及sourcefresh配置 bytes 全部匹配，不是长度比较。**当前状态以文首结论为准**：历史SDK1003、实际Own184B的离线SSO -10003、最新NativeEnvelope API1200／PMHQ -2三者分别保留，不混用命名或因果。真实材料链未闭合，完整SIGN独立真值／seq alias仍unknown。既定 exact error boundary 只读核对已完成且无可实施的caller contract修复；此信道已搁置，不扩MSF／VM、Native heap扫描或新SDK请求。根因未证，不归因于特定凭据、登录owner、KDF、cipher或参数。
+
 a7实际请求AES-256-GCM已用独立cryptography AESGCM完成认证解密并匹配保存plain，wire加密字段与保存ciphertext一致 [AE7]。
 该PASS只覆盖一个实际request AEAD边界，不验证key derivation、137 cipher、SIGN算法或server接受。
 无适用同输入SIGN真值且a7缺完整运行观测；Opus在新事实下撤回全SIGN真值前置闸，停止扩fullSIGN捕获，
@@ -628,15 +638,15 @@ The bounded passive operation `OP-PROVIDER-BOUNDARY-OBSERVE-01` armed two hooks 
 
 Login-interface query B found existingSessionMaterial with D2,16B D2key and TGT provenance for InfoSync only. ResidentSigner reports SDK_WORK_UNSUPPORTED; R10 protocol_complete=false and sdk_complete=false. No fixed52230 peer+A78 key/ticket/selector contract was established, and D2 must not be treated as A78. The current authenticated-session path forces51728, creates another owner, performs a second SIGN and uses legacy completion; it cannot consume this original pending request. This is not a login-side algorithm takeover or a qualified replacement lane. Existing13+5+4 checks and independent review approval retain their scoped meaning; this documentation update adds no behavioral pass or new execution authority.
 
-## External type1 consumer (MODEL validation only)
+## External type1 consumer（实现与历史 MODEL 范围）
 
 The fixed52230 selected12 consumer accepts explicit immutable `SourceType1StoredPeer` projections (inner18, outer48, explicit key16), request lookup bytes and received-routing current/optional previous snapshots. Nonempty routing applies the Source local transform once. These stored-form shapes do not establish lawful issuance or authentication. Explicit zero16 is representable; no key is defaulted.
 
 `create_own_device_request(..., external_a2_selection=bool)` supplies the final external A2 selection before command creation, only without a configured request transport; None preserves the existing selection. `encode_own_cold12(..., type1=SourceType1RequestInputs(...))` and `receive_own_cold12(..., type1=SourceType1ReplyInputs(...))` retain the original Own pending and single SIGN. Type1 reply retry is limited to primitive false and shares the published capacity/count. Snapshots are borrowed immutable values, with no login-session ownership.
 
-Actual SDK remains 1003/cache0; install/next-SIGN consumption remains unproved. Real type1 acceptance awaits externally legitimate same-context peer, selector, options and endpoint plus separate execution authorization. No SDK/network/Frida GO was consumed by this implementation. Payload mode and material generation remain unchanged.
+The implementation itself consumed no SDK/network/Frida GO. A subsequent actual type1 run and the delivered optional-extension fix are described below and in the current conclusion; install/next-SIGN consumption remains unproved. Peer issuance, future snapshot validity, options and endpoint qualification remain unknown. Payload mode and material generation remain unchanged.
 
-## Optional selected12 reply extension candidate
+## 已交付 optional selected12 reply extension 修复
 
 Source 3E54707 skips absent mapped extension fields. The finite decoder now retains only supplied supported top-level fields and parses the existing supported nested shape only when field22 is present. Canonical tags, wire types, finite values/lengths, duplicate rejection and unsupported-field rejection remain enforced. Status uses the existing signed DWORD projection; negative and positive statuses both undergo full parsing and command/wire association. A matched nonzero SSO status cancels the original pending and reports an SSO failure, without SDK completion or publication. No credential-expiry meaning is assigned to SSO -10003 or equated with SDK1003.
 
