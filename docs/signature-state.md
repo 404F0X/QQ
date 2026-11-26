@@ -1,6 +1,6 @@
 ﻿# 签名业务状态机、当前进度与验收
 
-唯一权威标识：`SIGNATURE-STATE`；更新日期：2026-11-25。
+唯一权威标识：`SIGNATURE-STATE`；更新日期：2026-11-26。
 
 本文件是签名业务状态、进度和验收的唯一现行入口。完整 Goal **未完成**。
 旧 HANDOFF、报告、输入快照及 Git 历史只作历史证据，不是现行状态入口。
@@ -59,9 +59,17 @@ state17 mix只有静态bridge及有条件的后来byte-mask使用证据，不是
 
 离线读取该真实回复：SDK body精确3B，仅field2／wire0整数1003，无server描述或子码；SSO两个说明String为空。拒绝发生在SDK envelope非零状态分支、响应AEAD／验签／token解析／安装发布之前。SDK cache前后空且未变，清理前bound空／expiry0；非空Own current等于本请求decode_material.raw，是请求crypto状态，不是新SDK安装。没有preinit baseline，不补造其演化。后续SIGN前置不满足，选材／digest观察0，消费未执行，真实安装及sameowner下一SIGN消费仍0 [RF]。
 
-与旧143B只rawcapture、owner关闭后纯decode不同，本轮已真实关联publiccompletion且完整输入可诊断；未对本轮新输入重用旧offline28为独立数学PASS。既有OwnFreshCold12Binding链一直存在，不是整体缺adapter或必须等待login入口。旧Sourcefreshframe经51728-origin rawconnector不等于51728完整packetprofile；旧9freshconfig无producer摘要已由fresh-options／listener证据在fresh范围取代。Source U／predicates／send delegate仍UNKNOWN，不升格为server-auth/login门禁或唯一外部阻塞；endpoint资格unknown不等于不可用或已证不兼容。1003也不证明SIGN／cipher／metadata正确或endpoint错误，不自动重试／换参数／发下一网络请求 [RF]。
+与旧143B只rawcapture、owner关闭后纯decode不同，本轮已真实关联publiccompletion且完整输入可诊断；本轮实际已发送样本另行独立核对28／28 PASS，覆盖P256／ECDH／HKDF／GCM及request／plainrecords绑定；未重用旧offline28冒充本轮结果。另对实际8850B outbound frame有限解封，提取8379B SDK body与原request.body逐bytes相等，wire32／完整command亦匹配。这不验证inner record cipher／完整SIGN数学、server agreement或1003原因 [SENT]。既有OwnFreshCold12Binding链一直存在，不是整体缺adapter或必须等待login入口。旧Sourcefreshframe经51728-origin rawconnector不等于51728完整packetprofile；旧9freshconfig无producer摘要已由fresh-options／listener证据在fresh范围取代。Source U／predicates／send delegate仍UNKNOWN，不升格为server-auth/login门禁或唯一外部阻塞；endpoint资格unknown不等于不可用或已证不兼容。1003也不证明SIGN／cipher／metadata正确或endpoint错误，不自动重试／换参数／发下一网络请求 [RF]。
 
 parent／child均0、原Popen已reap、匹配owned live0，failures=[]只说明诊断及所走cleanup未记录错误；actual cancel次数／pending清除／owner.close返回flag未独立capture，不能补称全部handle关闭，冷0a2的有限close证据保持原域。其余SDK／Token／Qimei／合法通知／protocolTokenHex异步空值／UIN配置／refresh／失败取消关闭所有权及innercipher／SIGN独立真值仍须按完整Goal验收 [RF]。
+
+## 官方 SDK 正状态与 A2 当前边界
+
+固定官方 QQ9.9.33-52230／PMHQ9.0.6 的SDK-only28条记录构成14组exact command＋sequence配对，回复全部为SDK field2显式0。A2Establish一组send275B／recv485B（cipher480B）；A2Access十三组中十一组为空cipher0，两组cipher48B／details32B且caller为getToken。这是官方真实SDK正外层状态和非空密文材料候选，不是已解密／认证／安装证明，更不是Own同runtime消费证据 [SDKH]。
+
+当前Own已有A2／nonA2 body、四命令选择及共用response认证／安装入口；f6是本方生成的device_random32，f7是nonce16＋对SHA256(完整f5)的确定性transform32，并非已证登录凭据要求。官方完整f5／f7提供独立指纹参考点；一次纯生产request_fingerprint(SHA256(完整官方f5), 官方f7前16B)与独立官方f7比较已完成：完整48B及尾32B均不相等，首差异offset16；前16B相等是输入透传，不构成算法验证。该合格官方向量DISAGREEMENT不等于已证Source bug或1003原因。相关输入前后身份一致；首次harness命令selector断言在调用前失败，仅修正selector后执行一次纯函数，未试算法参数。独立静态Original Source核对已证当前内置mode1指纹资产取钥地址错误：冻结r37提取器读RVA41B1CA0，实际内置分支读RVA41B1CF0；当前资产及loader／manifest绑定已按后者修正。AES S-box、BE128当前counter先用后增、SHA256完整f5输入和nonce均未改。运行时provider／hook门状态及实际调用路径仍未知，不能据此证明官方捕获走内置分支或解释1003。修正后的官方同向量独立复核已完成：相同不可变tuple、一次纯函数调用，完整48B及尾32B仍均不相等，首差异offset16；独立expected与修正前失败记录未改。因此内置资产来源修正有效，但未解决官方指纹不一致，SDK install／Own consume仍为0 [A2][FP][FPKEY][FPRECHECK]。
+
+官方A2外层需type1；fixed52230合法selector及transport peer／key／ticket producer实际绑定尚未ready。当前fresh cold12仅支持nonA2／type2，不得改命令、放宽白名单或将experimental51728 reference冒充fixed52230证明。官方A2与Own nonA2的场景差异不证明1003原因；登录另有owner，不把未知transport输入泛称登录必需材料。Own真实认证安装及同有效runtime下一SIGN消费仍0／未证，完整Goal保持ACTIVE [A2][RF]。
 
 ## 整体大签名服务
 
@@ -75,7 +83,7 @@ parent／child均0、原Popen已reap、匹配owned live0，failures=[]只说明�
 
 SDK1003 的源消息已知为“下游服务失败”，根因仍 unknown；它不是 owner fatal。上次 actual runtime 已正常返回级关闭，不是当前持续运行中的服务，逐 handle 退出仍 unknown [SA][BR1]。B 的真实新材料认证、安装、发布与同 runtime 后续 SIGN 消费未闭环；它可能影响首次及持续 SIGN，不能只称维护路径。源 counter→BA22B0→signed32 十进制临时量已证，但栈槽多生命周期／alias 传播未闭合，seq 的数学消费仍 unknown，既非已证 bug 也非1003根因；不新增 public seq 参数。
 
-A失败DTO、B正式puredecoder及C接收编排均已交付：A15MODEL、B6MODEL及保存143B的16项逐值offline PASS、C／binder10MODEL分别限定其证明范围。C真实owner接收／认证／安装／同runtime后续SIGN仍未验证；B的actual saved-wire不等于C的actual。大SIGN独立真值与seq alias有界调查已停于上述unknown，不再并行扩大core恢复。下一方向先选择有具体可独立检查输入的请求生产边界／可证伪证据假设，再决定动作。Opus只依据完整简报给顾问意见，未作source audit；不把“所有合法reply已ready”或“本方已无事可做”当事实 [OS][POST]。完整Goal及下列未验收分支不变。
+A失败DTO、B正式puredecoder及C接收编排均已交付：A15MODEL、B6MODEL及保存143B的16项逐值offline PASS、C／binder10MODEL分别限定其证明范围。C真实owner接收与public complete已执行，返回SDK1003；响应认证／安装／同runtime后续SIGN仍未达，B的旧actual saved-wire不能替代该新执行 [RF]。大SIGN独立真值与seq alias有界调查已停于上述unknown，不再并行扩大core恢复。下一方向先选择有具体可独立检查输入的请求生产边界／可证伪证据假设，再决定动作。Opus只依据完整简报给顾问意见，未作source audit；不把“所有合法reply已ready”或“本方已无事可做”当事实 [OS][POST]。完整Goal及下列未验收分支不变。
 
 ## 1. 目标、基线和职责
 
@@ -572,3 +580,10 @@ R33旧域参考两次有限方向均STOP：四参直接投影未导出state17；
 - [COLD0] `A/overall-signing-service/feature4-zero-operation-implementation/{RESULT.md,native-execution-a1/RESULT.md,native-execution-a2/RESULT.md}`：实现／MODEL及a1失败／a2限定Native观察分别适用，不证明真实材料或完整异常生命周期。
 
 - [RF] `A/overall-signing-service/real-fresh-reply-complete/execution-a1/{RESULT.md,verdict.json,capture-limits-safe.json,reply-inspection/DECODED-RESULT.md}`：一次新真实fresh交易的完整采集／同owner关联completion与SDK1003分阶段失败，非材料正例或server／算法正确性证明。
+- [SENT] `A/overall-signing-service/real-sent-request-independent-verify/RESULT.md`、`real-sent-wire-body-binding/{RESULT.md,ROOT-ACCEPTANCE.md}`：本轮实际已发送输入28项独立比较及outbound原SDK body绑定，非完整SIGN／inner cipher／server或材料闭环证明。
+- [SDKH] `A/overall-signing-service/pmhq-existing-sdk-history/a1-20261126T095201Z/{result.json,evidence.md}`、`official-sdk-history-qualification/RESULT.md`：固定官方SDK-only14组配对的显式0与cipher候选资格，不是Own安装消费。
+- [A2] `A/overall-signing-service/a2-material-business-contract/{CONTRACT.md,SAFE-INPUTS.json,FINGERPRINT-REFERENCE-READINESS.md}`：既有SDK body／producer和type1输入未闭合边界；指纹实测另见[FP]。
+- [FP] `A/overall-signing-service/official-request-fingerprint-compare/{RESULT.md,RESULT.json}`：修正前一个合格官方向量的一次纯函数比较不一致；历史结果保留。内置分支Source来源核对见`A/overall-signing-service/official-fingerprint-source-qualification/TRANSFORM-CONTRACT.md`及[FPKEY]，修正后同向量结果见[FPRECHECK]；非完整SIGN数学或1003因果证明。
+
+- [FPKEY] `A/overall-signing-service/official-fingerprint-key-fix/{regenerate.py,STATIC-PROOF.json,CHECKS.txt}`：OFFICIAL-FINGERPRINT-KEY-FIX/a1有限静态RVA提取及当前资产绑定；复用固定52230源身份，不执行Original、不重哈希整个PE。历史P提取器与旧官方失败结果保留。
+- [FPRECHECK] `A/overall-signing-service/official-fingerprint-fix-recheck/RESULT.json`：修正后同一不可变官方tuple独立复核FAIL；一次调用，full48=false、tail32=false、首差异offset16，expected与历史失败未改。实际provider／caller状态未证，SDK install／Own consume=0。

@@ -611,9 +611,9 @@
     },
     {
       "path": "request-encoder-image.json",
-      "bytes": 1012,
-      "sha256": "988929e10ed16e1904eab877adec016a9edce9cb5f7429a00787e93d5eff24a0",
-      "source": "research-source:data.json",
+      "bytes": 1046,
+      "sha256": "54ed76c2f9dfb385f50563a4454ada0de69ff089c3303a260dbed4c590de0355",
+      "source": "wrapper.node fixed52230; fingerprint built-in mode1 key RVA41B1CF0; static repair OFFICIAL-FINGERPRINT-KEY-FIX/a1",
       "purpose": "fixed P-256 base and encoded peer, peer mask, AES S-box and fingerprint AES128 key recovered from original source"
     },
     {
