@@ -317,3 +317,61 @@ def create_owned_qimei_beacon(runtime,epoch,current_epoch,*,permit,root,producer
     from .primary_qimei_beacon import QimeiBeacon
     backend=OwnQimeiBeaconBackend(runtime,epoch,current_epoch,permit=permit,root=root,profile_port=profile_port)
     return QimeiBeacon(producer,backend)
+
+
+def create_owned_qimei_settings(runtime,epoch,current_epoch,*,permit,root,owner,
+                                codec,context_producer,context_observations):
+    """Own settings location only; Source record initialization/refresh unchanged.
+
+    Caller owns the borrowed codec/context/observations and dedicated root. No
+    Shell folder calls, native ports or ACL changes are performed by this factory.
+    """
+    import hashlib
+    from .primary_qimei_settings import QimeiSettings
+    from .primary_qimei_cache import QimeiCacheCodec
+    from .primary_qimei_context import QimeiContextProducer
+    if (type(owner) is not bytes or not isinstance(codec,QimeiCacheCodec)
+            or not isinstance(context_producer,QimeiContextProducer)):
+        raise QimeiRequestBoundary('typed owner/cache/context settings inputs required')
+    directory=Path(root)
+    creator=(os.getpid(),threading.get_native_id())
+    def check_directory(path):
+        if path.resolve()!=path or path.is_symlink() or (hasattr(path,'is_junction') and path.is_junction()):
+            raise QimeiRequestBoundary('Own settings directory substitution')
+    def check():
+        if (not callable(permit) or not callable(current_epoch)
+                or not permit(runtime,epoch) or current_epoch(runtime) is not epoch
+                or creator!=(os.getpid(),threading.get_native_id())):
+            raise QimeiRequestBoundary('Own settings epoch unavailable')
+        if not directory.is_absolute():raise QimeiRequestBoundary('absolute Own settings root required')
+        check_directory(directory)
+        check_directory(directory/'settings')
+    check()
+    directory.mkdir(exist_ok=True)
+    settings_directory=directory/'settings'
+    settings_directory.mkdir(exist_ok=True)
+    check()
+    physical=settings_directory/hashlib.md5(owner+b'qimei.dll').hexdigest().upper()
+    # ASCII location keeps this finite Own policy independent of ANSI codepage.
+    try:logical=str(physical).encode('ascii')
+    except UnicodeError as error:raise QimeiRequestBoundary('Own settings location requires ASCII') from error
+    def read_file(path):
+        check()
+        if path!=logical:raise QimeiRequestBoundary('unbound Own settings file')
+        if physical.resolve().parent!=settings_directory or physical.is_symlink() or (hasattr(physical,'is_junction') and physical.is_junction()):
+            raise QimeiRequestBoundary('Own settings file substitution')
+        try:
+            with physical.open('rb') as stream:
+                info=os.fstat(stream.fileno())
+                if info.st_nlink!=1:raise QimeiRequestBoundary('Own settings hardlink rejected')
+                value=stream.read(info.st_size+1)
+                if len(value)!=info.st_size:raise OSError('Own settings read changed length')
+                return value
+        except FileNotFoundError:
+            if physical.is_symlink() or not settings_directory.is_dir():
+                raise QimeiRequestBoundary('Own settings missing leaf not qualified')
+            return b''
+    settings=QimeiSettings()
+    settings.initialize_owned_path(path=logical)
+    return settings,dict(read_file=read_file,codec=codec,context_producer=context_producer,
+                         observations=context_observations)

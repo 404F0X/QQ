@@ -61,6 +61,14 @@ OwnQimeiMainWriterObservations与typed factory复用原MainWriter／codec／cont
 
 另外，`OP-QIMEI-OWN-STORAGE-NATIVE-01` 在上述6ec源码实际完成有限Own I/O资格：原identity_3fafa调用真实CoCreateGuid得到16B transport main0，record1仍已知空，原formatter／MainWriter写53B plaintext对应64B ciphertext，实际Own文件读取解密逐bytes匹配。辅助beacon raw16／hex32与新actor native profile读回一致；仅证重读结果一致，未观察cache accepted还是重新生成，不是Qimei issuer或非空record1。自然ordinal680后ACL未进入，gate BOOL未单独记录（按fresh状态及无子API／last_acl_code推断skip），ACE/control未知。6个资源及core关闭返回、child RC0已reap、所记录file/allocation债务0；不扩大为所有WinDLL GC卸载证明。仅专用Own文件，原cache/服务未动；SourceHTTP／SDK／SIGN调用0。安全证据：`A/overall-signing-service/qimei-owned-storage-actual-probe/OUTCOME.md`、`OUTCOME.json`。e846实际identity144B changed/main skip历史原样保留；完整getter／fulla2、真实发行／安装／发布／新材料SIGN消费仍未闭合，Full Goal ACTIVE。
 
+## 显式 Own settings 初始化（Source／MODEL＋自有文件IO）
+
+`QimeiSettings.initialize_owned_path(*,path,...)` 与原 `initialize(owner,observations,...)` 共用最小初始化helper：原constructor的03＋zero record、固定default_flag_arrays及有符号count／backing边界不变，按path→first copy→second copy→initialized最后发布的顺序执行；重复初始化返回False，不改loaded/dirty，异常保留已完成前缀。原入口仍使用原Shell路径流程，Own入口只是明确替换位置策略，不伪造SHGetSpecialFolderPathA结果或冒称Source folder lifecycle已执行。
+
+`create_owned_qimei_settings` 返回原 `(settings, settings_dependencies)`，调用方显式配置专用Own root，限定settings子目录及Source owner-MD5 basename；runtime／epoch／线程／permit和目录身份在IO前核对。原Source settings路径仅用于文件归属，不参与record/context加密；Own依赖只读该精确物理文件，真实缺失返回b-empty并保留Source默认record／flags，权限／读长变化／坏cipher不转为缺失默认。目录失败不发布已初始化settings，仍由原refresh→record[1:9]→Source calendar clock进入cold job，不手工置ready、loaded/dirty或强制flag16。借用codec/context/observations由调用方负责，没有额外manager／bundle或原QQ目录写入／ACL效果。
+
+10项检查（7新Own settings＋3原Windows settings回归）按未变输入复用：真实Own临时文件cipher refresh／timestamp／flags、原producer/material/header/envelope/dispatch/reply的完整工厂MODEL接线通过；底层API／熵／service回复为显式MODEL，不是Native I/O重跑或当前服务器settings证明。既有实际硬件GUID的831运行及Own I/O的6ec运行保持原范围，不重标到本次集成版本。没有新actual API／collector／HTTP／SDK／SIGN调用；真实Qimei服务材料、安装发布及新材料SIGN消费仍未证明，Full Goal ACTIVE。证据：`A/overall-signing-service/qimei-owned-settings-implementation/`。
+
 ## Own completion 的可观察结果
 
 `complete_own_device_request` 返回 frozen `OwnCompletionResult(outcome, stage, code, cache_updated, publication)`；outcome为failed／processed。stage仅覆盖现有transport、sdk_envelope、sdk_status、auth、material、token_parse、publication路径，code按stage区分namespace，无源数值时为None。非法envelope不再把mode冒充状态码。1003经原状态树规范化后返回failed/sdk_status/1003，保留current及其他pending；不新增retry／refresh／callback／owner关闭策略。

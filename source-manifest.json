@@ -2169,8 +2169,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_qimei_settings.py",
-      "source_sha256": "be7c76c4cbff14b556fa7f6f85e188011f2c159486b0e5f2e650732d4c77e0a2",
-      "sha256": "d1a5adc52dc73c38aacd8c31be38d1e802d2707748e7d5df681c8447858b0d43",
+      "source_sha256": "c029c4e713df5545fd973b4c7ccae28cbc15910160880902dff85cc6c66ef24e",
+      "sha256": "c029c4e713df5545fd973b4c7ccae28cbc15910160880902dff85cc6c66ef24e",
       "classification": "project_source"
     },
     {
@@ -2987,8 +2987,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_windows_qimei_owned_storage.py",
-      "source_sha256": "4d56aa878742e648f05c1f84865791300d05563b7408cc3bdfc4c922abf5c71c",
-      "sha256": "4d56aa878742e648f05c1f84865791300d05563b7408cc3bdfc4c922abf5c71c",
+      "source_sha256": "8191e7709ee0ef39ae5bb77e992555115ab32a0aa920ee9f971206942d4dc682",
+      "sha256": "8191e7709ee0ef39ae5bb77e992555115ab32a0aa920ee9f971206942d4dc682",
       "classification": "project_source"
     },
     {

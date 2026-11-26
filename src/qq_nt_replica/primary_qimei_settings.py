@@ -83,12 +83,26 @@ class QimeiSettings:
             setattr(self, name, _integer(getattr(self, name)) & 255)
 
     def initialize(self, owner, observations, *, first=None, first_count=None, second=None, second_count=None):
+        return self._initialize_path(lambda: settings_path(owner, observations),
+            first=first, first_count=first_count, second=second, second_count=second_count)
+
+    def initialize_owned_path(self, *, path, first=None, first_count=None, second=None, second_count=None):
+        """Own location policy; no claim of Shell folder discovery/creation."""
+        def owned_path():
+            value = _bytes(path)
+            if not value or b'\0' in value:
+                raise QimeiRequestBoundary('explicit nonempty Own settings path required')
+            return value
+        return self._initialize_path(owned_path,first=first,first_count=first_count,
+            second=second,second_count=second_count)
+
+    def _initialize_path(self, path_provider, *, first, first_count, second, second_count):
         if self.initialized != 0:
             return False
         if first is None and second is None:
             first, second = default_flag_arrays()
         first, second = _bytes(first), _bytes(second)
-        self.path = settings_path(owner, observations)
+        self.path = path_provider()
         for offset, data, count in ((0x31, first, len(first) if first_count is None else first_count),
                                     (0x259, second, len(second) if second_count is None else second_count)):
             length = min(_signed(count, 32), 512)
