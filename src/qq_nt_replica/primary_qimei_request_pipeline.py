@@ -92,7 +92,8 @@ class QimeiRequestPipeline:
                 or producer.owner != binding.owner
                 or producer.settings is not binding.settings
                 or producer.sdk_contexts.contexts.get(binding.owner) is not binding.context
-                or material.sdk is not binding.context
+                or material.sdk is not producer.sdk_contexts
+                or material.sdk.get(binding.owner) is not binding.context
                 or material.settings is not binding.settings
                 or material.startup is not startup
                 or material.system is not producer.system

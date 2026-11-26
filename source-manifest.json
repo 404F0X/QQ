@@ -2132,8 +2132,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_qimei_request_pipeline.py",
-      "source_sha256": "7caf612dd7494e2624a4c6d18441cc2f95b441bcd6a9d3b982e46b18f941fc62",
-      "sha256": "7caf612dd7494e2624a4c6d18441cc2f95b441bcd6a9d3b982e46b18f941fc62",
+      "source_sha256": "1dac4e8f66c0df90fade6a8a7e2b016332e0fdfcdbcb96e318a0a333bcad0dcb",
+      "sha256": "1dac4e8f66c0df90fade6a8a7e2b016332e0fdfcdbcb96e318a0a333bcad0dcb",
       "classification": "project_source"
     },
     {

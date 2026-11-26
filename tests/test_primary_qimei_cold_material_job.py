@@ -35,7 +35,7 @@ class ColdJob(unittest.TestCase):
    def check(self):pass
    def read_outer(self):events.append('beacon');return b'a'*32
   globals=QimeiTransportGlobals(None,beacon=QimeiBeacon(None,BeaconBackend()))
-  material=QimeiTransportMaterialProducer(globals=globals,system=producer.system,extras=extras,extension=extension,adapter=None,sdk=sdk,startup=startup,settings=settings,convert_ansi=lambda b:b)
+  material=QimeiTransportMaterialProducer(globals=globals,system=producer.system,extras=extras,extension=extension,adapter=None,sdk=contexts,startup=startup,settings=settings,convert_ansi=lambda b:b)
   material.produce=lambda owner,kind,sequence:events.append(('material',owner,kind,sequence)) or NS(serialize=lambda:b'header')
   requests=[]
   def encode(value,**kw):
@@ -91,3 +91,60 @@ class ColdJob(unittest.TestCase):
  def test_unsigned_clock_and_timestamp_are_not_skipped(self):
   p,b,k,e,r=self.fixture();b.settings.record[1:9]=(3).to_bytes(8,'little');k['source_clock']=lambda:e.append('clock') or -1
   p.run_cold_material_job(b,**k);self.assertEqual(e[:3],['beacon','timestamp-refresh','clock']);self.assertEqual(len(r),1)
+
+
+class ModelAPIs:
+ """Explicit API outcomes only; never Windows calls or high-level producer replacements."""
+ def __init__(self):self.calls=[]
+ def read(self,ns,name,*args):
+  from qq_nt_replica.primary_qimei_observations import QimeiApiReply
+  self.calls.append(name)
+  if name=='GetModuleFileNameA':return QimeiApiReply(12,(('data',0,b'X:\\model.exe\0'),))
+  if name=='GetModuleHandleA':return QimeiApiReply(1)
+  if name=='GetFileVersionInfoSizeA':return QimeiApiReply(0)
+  if name=='RegOpenKeyExA':return QimeiApiReply(2)
+  if name=='calloc':return QimeiApiReply(0x1000)
+  if name=='free':return QimeiApiReply(0)
+  if name=='CryptAcquireContextW':return QimeiApiReply(1,(('handle',0,(5).to_bytes(8,'little')),))
+  if name=='CryptGenRandom':return QimeiApiReply(1,(('data',0,bytes(range(32))),))
+  if name=='CryptReleaseContext':return QimeiApiReply(1)
+  if name=='GetSystemTimeAsFileTime':return QimeiApiReply(0,(('data',0,(116444736000000000+10000).to_bytes(8,'little')),))
+  raise AssertionError('unprovided MODEL API '+name)
+
+class ActualFactoryModel(unittest.TestCase):
+ fixture=ColdJob.fixture
+ def real_factory(self):
+  from qq_nt_replica.primary_qimei_extra_sources import QimeiExtraSources
+  from qq_nt_replica.primary_qimei_request_sources import QimeiRequestSources
+  from qq_nt_replica.primary_qimei_adapter_sources import QimeiAdapterSources,QimeiAdapterState
+  from qq_nt_replica.primary_qimei_context import QimeiSelectorState
+  from qq_nt_replica.primary_qimei_envelope import QimeiEnvelopeCodec,QimeiEnvelopeConfiguration
+  from qq_nt_replica.primary_qimei_transport_codec import QimeiTransportCodec
+  old,b,k,e,_=self.fixture();k['startup'].main.records[0].value=b'm'*16;obs=ModelAPIs();system=QimeiSystemSources(obs);extras=QimeiExtraSources(obs)
+  adapter=QimeiAdapterSources(obs,state=QimeiAdapterState(selector=QimeiSelectorState(selected6=b'123456'),adapter_type=6))
+  extension=QimeiRequestSources(obs,startup=k['startup'],adapter_sources=adapter)
+  producer=QimeiRequestProducer(b.owner,b.settings,old.request_producer.sdk_contexts,system,extras,extension)
+  globals=QimeiTransportGlobals(obs,beacon=old.material_producer.globals.beacon)
+  material=QimeiTransportMaterialProducer(globals=globals,system=system,extras=extras,extension=extension,adapter=adapter,sdk=producer.sdk_contexts,startup=k['startup'],settings=b.settings,convert_ansi=lambda b:b)
+  # Complete source constructors; codec/material/header/producer/dispatch methods stay original.
+  pipeline=QimeiRequestPipeline(producer,material,envelope=QimeiEnvelopeCodec(),configuration=QimeiEnvelopeConfiguration(),transport=QimeiTransportCodec(obs,crt_initial_state=1,clock=lambda:1000000),convert_ansi=lambda b:b,sign_enabled=True)
+  dispatch=QimeiSourceDispatch(QimeiDispatchState(7),material,envelope=pipeline.envelope,configuration=pipeline.configuration,transport=pipeline.transport,carrier=None,sign_enabled=True)
+  def perform(http):
+   request=dispatch.state.pending[7].prepared.transport_request
+   payload=b'\x0a\x24'+b'r'*36
+   cipher=_cbc(payload+bytes([16-len(payload)%16])*(16-len(payload)%16),request.key,request.iv,decrypt=False)
+   self.assertTrue(json.loads(http.body))
+   return CarrierOutcome(json.dumps({'code':'0','data':base64.b64encode(cipher).decode()}).encode(),0)
+  dispatch.carrier=Carrier(perform);k['dispatch']=dispatch
+  return pipeline,b,k,obs
+ def test_real_factory_and_material_produce_through_retained_reply(self):
+  p,b,k,obs=self.real_factory();reply=p.run_cold_material_job(b,**k)
+  self.assertIs(p.material_producer.sdk,p.request_producer.sdk_contexts)
+  self.assertIs(p.material_producer.sdk.get(b.owner),b.context)
+  self.assertTrue(reply.success);self.assertEqual(k['startup'].main.get(1),b'r'*36+b'\0')
+  self.assertEqual(k['dispatch'].state.pending,{})
+  self.assertIn('GetModuleFileNameA',obs.calls);self.assertIn('CryptGenRandom',obs.calls)
+ def test_single_context_rejected_with_real_factory_before_api(self):
+  p,b,k,obs=self.real_factory();p.material_producer.sdk=b.context
+  with self.assertRaises(QimeiRequestBoundary):p.run_cold_material_job(b,**k)
+  self.assertEqual(obs.calls,[])
