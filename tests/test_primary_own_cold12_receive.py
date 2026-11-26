@@ -109,3 +109,20 @@ class Receive(unittest.TestCase):
 
 
 if __name__ == '__main__':unittest.main()
+
+
+class OptionalExtensionReceive(Receive):
+    def test_complete_nonzero_optional_extension_cancels_without_sdk_completion(self):
+        owner,first,second,encoded=self.fixture()
+        ext=b'\x48\x04\xa8\x01\x00\xc8\x01\x02'
+        result=owner.receive_own_cold12(encoded,self.wire(encoded,status=-10003,extension=ext,encryption=2))
+        self.assertEqual((result.outcome,result.stage,result.code),('failed','sso',-10003))
+        self.assertEqual(owner.operations,[('cancel',first)])
+        self.assertEqual([q for q,b in owner._signer._own_sdk_request._pending],[second])
+        self.assertFalse(result.cache_updated);self.assertIsNone(result.publication)
+
+    def test_negative_status_malformed_extension_preserves_pending(self):
+        owner,first,second,encoded=self.fixture()
+        with self.assertRaises(InputError):owner.receive_own_cold12(encoded,self.wire(encoded,status=-10003,extension=b'\x48'))
+        self.assertEqual(owner.operations,[])
+        self.assertEqual([q for q,b in owner._signer._own_sdk_request._pending],[first,second])

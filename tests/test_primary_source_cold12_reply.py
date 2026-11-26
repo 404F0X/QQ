@@ -129,3 +129,26 @@ class Type1ReplyModel(unittest.TestCase):
         with patch('qq_nt_replica.primary_source_cold12_reply._decrypt_attempt') as attempt:
             with self.assertRaises(InputError):decode_source_cold12_reply(wire,type1=SourceType1ReplyInputs(b'other',current,previous))
             attempt.assert_not_called()
+
+
+class OptionalExtensionModel(unittest.TestCase):
+    def test_supported_optional_presence_preserves_only_present_fields(self):
+        samples=((b'\x48\x04\xa8\x01\x00\xc8\x01\x02',((9,4),(21,0),(25,2))),
+                 (b'\x48\x00',((9,0),)),(b'\xd8\x01\x00',((27,0),)),
+                 (b'\xb2\x01\x06\x08\x03\x10\x04\x1a\x00',((22,((1,3),(2,4),(3,b''))),)))
+        for raw,expected in samples:
+            for status in (0,7,-10003):
+                with self.subTest(raw=raw,status=status):
+                    reply=decode_source_cold12_reply(frame(extension=raw,status=status))
+                    self.assertEqual(reply.extension,expected);self.assertEqual(reply.status,status)
+
+    def test_malformed_negative_status_never_bypasses_extension(self):
+        for raw,error in ((b'\x4a\x00',PrimarySemanticUnavailable),
+                          (b'\xb8\x01\x00',PrimarySemanticUnavailable),
+                          (b'\xb2\x01\x04\x08',InputError),
+                          (b'\x48',InputError),
+                          (b'\xc8\x81\x00\x02',PrimarySemanticUnavailable),
+                          (b'\x48\x80\x00',PrimarySemanticUnavailable)):
+            for status in (0,-10003):
+                with self.subTest(raw=raw,status=status),self.assertRaises(error):
+                    decode_source_cold12_reply(frame(extension=raw,status=status))

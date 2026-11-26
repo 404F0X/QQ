@@ -47,8 +47,8 @@ class Cold12Reply:
 
 
 def _extension(raw):
-    # 3E54707 accepts empty directly. The other supported domain is the
-    # attested positive getter path, not arbitrary protobuf or arbitrary 20B.
+    # 3E54707 skips absent mapped fields. Keep the finite supported shapes;
+    # absence is preserved rather than filled with invented getter values.
     if not raw:
         return ()
 
@@ -70,15 +70,16 @@ def _extension(raw):
             if value & 128:
                 raise PrimarySemanticUnavailable('cold12 extension multibyte value/length outside positive domain')
             values[number] = reader.take(value) if wire == 2 else value
-        if values.keys() != schema.keys():
-            raise PrimarySemanticUnavailable('cold12 extension presence outside positive domain')
         return values
 
     top = fields(raw, {9: 0, 21: 0, 22: 2, 25: 0, 27: 0})
-    child = fields(top[22], {1: 0, 2: 0, 3: 2})
-    if child[3] != b'':
-        raise PrimarySemanticUnavailable('cold12 nested bytes outside present-empty positive domain')
-    top[22] = tuple(sorted(child.items()))
+    if 22 in top:
+        child = fields(top[22], {1: 0, 2: 0, 3: 2})
+        if child.keys() != {1, 2, 3}:
+            raise PrimarySemanticUnavailable('cold12 nested presence outside supported domain')
+        if child[3] != b'':
+            raise PrimarySemanticUnavailable('cold12 nested bytes outside present-empty positive domain')
+        top[22] = tuple(sorted(child.items()))
     return tuple(sorted(top.items()))
 
 
