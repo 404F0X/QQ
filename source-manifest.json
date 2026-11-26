@@ -2053,6 +2053,12 @@
       "origin": "OWN-QIMEI-COLD-RECORD-INPUT-IMPLEMENT/a1 first-retained-source/primary_qimei_getter.py"
     },
     {
+      "path": "src/qq_nt_replica/primary_qimei_fresh_identity.py",
+      "source_sha256": "e10354cd5dd96088d1a6a9a8a35a7ea7f5de7ab936bbf5b529c7e41163ffbbe2",
+      "sha256": "e10354cd5dd96088d1a6a9a8a35a7ea7f5de7ab936bbf5b529c7e41163ffbbe2",
+      "classification": "project_source"
+    },
+    {
       "path": "src/qq_nt_replica/primary_qimei_identity_parser.py",
       "source_sha256": "f64c0496c905f6494d5368b123fe68e3cc1a9ac2e4794a780e166195aa887a53",
       "sha256": "f64c0496c905f6494d5368b123fe68e3cc1a9ac2e4794a780e166195aa887a53",
@@ -2950,6 +2956,12 @@
       "path": "src/qq_nt_replica/primary_windows_qimei_extras.py",
       "source_sha256": "c8fd46e1a08f1ca343b4156ed26b54e41ab8315bf2d424e6ad054c98919014d6",
       "sha256": "c8fd46e1a08f1ca343b4156ed26b54e41ab8315bf2d424e6ad054c98919014d6",
+      "classification": "project_source"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_windows_qimei_fresh_identity.py",
+      "source_sha256": "c8053beaebc36dc3d6a83c06982876e057ac7062d3692fabf5d03fb829334467",
+      "sha256": "c8053beaebc36dc3d6a83c06982876e057ac7062d3692fabf5d03fb829334467",
       "classification": "project_source"
     },
     {

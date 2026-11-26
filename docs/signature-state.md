@@ -7,9 +7,9 @@
 COORDINATION 只记录调度和操作，不另立业务状态机。
 原长篇过程记录已由 Git 历史及既有 before/input-versions 快照保留，不再复制归档。
 
-## 当前结论（实际输入源码 e846a5b，2026-11-26）
+## 当前结论（实际探针分别绑定版本，2026-11-26）
 
-当前实际 Qimei 启动运行绑定源码 `e846a5b9afaf84886262f7bc8e7ac8b2da7e0480`；后续实现与文档增量不改写该实际运行版本。该版本承接 `2cee40dc888f26bca62c537de7ca28edd3fca3b5` 的 selected12 reply 可选 extension 修复。原 Own type1 实际收到184B，当时止于旧 parser；修复后对同一保存 frame 的离线解包得到关联 command/wire、SSO -10003 与空 payload，不追记为当时已完成 public completion。该 SSO 负状态与历史143B的 SDK1003分属不同层，均无已证根因。
+实际 Qimei 启动运行绑定源码 `e846a5b9afaf84886262f7bc8e7ac8b2da7e0480`；后续自有存储Native I/O探针绑定 `6ecfc5338ebd46e1edd4b4bc4b6ca9c364ae7676`。本次新增Own硬件GUID仅为Source／MODEL实现集成，不改写两个实际运行版本。该版本承接 `2cee40dc888f26bca62c537de7ca28edd3fca3b5` 的 selected12 reply 可选 extension 修复。原 Own type1 实际收到184B，当时止于旧 parser；修复后对同一保存 frame 的离线解包得到关联 command/wire、SSO -10003 与空 payload，不追记为当时已完成 public completion。该 SSO 负状态与历史143B的 SDK1003分属不同层，均无已证根因。
 
 PUBLIC LLOneBot8.3.2 支持 `send_pb`，但唯一一次实际 NativeEnvelope SDK-body 控制失败：OneBot status=failed／retcode1200，携带 PMHQ code=-2／`build scratch failed`，data=null；outer echo 匹配，回复 command 关联未建立，无 SDK reply。1200不是 SDK retcode；也不能据此断言 SDK 请求未上网或服务器未检查 body。该控制绕过 Own SSO/header/initial SIGN，Native 是否改写／再签未知，可能依赖 Original SIGN，不能作为 fullOwn 证明。
 
@@ -52,6 +52,14 @@ OwnQimeiMainWriterObservations与typed factory复用原MainWriter／codec／cont
 新验证为serializer9项与storage12个唯一case（各自输入指纹绑定；profile编码修复后仅重跑2项、10项deselected，其他有效证据复用，并非21项全新执行），含Source identity_3fafa接受MODEL CoCreateGuid后首次main53B经真实MainWriter／codec写Own临时文件、旧cipher decode／identity合并、ordered commit部分失败；不是actualDeviceGUID来源证明。完整ACL成功链MODEL通过真实factory和NativeOwnedAclPort逐API typed buffers执行，Source IsAdmin TRUE，NetApiBufferFree＋4 HeapFree及解密53B核对通过；仅替换底层API函数，无实际Native ACL/profile调用。旧DACL的ACE复制／control-mask分支仍待验。调用方在所属epoch/thread显式close_native，heap/net/FILE债务阻止卸载，模块FreeLibrary失败保留所有权；原MainWriter忽略fclose状态，返回0不等于无句柄债务，须核对audit/cleanup。
 
 证据：`A/overall-signing-service/qimei-store-serialization-implementation/`、`qimei-owned-storage-implementation/`。manifest guarded loader仅导入serializer／persist／Own factories并关闭core，无Native后端实例化。既有pipeline/carrier25项证据按未变范围复用；e846实际144B identity changed/main skip历史不变，本增量没有新actual probe。仅测试专有临时文件IO；没有原用户cache、硬件、Native ACL、HTTP或SDK实际调用。actual GUID、生命周期、getter／fulla2、真实发行／安装／发布／新材料SIGN消费仍未达，Full Goal ACTIVE。
+
+## Own fresh hardware GUID 与已完成自有I/O资格
+
+新增公开 `OwnFreshHardwareIdentity(profile_path,machine_info_path,hardware)` 与 `WindowsFreshIdentityHardware(cpu_source,api=None)` 两步组合，不新增假工厂或改旧consumer。Windows后端使用既有WindowsDeviceHardwareAPIBackend.request，CPU输入兼容既有WindowsDeviceCollectionObservations.cpuid。cold disk0沿固定Source磁盘请求，ordinary open/query失败取SPACE；成功descriptor使用实际写覆盖、offset/CString边界及固定C表ASCII0x107 alnum判断，非ASCII边界不冒充Unicode分类。CPU三叶48B寄存器字节保持Source顺序／NUL语义、不trim空白；adapter111→0查询保留OS首adapter/IP顺序、不排序，实际写覆盖中地址扩展为raw8再hex，Source三段MD5进入原QimeiApplication。
+
+这是显式Own新设备profile策略，不是Legacy／Registry20／Native GUID恢复。构造不做IO；有效Own profile先复用，不再采样硬件；首次仅允许已确认缺失的machine-info，existing/unknown或malformed profile均Boundary。profile带版本／Source policy及路径绑定，exclusive创建并fsync后才返回；首次硬件／持久化失败锁存，保留已写前缀，无覆盖／重采样。调用方负责资源关闭与独占设备归属。9项Own临时文件／scripted硬件测试按准确文件指纹复用，没有实际硬件、Native身份相等或服务材料证明。Source/测试已独立审查，本次只补manifest及导入绑定。证据：`A/overall-signing-service/qimei-fresh-guid-implementation/`、`qimei-fresh-guid-integration/`。
+
+另外，`OP-QIMEI-OWN-STORAGE-NATIVE-01` 在上述6ec源码实际完成有限Own I/O资格：原identity_3fafa调用真实CoCreateGuid得到16B transport main0，record1仍已知空，原formatter／MainWriter写53B plaintext对应64B ciphertext，实际Own文件读取解密逐bytes匹配。辅助beacon raw16／hex32与新actor native profile读回一致；仅证重读结果一致，未观察cache accepted还是重新生成，不是Qimei issuer或非空record1。自然ordinal680后ACL未进入，gate BOOL未单独记录（按fresh状态及无子API／last_acl_code推断skip），ACE/control未知。6个资源及core关闭返回、child RC0已reap、所记录file/allocation债务0；不扩大为所有WinDLL GC卸载证明。仅专用Own文件，原cache/服务未动；SourceHTTP／SDK／SIGN调用0。安全证据：`A/overall-signing-service/qimei-owned-storage-actual-probe/OUTCOME.md`、`OUTCOME.json`。e846实际identity144B changed/main skip历史原样保留；完整getter／fulla2、真实发行／安装／发布／新材料SIGN消费仍未闭合，Full Goal ACTIVE。
 
 ## Own completion 的可观察结果
 
@@ -442,13 +450,13 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 
 | 范围 | 必须取得的业务证据 | 当前状态 / 最早缺口 |
 | --- | --- | --- |
-| 固定版本及当前候选 | 固定52230源、候选身份与执行绑定 | 最新Qimei实际运行输入为e846a5b；SDK历史版本分别保留，本次仅文档同步，不重标实际运行。 |
+| 固定版本及当前候选 | 固定52230源、候选身份与执行绑定 | 实际startup为e846、Own I/O为6ec；新增GUID实现仅Source/MODEL，SDK历史版本分别保留，不重标实际运行。 |
 | 本地17B | 真实输入、独立重算、资源退出 | 局部真实 PASS [M]，非材料B |
 | key25 | 完整生产、持久恢复、真实分支 | method6 局部真实 PASS [D]；其他分支未 actual |
 | 完整137 | 正常采集到编码的真实完整输入 | a7返回137；a5 offline schema/order/types仅适用a5；a7当前schema/order及值语义未独立验证 |
 | SDK请求 | 完整载荷、所需 SIGN、真实发送 | Own 历史 SDK1003与后续184B SSO -10003分开保留；最新 NativeEnvelope 控制为 API1200／PMHQ -2 build scratch failed，不证明服务器 body 接受，见当前结论。 |
 | SDK回包 / Token | 真实关联回包、校验、解析、安装 | 当前2cee修复optional extension；184B离线解包为SSO -10003／空payload。最新控制无SDK reply／completion，认证、安装、发布及消费仍0；历史143B SDK1003证据仅限原交易。 |
-| Qimei | cold / initialized / restored 各自真实契约 | e846实际Own启动：known-zero-before-API域，identity1解码3更新后identity changed清除／main跳过，once1；record1未恢复，profile仅None==None。fulla2/getter/AUX及发行仍未证，见文首实际结论。 |
+| Qimei | cold / initialized / restored 各自真实契约 | e846启动identity changed/main跳过；6ec有限Native Own I/O通过但record1仍空。新增Own hardware GUID为9项Source/MODEL实现，非Native恢复或实际服务材料；fulla2/getter/AUX及发行未证。 |
 | 通知与回调 | 来源合法、注册、分发、生命周期、安装 | 完整真实通知路径未证明 |
 | protocolTokenHex | 异步真实消费者及绑定、空/非法语义 | Native12/V8 等未闭合 |
 | UIN与配置 | 显式配置到实际消费者，身份一致 | freshOptions源投影及本次已安装machine identity进frame逐bytes匹配；UIN/warm/完整运行仍不足，不输出原值 [BR1] |
