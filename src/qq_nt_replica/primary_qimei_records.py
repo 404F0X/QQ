@@ -340,3 +340,117 @@ class StartupState:
                 _boolean(consume(self.main))
             self.once = 1
             return not changed
+
+
+def _store_string(value):
+    value = _bytes(value)
+    if b'\0' in value:
+        raise RecordObservationError('mode1 embedded NUL leaves qualified String writer domain')
+    return value
+
+
+def _escape_store_string(value):
+    escapes = {34:b'\\"',92:b'\\\\',47:b'\\/',8:b'\\b',9:b'\\t',10:b'\\n',12:b'\\f',13:b'\\r'}
+    return b''.join(escapes.get(byte,('\\u%04X' % byte).encode('ascii') if byte < 32 else bytes((byte,)))
+                    for byte in _store_string(value))
+
+
+def _previous_store_object(payload):
+    if payload is None:
+        return {}
+    payload = _bytes(payload)
+    if len(payload) > 1 << 20:
+        raise RecordObservationError('prior identity object exceeds finite backing')
+    cursor = 0
+    def string():
+        nonlocal cursor
+        if payload[cursor:cursor+1] != b'"':
+            raise RecordObservationError('prior identity requires String values')
+        cursor += 1; result = bytearray()
+        while cursor < len(payload):
+            byte = payload[cursor]; cursor += 1
+            if byte == 34:
+                return bytes(result)
+            if byte == 92:
+                if cursor >= len(payload):break
+                token = payload[cursor]; cursor += 1
+                escapes = {34:34,92:92,47:47,98:8,116:9,110:10,102:12,114:13}
+                if token in escapes:result.append(escapes[token]);continue
+                digits = payload[cursor:cursor+4]
+                if token == 117 and len(digits)==4 and digits[:2]==b'00' and all(x in b'0123456789ABCDEF' for x in digits):
+                    value=int(digits,16)
+                    if 1 <= value <= 31:result.append(value);cursor+=4;continue
+                raise RecordObservationError('unqualified prior identity escape')
+            if byte < 32:
+                raise RecordObservationError('unqualified prior identity control byte')
+            result.append(byte)
+        raise RecordObservationError('incomplete prior identity String')
+    if not payload.startswith(b'{'):
+        raise RecordObservationError('prior identity requires complete String object')
+    cursor=1;values={}
+    if payload[cursor:]==b'}':return values
+    while cursor < len(payload):
+        key=string()
+        if key not in (b'0',b'1',b'2') or key in values:
+            raise RecordObservationError('unqualified prior identity key/tree')
+        if payload[cursor:cursor+1]!=b':':raise RecordObservationError('prior identity missing colon')
+        cursor+=1;values[key]=_store_string(string())
+        token=payload[cursor:cursor+1];cursor+=1
+        if token==b'}' and cursor==len(payload):return values
+        if token!=b',':break
+    raise RecordObservationError('incomplete prior identity object')
+
+
+def serialize_store_payload(store, previous_payload=None):
+    """Source finite plaintext, before original cache header/encryption.
+
+    None previous_payload means confirmed missing file, never decode failure.
+    The mode1 supported old tree is a whole canonical-key String object.
+    """
+    if not isinstance(store,Store):raise RecordObservationError('source Store required')
+    if store.mode == 0:
+        if previous_payload is not None:raise RecordObservationError('mode0 has no prior-file merge')
+        from .primary_qimei_request_sources import mode0_record_payload
+        payload=mode0_record_payload(store)
+        return payload or None
+    if store.mode != 1:raise RecordObservationError('unsupported source store mode')
+    values=_previous_store_object(previous_payload)
+    with store._lock:
+        return _serialize_identity_store(store,values)
+
+
+def _serialize_identity_store(store,values):
+    for record in store.vector():
+        key=str(_integer(record.id)).encode('ascii')
+        if key not in (b'0',b'1',b'2'):
+            raise RecordObservationError('mode1 key comparator outside qualified canonical domain')
+        values[key]=_store_string(record.value)
+    if not values:return None
+    return b'{' + b','.join(b'"'+key+b'":"'+_escape_store_string(values[key])+b'"' for key in sorted(values)) + b'}'
+
+def persist_store(store, writer, read_previous):
+    """Return original writer status, or None when Source has no payload to write.
+
+    Caller turns nonzero/no-write into its own explicit failure when commit requires
+    persistence. No rollback, retry or fake successful empty decode is performed.
+    """
+    if not isinstance(store,Store) or not callable(writer):
+        raise RecordObservationError('source store and original writer required')
+    if store.mode == 0:
+        payload=serialize_store_payload(store)
+        return None if payload is None else _integer(writer(store.read_path(),payload))
+    if store.mode != 1 or not callable(read_previous):
+        raise RecordObservationError('mode1 requires explicit prior-file decoder')
+    from .primary_qimei_cache import PayloadDecodeResult
+    path=store.read_path()
+    previous=read_previous(path)  # Source40FD0 before store lock.
+    if previous is not None:
+        if (not isinstance(previous,PayloadDecodeResult) or previous.accepted is not True
+                or previous.source_code != 0 or previous.payload is None
+                or previous.payload_length != len(previous.payload)):
+            raise RecordObservationError('prior identity decode/partial read is not missing file')
+        previous=previous.payload
+    values=_previous_store_object(previous)
+    with store._lock:
+        payload=_serialize_identity_store(store,values)
+        return None if payload is None else _integer(writer(path,payload))

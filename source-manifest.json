@@ -2114,8 +2114,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_qimei_records.py",
-      "source_sha256": "385853a256a3ecf7fa4dbe5700f50690a9e211c960c12090f7d9be93150df68f",
-      "sha256": "385853a256a3ecf7fa4dbe5700f50690a9e211c960c12090f7d9be93150df68f",
+      "source_sha256": "d9a987287f35c6a1085c20d7ecdb794c1abd0e981b76b8e032154dab514c33c6",
+      "sha256": "d9a987287f35c6a1085c20d7ecdb794c1abd0e981b76b8e032154dab514c33c6",
       "classification": "project_source"
     },
     {
@@ -2972,6 +2972,12 @@
       "sha256": "c0672c4bc5c5439855cdb2ede253e4e5b8befe4dddfc59f1c6948e127cd4408f",
       "classification": "project_source",
       "origin": "QIMEI-TREEB-IMPLEMENT/a1 first-retained-source/primary_windows_qimei_process_tree.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_windows_qimei_owned_storage.py",
+      "source_sha256": "4d56aa878742e648f05c1f84865791300d05563b7408cc3bdfc4c922abf5c71c",
+      "sha256": "4d56aa878742e648f05c1f84865791300d05563b7408cc3bdfc4c922abf5c71c",
+      "classification": "project_source"
     },
     {
       "path": "src/qq_nt_replica/primary_windows_qimei_request_sources.py",

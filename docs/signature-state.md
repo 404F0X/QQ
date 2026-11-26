@@ -43,6 +43,16 @@ backend/context/core显式close返回，child RC0并已reap；folder WinDLL引�
 
 验证仅为Source／MODEL：当前7项job测试通过（原5项组合及2项真实工厂接口MODEL）；既有dispatch4项与carrier14项在未变输入范围复用，共25项有效检查。旧9项组合/dispatch记录保留原范围，不补写为实际material接口已证。manifest guarded loader只导入新入口与carrier类并关闭core，不实例化载体或加载Windows库。既有e846的144B identity changed／main skip实际证据保持原范围，无新增OS／HTTP／用户文件／SDK／Native调用；真实Qimei材料、SDK安装发布及同runtime新材料SIGN消费仍0，Full Goal ACTIVE。fulla2 scheduler／callback mutex／retry budget3／getter-ready／AUX与独立Own SDK缺口仍未闭合。证据：`A/overall-signing-service/qimei-cold-job-implementation/`、`qimei-wininet-carrier-implementation/`。
 
+## Store 序列化与显式 Own 存储（Source／MODEL＋自有临时文件IO）
+
+`serialize_store_payload`／`persist_store` 现接通Source4044C有限写格式与既有MainWriter。mode0按原vector顺序复制，按signed capacity截断／补零，保留重复记录及内部NUL，canonical main输出53B；已知空b-empty不是未知None，首次main0生成后空record1仍可合法写53B。mode1先读并解码整个旧plaintext对象再取原store锁，在锁内合并／序列化／写入；支持旧及当前canonical keys0/1/2的String对象，后重复覆盖，保留未覆盖键，无capacity截断。严格Source字节转义（含slash、控制符大写hex及nonASCII原字节），不借通用JSON默认编码、不加header／magic。未知、NUL、不支持tree／key／escape或失败／不完整decode均Boundary，不当作缺文件。总capacity0无写入返回None；实际写入返回原writer int，commit调用方必须区分None／0／非零，不得伪成功。
+
+OwnQimeiMainWriterObservations与typed factory复用原MainWriter／codec／context：逻辑Source path精确映射到调用方专用Own root下固定物理文件，仅改物理归属，不改明文／加密语义。main与identity可用分别显式绑定的Own writer/root；原commit仍main后identity，失败保留实际前缀，无事务回滚。Own beacon也有typed factory，生产profile读取为惰性Windows原API，文件名在调用ANSI API前使用严格mbcs编码并要求无NUL及无损roundtrip；不能表示／best-fit／缺codec均报错，不冒充缺失或默认值，测试profile明确scripted。既有Own ACL路径仍限ASCII，不声称一般Unicode ACL支持。无QQ数据扫描、原共享cache写入或父目录ACL授权；调用方须保持专用root独占，检查symlink/junction/hardlink的有限域不覆盖恶意并发路径替换。
+
+新验证为serializer9项与storage12个唯一case（各自输入指纹绑定；profile编码修复后仅重跑2项、10项deselected，其他有效证据复用，并非21项全新执行），含Source identity_3fafa接受MODEL CoCreateGuid后首次main53B经真实MainWriter／codec写Own临时文件、旧cipher decode／identity合并、ordered commit部分失败；不是actualDeviceGUID来源证明。完整ACL成功链MODEL通过真实factory和NativeOwnedAclPort逐API typed buffers执行，Source IsAdmin TRUE，NetApiBufferFree＋4 HeapFree及解密53B核对通过；仅替换底层API函数，无实际Native ACL/profile调用。旧DACL的ACE复制／control-mask分支仍待验。调用方在所属epoch/thread显式close_native，heap/net/FILE债务阻止卸载，模块FreeLibrary失败保留所有权；原MainWriter忽略fclose状态，返回0不等于无句柄债务，须核对audit/cleanup。
+
+证据：`A/overall-signing-service/qimei-store-serialization-implementation/`、`qimei-owned-storage-implementation/`。manifest guarded loader仅导入serializer／persist／Own factories并关闭core，无Native后端实例化。既有pipeline/carrier25项证据按未变范围复用；e846实际144B identity changed/main skip历史不变，本增量没有新actual probe。仅测试专有临时文件IO；没有原用户cache、硬件、Native ACL、HTTP或SDK实际调用。actual GUID、生命周期、getter／fulla2、真实发行／安装／发布／新材料SIGN消费仍未达，Full Goal ACTIVE。
+
 ## Own completion 的可观察结果
 
 `complete_own_device_request` 返回 frozen `OwnCompletionResult(outcome, stage, code, cache_updated, publication)`；outcome为failed／processed。stage仅覆盖现有transport、sdk_envelope、sdk_status、auth、material、token_parse、publication路径，code按stage区分namespace，无源数值时为None。非法envelope不再把mode冒充状态码。1003经原状态树规范化后返回failed/sdk_status/1003，保留current及其他pending；不新增retry／refresh／callback／owner关闭策略。
