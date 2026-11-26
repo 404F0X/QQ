@@ -268,7 +268,7 @@ class Normal(unittest.TestCase):
                 from qq_nt_replica.primary_client_configuration_scope import validate_receiver
                 validate_receiver(r,receiver)
                 self.assertEqual(len({id(row) for row in physical.rows.values()}),1)
-                port=r._client_source_srw
+                port=r._client_source_srw[r.image_base+0x6751830]
                 self.assertEqual(port.state,'unheld')
                 self.assertIsNone(port.pin)
                 self.assertEqual([row['name'] for row in port.records],['AcquireSRWLockExclusive','ReleaseSRWLockExclusive'])

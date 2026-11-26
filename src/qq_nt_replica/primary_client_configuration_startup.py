@@ -559,20 +559,122 @@ def login_status(runtime,flag,uin):
     return None
 
 
+def _public_cold_owner(runtime, operation=None):
+    from .primary_client_configuration_scope import _OWNERS,_SERVICES
+    from .primary_windows_signer import WindowsSigner
+    from .primary_signer import PrimarySigner
+    from .primary_sign_lifecycle import _PublicDirectOwner
+    from .primary_direct_scopes import PrimaryDirectScope
+    from .primary_client_configuration_scope import _frame as frame
+    image=validate_image(runtime)
+    call=None
+    scan=sys._getframe(1)
+    while scan:
+        if scan.f_code is WindowsSigner._operation.__code__ and getattr(scan.f_locals.get('self'),'_signer',None) is image.signer:
+            call=scan;break
+        scan=scan.f_back
+    if call is None or call.f_locals.get('method')!='complete_own_device_request':
+        raise InputError('cold SRW requires its original public completion operation')
+    owner=call.f_locals['self'];original=_OWNERS.get(owner)
+    if original is None:raise InputError('cold SRW has no original Windows service')
+    bound_image,service,current,registrar,signer,binding=original
+    if (bound_image is not image or current is not runtime or signer is not image.signer or
+            owner._client_configuration_close is not original or owner._threads is not service or
+            owner._registrar is not registrar or _SERVICES.get(service) is not binding or
+            service._runtime is not runtime or not service._active_owner or not owner._busy or
+            _KERNELS.get(service) is not service._kernel):
+        raise InputError('cold SRW original owner/service binding changed')
+    lease=registrar.current_lease()
+    from .primary_windows_allocator_issuer import WindowsAllocatorIssuer
+    issuer=getattr(runtime,'_primary_allocator_issuer',None)
+    if type(issuer) is not WindowsAllocatorIssuer or issuer.owner is not owner:
+        raise InputError('cold SRW requires its original Windows allocator issuer')
+    issuer.validate()
+    if operation is None:
+        public=runtime.__dict__.get('_primary_public_direct_owner');scope=runtime.__dict__.get('_primary_direct_scope')
+        if (type(public) is not _PublicDirectOwner or public.signer is not signer or not public.valid() or
+                type(scope) is not PrimaryDirectScope or scope.public_owner is not public or
+                frame(PrimarySigner.complete_own_device_request.__code__,signer) is None):
+            raise InputError('cold SRW requires actual public direct completion scope')
+    elif call is not operation:
+        raise InputError('cold SRW cleanup belongs to another operation')
+    return owner,original,lease,call
+
+
+def _srw_context(runtime,address,acquire):
+    from . import primary_client_configuration as client
+    from .primary_feature_notifications import notify,_virtual
+    from .primary_client_configuration_scope import _frame as frame
+    source=frame(client._cold_srw.__code__,runtime)
+    if source is None:return _status_context(runtime)
+    context=source.f_locals.get('context')
+    if type(context) is not dict or context.get('address')!=address or context.get('acquire') is not acquire:
+        raise InputError('cold SRW source argument/stage replaced')
+    expected={'1C3287A':(client._cold_get,True),'1C328CD':(client._cold_get,False),
+              '1C35971':(client._cold_ctor,True),'1C35979':(client._cold_ctor,False),
+              '1C35A90':(client._cold_slot,True),'1C35AAB':(client._cold_slot,False),
+              'BCD630':(client._cold_slot,True),'BCD651':(client._cold_slot,False)}
+    function,direction=expected.get(context.get('stage'),(None,None))
+    body=None if function is None else frame(function.__code__,runtime)
+    dispatch=frame(client.invoke.__code__,runtime)
+    if (body is None or body.f_locals.get('context') is not context or direction is not acquire or
+            dispatch is None or dispatch.f_locals.get('rva')!=0x1C41B10 or
+            frame(client._cold_action.__code__,runtime) is None or frame(notify.__code__,runtime) is None or
+            frame(_virtual.__code__,runtime) is None):
+        raise InputError('cold SRW requires its actual notification/source stage')
+    if function is client._cold_get:
+        expected_address=runtime.image_base+0x677CEF0
+    elif function is client._cold_ctor:
+        expected_address=body.f_locals['worker']+0xA0
+    else:
+        expected_address=body.f_locals['obj']+0x10
+        if body.f_locals['worker'] != context['stage'].startswith('BCD'):
+            raise InputError('cold SRW slot stage/object differs')
+    if address!=expected_address:raise InputError('cold SRW exact source lock address differs')
+    owner,original,lease,operation=_public_cold_owner(runtime)
+    context.update(owner=owner,original=original,lease=lease,operation=operation)
+    return context,None
+
+
 class _SourceSRW:
     def __init__(self,runtime,context,receipt):
         if sys._getframe(1).f_code is not srw_import.__code__:
             raise InputError('SOURCE_SRW requires its actual source import issuer')
         self.runtime,self.image,self.receipt=runtime,validate_image(runtime),receipt
-        original,creator,lease=_creator(receipt.owner)
-        self.owner,self.service,self.original=receipt.owner,original[1],original
+        self.cold=receipt is None
+        if self.cold:
+            owner,original,lease,operation=_public_cold_owner(runtime)
+            self.operation=operation
+        else:
+            owner=receipt.owner;original,creator,lease=_creator(owner)
+            self.operation=None
+        self.owner,self.service,self.original=owner,original[1],original
         self.kernel=_KERNELS.get(self.service)
         if self.kernel is None or self.service._kernel is not self.kernel:
             raise InputError('SOURCE_SRW original factory kernel replaced')
         self.memory,self.base,self.epoch=runtime.memory,runtime.image_base,self.image.epoch
-        self.region,self.offset=self.memory._span(self.base+0x6751830,8)
-        if self.region.address!=self.base+0x67516B0 or len(self.region.data)!=848 or self.offset!=0x180:
+        self.address=context['address'] if self.cold else self.base+0x6751830
+        self.region,self.offset=self.memory._span(self.address,8)
+        self.allocation=None
+        if self.cold:
+            if self.address==self.base+0x677CEF0:
+                if not any(a==self.base+0x677CEE8 and region is self.region and size==16 for a,region,size in self.image.regions):
+                    raise InputError('cold SRW global has no original installer birth')
+            else:
+                pointer=context.get('allocation');backend=runtime._custom_allocator_backend
+                record=backend.records.get(pointer)
+                expected=0xA0 if context['function'].__name__=='_cold_ctor' else 0x10
+                if (record is None or self.address!=pointer+expected or record[0] is not self.region or
+                        record[1]!=(0xA8 if context.get('worker') or expected==0xA0 else 0x70) or
+                        record[2] is not backend.source.epoch or record[3]!=get_ident()):
+                    raise InputError('cold SRW allocation record differs')
+                self.allocation=(backend,pointer,record)
+        elif self.region.address!=self.base+0x67516B0 or len(self.region.data)!=848 or self.offset!=0x180:
             raise InputError('SOURCE_SRW requires its exact original8 within the fixed848B birth')
+        import ctypes
+        self.backing=self.region.data
+        self.backing_size=len(self.backing)
+        self.native_address=ctypes.addressof((ctypes.c_ubyte*self.backing_size).from_buffer(self.backing))+self.offset
         self.pid,self.tid=os.getpid(),get_native_id()
         self.context,self.lease=context,lease
         self.pin=None;self.state='not_entered';self.active=False
@@ -581,18 +683,25 @@ class _SourceSRW:
 
     def identity(self):
         from .primary_client_configuration_scope import _OWNERS
-        if (_SRW_PORTS.get(self.owner) is not self or self.owner._threads is not self.service or
+        if (_SRW_PORTS.get(self.owner,{}).get(self.address) is not self or self.owner._threads is not self.service or
                 self.owner._signer is not self.image.signer or self.image.signer.runtime is not self.runtime or
                 _OWNERS.get(self.owner) is not self.original or self.service._runtime is not self.runtime or
-                getattr(self.service,'_client_source_srw',None) is not self or
-                getattr(self.runtime,'_client_source_srw',None) is not self or self.origin!='SOURCE_SRW' or
+                getattr(self.service,'_client_source_srw',None) is not _SRW_PORTS.get(self.owner) or
+                getattr(self.runtime,'_client_source_srw',None) is not _SRW_PORTS.get(self.owner) or self.origin!='SOURCE_SRW' or
                 _KERNELS.get(self.service) is not self.kernel or self.service._kernel is not self.kernel or
                 self.memory is not self.runtime.memory or self.runtime.image_base!=self.base or self.image.epoch is not self.epoch):
             raise InputError('SOURCE_SRW original owner/runtime/registry changed')
         validate_image(self.runtime)
-        region,offset=self.memory._span(self.base+0x6751830,8)
-        if region is not self.region or offset!=self.offset:
+        region,offset=self.memory._span(self.address,8)
+        if region is not self.region or offset!=self.offset or region.data is not self.backing or len(region.data)!=self.backing_size:
             raise InputError('SOURCE_SRW original8 backing replaced')
+        import ctypes
+        current=ctypes.addressof((ctypes.c_ubyte*self.backing_size).from_buffer(self.backing))+self.offset
+        if current!=self.native_address:raise InputError('SOURCE_SRW actual backing moved')
+        if self.allocation is not None:
+            backend,pointer,record=self.allocation
+            if backend.closed or backend.records.get(pointer) is not record:
+                raise InputError('cold SRW original allocation retired/replaced')
 
     def _entered(self,name):
         from .primary_windows_threads import WindowsSDKThreadService
@@ -605,11 +714,14 @@ class _SourceSRW:
 
     def _check(self,context,receipt,acquire):
         self.identity()
-        original,creator,lease=_creator(self.owner)
-        if (self.pid!=os.getpid() or self.tid!=get_native_id() or lease is not receipt.lease or
+        if self.cold:
+            owner,original,lease,operation=_public_cold_owner(self.runtime)
+            if operation is not self.operation:raise InputError('cold SRW operation changed')
+        else:original,creator,lease=_creator(self.owner)
+        if (self.pid!=os.getpid() or self.tid!=get_native_id() or (not self.cold and lease is not receipt.lease) or
                 original is not self.original or self.active or self.failures or self.record_debt):
             raise InputError('SOURCE_SRW creator lease/lifetime is not current')
-        if context.get('stage')!=('BBBB19' if acquire else 'BBBB4E'):
+        if not self.cold and context.get('stage')!=('BBBB19' if acquire else 'BBBB4E'):
             raise InputError('SOURCE_SRW source direction/stage differs')
         if acquire:
             if self.state not in ('not_entered','unheld') or self.pin is not None:
@@ -629,8 +741,8 @@ class _SourceSRW:
             raise InputError('SOURCE_SRW current import target differs')
         if self.pin is None:
             import ctypes
-            self.memory.read(self.base+0x6751830,8)
-            token,view=self.memory._pin_native_span(self.base+0x6751830,8,self)
+            self.memory.read(self.address,8)
+            token,view=self.memory._pin_native_span(self.address,8,self)
             self.pin=(token,view,(ctypes.c_ubyte*8).from_buffer(view))
         token,view,native=self.pin
         self.memory._validate_native_pin(token,self)
@@ -649,8 +761,9 @@ class _SourceSRW:
             if record['entered']:
                 try:
                     self.identity()
-                    current,issued=_status_context(self.runtime)
-                    if current is not context or issued is not receipt or _creator(self.owner)[2] is not self.lease:
+                    current,issued=_srw_context(self.runtime,self.address,acquire)
+                    lease=(_public_cold_owner(self.runtime)[2] if self.cold else _creator(self.owner)[2])
+                    if current is not context or issued is not receipt or lease is not self.lease:
                         raise InputError('SOURCE_SRW source identity changed after API return')
                     self.memory._record_native_write(token,self,source=name+'.actual_SOURCE_SRW_backing')
                     record['recorded']=True
@@ -672,28 +785,59 @@ class _SourceSRW:
 
 
 def preflight_srw(owner):
-    port=_SRW_PORTS.get(owner)
-    if port is None:return
-    port.identity()
-    if (port.active or port.pin is not None or port.failures or port.record_debt or
-            port.state in ('held','acquire_unknown','release_unknown')):
-        error=PrimarySemanticUnavailable('SOURCE_SRW retains native/recording dependencies; close cannot retire backing')
-        if port.failures:raise error from port.failures[0][2]
-        raise error
+    for port in _SRW_PORTS.get(owner,{}).values():
+        port.identity()
+        if port.active or port.pin is not None or port.failures or port.record_debt or port.state not in ('not_entered','unheld'):
+            error=PrimarySemanticUnavailable('SOURCE_SRW retains native/recording dependencies; close cannot retire backing')
+            if port.failures:raise error from port.failures[0][2]
+            raise error
 
 
 def srw_import(runtime,address,acquire):
-    context,receipt=_status_context(runtime)
-    if address!=runtime.image_base+0x6751830:
+    context,receipt=_srw_context(runtime,address,acquire)
+    if receipt is not None and address!=runtime.image_base+0x6751830:
         raise InputError('SOURCE_SRW import requires its exact source global')
-    port=_SRW_PORTS.get(receipt.owner)
+    owner=context['owner'] if receipt is None else receipt.owner
+    ports=_SRW_PORTS.get(owner)
+    port=None if ports is None else ports.get(address)
     if port is None:
         port=_SourceSRW(runtime,context,receipt)
-        _SRW_PORTS[receipt.owner]=port
-        port.service._client_source_srw=port
-        runtime._client_source_srw=port
+        import ctypes
+        backing=ctypes.addressof((ctypes.c_ubyte*len(port.region.data)).from_buffer(port.region.data))+port.offset
+        if backing%8:raise InputError('SOURCE_SRW backing alignment differs')
+        for prior in (() if ports is None else ports.values()):
+            other=ctypes.addressof((ctypes.c_ubyte*len(prior.region.data)).from_buffer(prior.region.data))+prior.offset
+            if address<prior.address+8 and prior.address<address+8 or backing<other+8 and other<backing+8:
+                raise InputError('SOURCE_SRW backing alias')
+        if ports is None:
+            ports={};_SRW_PORTS[owner]=ports
+            port.service._client_source_srw=ports;runtime._client_source_srw=ports
+        ports[address]=port
         port.image.debts.append(('source_srw',port))
     return port.call(context,receipt,acquire)
+
+
+def detach_public_cold(owner):
+    ports=_SRW_PORTS.get(owner)
+    if not ports:return
+    runtime=owner._signer.runtime
+    operation=sys._getframe(1)
+    selected=[p for p in ports.values() if p.cold and p.operation is operation]
+    if not selected:return
+    actual,original,lease,call=_public_cold_owner(runtime,operation)
+    if runtime.__dict__.get('_primary_public_direct_owner') is not None:
+        raise InputError('cold SRW cleanup precedes public completion exit')
+    for port in selected:
+        port.identity()
+        if (port.original is not original or port.lease is not lease or port.active or port.pin is not None or
+                port.failures or port.record_debt or port.state!='unheld' or
+                sum(kind=='source_srw' and obj is port for kind,obj in port.image.debts)!=1):
+            raise PrimarySemanticUnavailable('cold SRW operation group retains unresolved dependencies')
+    for port in selected:
+        port.image.debts.remove(('source_srw',port));del ports[port.address]
+    if not ports:
+        del _SRW_PORTS[owner]
+        del owner._threads._client_source_srw;del runtime._client_source_srw
 
 
 def srw_wrapper(runtime,address,acquire):

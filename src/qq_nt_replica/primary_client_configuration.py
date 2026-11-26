@@ -26,6 +26,9 @@ def install_image(signer):
     constructor_table = b''.join((base + rva).to_bytes(8, 'little') for rva in
                                 (0x142A0, 0x1C41AE0, 0x1C41AF0, 0x28F0, 0x1FE0, 0x1C41B10))
     return premap(signer, ((_VTABLE, table, True), (0x414A2C8, constructor_table, True),
+        (0x677CEE8, bytes(16), False),
+        (0x4149C90, (base+0x1C35A80).to_bytes(8,'little'), True),
+        (0x4149D10, (base+0xBCD620).to_bytes(8,'little'), True),
         (0x677DDB0, bytes(0x78), False), (0x6751690, bytes(8), False),
         (0x6751DC0, bytes(8), False), (0x677CE90, bytes(8), False), (0x677CEA8, bytes(8), False)))
 
@@ -400,6 +403,73 @@ def startup_entry(runtime, delay):
     return 1
 
 
+_COLD_FILE = rb'R:\devops\workspace\p-824b74756ad64e12838601ccde6ecefb\platforms\Windows\..\..\scheduler\include\scheduler/core/heartbeat_core.h'
+
+
+def _cold_srw(runtime, context, stage, address, acquire):
+    from .primary_client_configuration_startup import srw_wrapper
+    context.update(stage=stage,address=address,acquire=acquire)
+    return srw_wrapper(runtime,address,acquire)
+
+
+def _cold_ctor(runtime, manager):
+    m,b=runtime.memory,runtime.image_base
+    context=dict(kind='public-cold',function=_cold_ctor,object=manager)
+    for off,value,size in ((0,b+0x4149C88,8),(8,0,1),(0x10,0,8),(0x18,0xE10,4),(0x38,10,1),(0x60,0,4)):
+        m.store(manager+off,value,size,source='1C35870.M_source_field')
+    for off,data in ((0x20,bytes(24)),(0x39,b'work1\0'),(0x50,bytes(16))):m.write(manager+off,data,source='1C35870.M_source_bytes')
+    worker=_invoke(runtime,0xB75000,0xA8)
+    for off,value,size in ((0,b+0x4149D08,8),(8,0,1),(0x10,0,8),(0x18,0x78,4),(0x38,10,1),(0x80,1,4),(0x88,worker+0x90,8),(0xA0,0,8)):
+        m.store(worker+off,value,size,source='1C35870.W_source_field')
+    for off,data in ((0x20,bytes(24)),(0x39,b'work0\0'),(0x50,bytes(16)),(0x60,bytes(32)),(0x90,bytes(16))):m.write(worker+off,data,source='1C35870.W_source_bytes')
+    m.store(manager+0x68,worker,8,source='1C35968.M_worker')
+    context['allocation']=worker
+    _cold_srw(runtime,context,'1C35971',worker+0xA0,True)
+    _cold_srw(runtime,context,'1C35979',worker+0xA0,False)
+    return manager
+
+
+def _cold_get(runtime):
+    m,b=runtime.memory,runtime.image_base
+    context=dict(kind='public-cold',function=_cold_get)
+    _cold_srw(runtime,context,'1C3287A',b+0x677CEF0,True)
+    outer=m.load(b+0x677CEE8,8)
+    if not outer:
+        outer=_invoke(runtime,0xB75000,8)
+        manager=_invoke(runtime,0xB75000,0x70)
+        _cold_ctor(runtime,manager)
+        m.store(outer,manager,8,source='1C328B8.outer_manager')
+        m.store(b+0x677CEE8,outer,8,source='1C328BF.singleton_publish')
+    _cold_srw(runtime,context,'1C328CD',b+0x677CEF0,False)
+    return outer
+
+
+def _cold_slot(runtime, obj, worker=False):
+    m=runtime.memory
+    context=dict(kind='public-cold',function=_cold_slot,allocation=obj,worker=worker)
+    _cold_srw(runtime,context,'BCD630' if worker else '1C35A90',obj+0x10,True)
+    if m.load(obj+8,1):
+        raise PrimarySemanticUnavailable('feature4=0 noncold D45A00 continuation is not implemented')
+    result=_cold_srw(runtime,context,'BCD651' if worker else '1C35AAB',obj+0x10,False)
+    if worker:return result
+    target=m.load(obj+0x68,8)
+    return _cold_delegate(runtime,target)
+
+
+def _cold_delegate(runtime,obj):
+    target=runtime.memory.load(runtime.memory.load(obj,8)+8,8)-runtime.image_base
+    if target==0x1C35A80:return _cold_slot(runtime,obj)
+    if target==0xBCD620:return _cold_slot(runtime,obj,True)
+    raise PrimarySemanticUnavailable('feature4=0 actual slot8 target is not implemented')
+
+
+def _cold_action(runtime):
+    outer=_cold_get(runtime)
+    if not runtime.memory.load(outer,8):return None
+    _invoke(runtime,0xB9F1D0,_COLD_FILE,0x33,b'stop...',runtime.image_base+0x48972C7,1)
+    return _cold_delegate(runtime,runtime.memory.load(outer,8))
+
+
 def invoke(runtime, rva, values):
     if rva == 0x1C22D50 and not values:
         return create_startup(runtime)
@@ -419,7 +489,7 @@ def invoke(runtime, rva, values):
         from .primary_logger import feature
         result = feature(runtime, _logger(runtime), 4)
         if result == 0:
-            raise PrimarySemanticUnavailable('1C41B10 feature4=0 requires 1C32860 then 1C415F0')
+            return _cold_action(runtime)
         if result == 1:
             raise PrimarySemanticUnavailable('1C41B10 feature4=1 requires 1C41C20')
         return result  # RET retains the feature getter EAX; receiver is unused.

@@ -501,7 +501,7 @@ GCM 失败不使用 primitive 可能附带的 plaintext，status3 不安装；�
 
 fresh成功主干的当前缺口是缺少真实认证成功的非空token／cache更新，以及真实feature／expiry／bound条件下同一有效owner下一SIGN选中消费的证据，不是“安装后必撞provider”或“所有下游函数未实现”。非空token先在锁内写timestamp／token／bound，再执行可选持久化；空token保留旧cache。root／setter／expire入口均已有，旧MODEL只返回root不证明全部分支。下一SIGN从同一cache clone；feature1!=1走fallback而不消费new token，valid且无refresh时token可作为_sign_body的d／digest输入；条件refresh中device VT+40非BEE3C0且无匹配binding才是具体Boundary，并非所有fresh必经 [PERSIST]。
 
-有限边界：mode0 缺少源未初始化 stack 字段显式停止；真实 features 已写 map/provider/persist 后通知命中 `1C41B10` 时，feature4的所有非0／1值现按固定117B的RET分支返回真实getter EAX；缺／非法settings4按源归2，可正常销毁callable副本、解锁并回原验签。feature4=0仍在1C32860→1C415F0、=1仍在1C41C20精确Boundary，保留已写deadline／features／可选persist副作用；没有实现这两个continuation。纯 PrimarySigner 模型在业务 root 返回后的 registrar.close 仍因缺少正式 direct close scope 而 cleanup_failed，组合 publication+close **未通过**；没有伪造 WindowsOwner／切 backend。MODEL语义断言通过不等于该 teardown 成功，部分虚拟资源债务仍保留。
+有限边界：mode0 缺少源未初始化 stack 字段显式停止；真实 features 已写 map/provider/persist 后通知命中 `1C41B10` 时，feature4的所有非0／1值现按固定117B的RET分支返回真实getter EAX；缺／非法settings4按源归2，可正常销毁callable副本、解锁并回原验签。feature4=0现已实现Source whole truecold getter／ctor／M、Wslot8及精确日志后重读，feature4=1仍在1C41C20精确Boundary，保留已写deadline／features／可选persist副作用；非冷D45A00与feature4=1 continuation仍未实现。纯 PrimarySigner 模型在业务 root 返回后的 registrar.close 仍因缺少正式 direct close scope 而 cleanup_failed，组合 publication+close **未通过**；没有伪造 WindowsOwner／切 backend。MODEL语义断言通过不等于该 teardown 成功，部分虚拟资源债务仍保留。
 
 证据 `A/own-reply-pipeline-a1/`。固定服务器有效 mode0 材料签名、完整源接受资格、真实通知分支、下游材料消费与后续 SIGN 均未证明；该 MODEL 报告未执行网络或native，本次后续实际raw响应证据另见 [BR1]。完整 Goal 保持 ACTIVE。
 
@@ -547,6 +547,16 @@ fresh成功主干的当前缺口是缺少真实认证成功的非空token／cach
 
 本轮settings notify修复先以受控feature4=2在旧代码复现无条件Boundary；不是历史1003的已知case。修后12项pipeline MODEL通过，新增缺／非法4归2后继续真实零签名验签并拒绝auth3，0／1仍失败；不证明有效材料安装／消费，也不改变真实1003根因。证据：`A/overall-signing-service/settings-notify-implementation/`。
 
-feature4=0有限cold closure的源控制流已收口，尚缺4个native SRW锁在正确public direct调用域中的实现，以及单例／EH／close debt契约；这不是整scheduler已证必需或材料闭环。feature4=1七注册未展开。未授权扩大算法／scheduler或新增网络执行。
+feature4=0有限cold closure的源控制流及四锁operation适配现已实现，受控MODEL输入下真实public owner／lease／SRW两操作已获限定PASS；异常／dirty与完整EH／close域仍未全验收。这不是整scheduler已证必需或材料闭环。feature4=1七注册未展开。未授权扩大算法／scheduler或新增网络执行。
 
 - [OFF] `A/overall-signing-service/offline-request-crypto-a1/execution-a1/{RESULT.md,verify.json,preflight.json,actual-provenance.json,process-terminal.json}`：单次新离线actual完整采集／28项独立比较／版本与生命周期事实，仅按该新样本范围复用。
+
+当前feature4=0增量已实现四种SourceSRW backing的有限适配：global677CEF0、W+A0、M+10、W+10，限定原Windows public completion／owner／service／真实lease／allocator与Source帧。Windows operation中public_call退出后、原lease退出前仅整组清洁port／配对debt解绑，singleton／8B backing及native写保留；异常收尾保留原错，unknown／held／native／write／unpin失败不退债、不强解锁，旧BBB730域不放宽。下一操作需重新发行端口，旧实例因exact registry identity失效。
+
+本轮13项pipeline MODEL＋2项旧BBB730 SRW＋1项clean-detach MODEL检查通过，按各自原范围复用；日志没有完整历史逐输入hash／时间，不能将这些OK泛称最终全部路径证明。新增wholecold的MODEL SRW边界检查证明字段／顺序／日志effects重读及真实auth3拒绝。随后Native a1首CREATE因feature46=1且缺state17_owner而FAIL，SRW观察0，原失败冻结；a2仅改分析child传显式deterministic MODEL17B，通过现有空records条件cipher路径，不改featureflag、不证明producer或cipher truth [COLD0]。
+
+a2限定actual PASS：真实Own factory／public owner／lease／SRW，MODEL carrier／CAPI／clock／random／17B／空records／零签名response；两次公开CREATE→complete都返回failed/auth/3 DTO，owner保持open，singleton outer数值复用、观察port数增加、旧port identity()抛异常、registry清空、owner.close返回。14条原srw_import return观察对应4地址，计数排序2／4／4／4，acquire7／release7、failure计数和0；这不是逐API／native backing／M/W记录／knownmask的全量观测。parent／child均0并reaped，匹配alive0，无逐native handle全关闭证明。public cancel、实际异常／dirty路径未执行；旧Pure PrimarySigner MODEL close FAIL不被覆盖。非冷D45A00及feature4=1仍未实现，真实材料安装／同owner下一SIGN消费均0，完整Goal各分支未完成。下一业务优先真实carrier／source，不据本次PASS启动新的内部proof或网络 [COLD0]。
+
+R33旧域参考两次有限方向均STOP：四参直接投影未导出state17；aggregate现成reference初始化在缺allocator selector issuer处Boundary，cipher未达。这些是当前投影／契约缺口，不是Original expected失效或已证cipher差异；未为迎合expected修改生产实现。
+
+- [COLD0] `A/overall-signing-service/feature4-zero-operation-implementation/{RESULT.md,native-execution-a1/RESULT.md,native-execution-a2/RESULT.md}`：实现／MODEL及a1失败／a2限定Native观察分别适用，不证明真实材料或完整异常生命周期。

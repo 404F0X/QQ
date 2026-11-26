@@ -381,7 +381,7 @@ class SourceSRW(unittest.TestCase):
                     with patch.object(r.memory,'_record_native_write',side_effect=bookkeeping):
                         with self.assertRaises(RuntimeError) as actual:run(owner,receipt)
                     self.assertIs(actual.exception,failure)
-                    port=r._client_source_srw
+                    port=r._client_source_srw[r.image_base+0x6751830]
                     self.assertIs(port.failures[0][2],failure)
                     self.assertFalse(port.active)
                     self.assertIsNotNone(port.pin)
@@ -541,3 +541,38 @@ class InitializerStage(unittest.TestCase):
 
 
 if __name__=='__main__':unittest.main()
+
+
+class PublicColdDetachModel(unittest.TestCase):
+    def test_clean_group_detaches_and_dirty_group_remains(self):
+        from qq_nt_replica.primary_vm import PrimarySemanticUnavailable
+        # Algorithm boundary doubles only: no Windows owner/port capability issued.
+        from types import SimpleNamespace as NS
+        import sys
+        from unittest.mock import patch
+        from qq_nt_replica import primary_client_configuration_startup as startup
+        for dirty in (None,'held','pin','failure','record','debt'):
+            runtime=NS();owner=NS(_signer=NS(runtime=runtime),_threads=NS())
+            # Registry keys require hashable owner; use an ordinary test object.
+            owner=type('ModelCleanupOwner',(),{})();owner._signer=NS(runtime=runtime);owner._threads=NS()
+            original=object();lease=object();operation=sys._getframe()
+            image=NS(debts=[]);ports={}
+            for address in (8,16):
+                port=NS(cold=True,operation=operation,original=original,lease=lease,active=False,pin=None,failures=[],record_debt=False,state='unheld',image=image,address=address,identity=lambda:None)
+                ports[address]=port;image.debts.append(('source_srw',port))
+            image.debts.append(('other',object()));other=image.debts[-1]
+            if dirty=='held':ports[16].state='held'
+            if dirty=='pin':ports[16].pin=object()
+            if dirty=='failure':ports[16].failures.append(object())
+            if dirty=='record':ports[16].record_debt=True
+            if dirty=='debt':image.debts.remove(('source_srw',ports[16]))
+            owner._threads._client_source_srw=ports;runtime._client_source_srw=ports
+            with patch.dict(startup._SRW_PORTS,{owner:ports},clear=True),patch.object(startup,'_public_cold_owner',return_value=(owner,original,lease,operation)):
+                if dirty is None:
+                    startup.detach_public_cold(owner)
+                    self.assertNotIn(owner,startup._SRW_PORTS);self.assertEqual(image.debts,[other])
+                    self.assertFalse(hasattr(runtime,'_client_source_srw'))
+                else:
+                    before=list(image.debts)
+                    with self.assertRaises(PrimarySemanticUnavailable):startup.detach_public_cold(owner)
+                    self.assertEqual(len(ports),2);self.assertEqual(image.debts,before)

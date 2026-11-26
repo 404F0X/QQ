@@ -159,7 +159,7 @@ class WindowsSDKThreadService(WorkerObservations):
         source=sys._getframe(1)
         if (source.f_code is not _SourceSRW.call.__code__ or source.f_locals.get('self') is not port or
                 type(port) is not _SourceSRW or port.service is not self or self._runtime is not runtime or
-                getattr(self,'_client_source_srw',None) is not port or port.pin is None or port.pin[2] is not native or
+                getattr(self,'_client_source_srw',{}).get(port.address) is not port or port.pin is None or port.pin[2] is not native or
                 name not in ('AcquireSRWLockExclusive','ReleaseSRWLockExclusive')):
             raise InputError('SOURCE_SRW native ABI requires its original issued port and live pin')
         port.identity()

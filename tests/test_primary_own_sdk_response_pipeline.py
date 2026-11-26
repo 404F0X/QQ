@@ -74,7 +74,8 @@ class OwnPipeline(unittest.TestCase):
                     settings=b'\x08\x00\x10\x00'+(b'' if setting is None else b'\x20'+bytes([setting]))
                     body=b'\x0a\x40'+bytes(64)+b'\x10\x01\x18\x02\x22\x01p'+b'\x2a'+bytes([len(settings)])+settings
                     if setting in (0,1):
-                        with self.assertRaisesRegex(PrimarySemanticUnavailable,'feature4='+str(setting)):
+                        with self.assertRaisesRegex(InputError if setting==0 else PrimarySemanticUnavailable,
+                                'public completion operation' if setting==0 else 'feature4=1'):
                             _decode(owner,request,self.wire(request,body))
                         self.assertTrue(r._logger_locks[logger+112])
                     else:
@@ -84,6 +85,56 @@ class OwnPipeline(unittest.TestCase):
                     self.assertEqual(owner.material.current.wall_deadline,2)
                     self.assertEqual(feature(r,logger,4),setting if setting in (0,1) else 2)
                     self.assertEqual(owner.material.current.payload_mode,0)
+                    r._free_allocation(carrier)
+            finally:reg.close();dispose_model_allocator(r)
+
+    def test_cold0_source_fields_auth_and_reuse_with_model_srw_boundary(self):
+        from qq_nt_replica import primary_client_configuration as client
+        from qq_nt_replica.primary_feature_notifications import _logger,register
+        from qq_nt_replica.primary_own_sdk_response import _decode
+        from qq_nt_replica.primary_custom_allocator import dispose_model_allocator
+        from qq_nt_replica.primary_logger import LoggerOutput
+        for warm in (False,True):
+            s,r,reg=self.fixture();owner=s._own_sdk_request;locks=[];messages=[]
+            def srw(runtime,context,stage,address,acquire):
+                # Explicit MODEL native boundary only; never issues Windows capability.
+                locks.append((stage,address,acquire));return 0
+            try:
+                raw=bytearray(owner.material.current.raw);raw[80]=0;owner.material.current=RequestMaterial(bytes(raw));request=self.create(s)
+                with reg.operation():
+                    logger=_logger(r);carrier=r._operator_new(40)
+                    r.memory.write(carrier,bytes(40),source='MODEL callable carrier')
+                    r.memory.store(carrier+8,r.image_base+0x414A2C8,8,source='MODEL constructor callback')
+                    r.memory.store(carrier+32,carrier+8,8,source='MODEL inline owner');register(r,logger,carrier)
+                    target=123456;r.memory.store(r.image_base+0x677BD88,target,8,source='MODEL log target')
+                    def output(message,tag,severity):
+                        messages.append((message,tag,severity))
+                        outer=r.memory.load(r.image_base+0x677CEE8,8)
+                        manager=r.memory.load(outer,8)
+                        return ((manager+8,b'\x01'),) if warm else ()
+                    r.logger_output=LoggerOutput(target,output)
+                    settings=b'\x08\x00\x10\x00\x18\x01\x20\x00'
+                    body=b'\x0a\x40'+bytes(64)+b'\x10\x01\x18\x02\x22\x01p\x2a'+bytes([len(settings)])+settings
+                    with patch.object(client,'_cold_srw',side_effect=srw):
+                        if warm:
+                            from qq_nt_replica.primary_vm import PrimarySemanticUnavailable
+                            with self.assertRaisesRegex(PrimarySemanticUnavailable,'noncold D45A00'):_decode(owner,request,self.wire(request,body))
+                        else:
+                            self.assertEqual(_decode(owner,request,self.wire(request,body)),('auth',3,None))
+                            outer=r.memory.load(r.image_base+0x677CEE8,8);manager=r.memory.load(outer,8);worker=r.memory.load(manager+0x68,8)
+                            self.assertEqual(r.memory.load(manager+0x18,4),0xE10)
+                            self.assertEqual(r.memory.load(worker+0x18,4),0x78)
+                            self.assertEqual(r.memory.load(worker+0x88,8),worker+0x90)
+                            self.assertEqual(r.memory.read(manager+0x39,6),b'work1\0')
+                            self.assertEqual(r.memory.read(worker+0x39,6),b'work0\0')
+                            self.assertFalse(r._logger_locks[logger+112])
+                            first=list(locks);self.assertEqual(len(first),8);self.assertEqual(len({a for _,a,_ in first}),4)
+                            self.assertEqual(_decode(owner,request,self.wire(request,body)),('auth',3,None))
+                            self.assertEqual(r.memory.load(r.image_base+0x677CEE8,8),outer)
+                            self.assertEqual(len(locks),14)  # Reuse skips ctor W+A0.
+                    self.assertTrue(messages)
+                    self.assertTrue(all(m.endswith(b'stop...') and t==b'[FGESDK]' and level==1 for m,t,level in messages))
+                    if warm:self.assertTrue(r._logger_locks[logger+112])
                     r._free_allocation(carrier)
             finally:reg.close();dispose_model_allocator(r)
 

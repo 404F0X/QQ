@@ -803,8 +803,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_client_configuration.py",
-      "source_sha256": "eb3171dbdf46f6be10dda592957e4aaabb18b149f21d5f32ed35219190509e15",
-      "sha256": "eb3171dbdf46f6be10dda592957e4aaabb18b149f21d5f32ed35219190509e15",
+      "source_sha256": "fb47942e1f77ef6e9f7b6314e45e95812db9762d38a0158461880874f34f28bb",
+      "sha256": "fb47942e1f77ef6e9f7b6314e45e95812db9762d38a0158461880874f34f28bb",
       "classification": "project_source"
     },
     {
@@ -816,8 +816,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_client_configuration_startup.py",
-      "source_sha256": "54750c5c4db6fc35874119d3076567da86ffb35aae4c49479b758f768871638c",
-      "sha256": "e42baebe98ff688526a01321247352ac06394e19df18e92608b241db7414d6c9",
+      "source_sha256": "72465d36616865472a7bdb4fe80e3a997146b3ee1078908a4651077a8e3a4edf",
+      "sha256": "72465d36616865472a7bdb4fe80e3a997146b3ee1078908a4651077a8e3a4edf",
       "classification": "project_source",
       "origin": "MAT-SIGN-CLIENT-CONFIG-REQUEST-PREFIX/a1 first retained authored snapshot: client-config-request-prefix-a1/first-retained-source/primary_client_configuration_startup.py"
     },
@@ -3014,8 +3014,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_windows_signer.py",
-      "source_sha256": "f5224216af05b690e8848da5372266a7b4d52f2979aa75aac98727d2c6585bdd",
-      "sha256": "f5224216af05b690e8848da5372266a7b4d52f2979aa75aac98727d2c6585bdd",
+      "source_sha256": "bd1df5ebaf2a2921c6480813c255acd96874f8a0fc88edaf12199e165b693df4",
+      "sha256": "bd1df5ebaf2a2921c6480813c255acd96874f8a0fc88edaf12199e165b693df4",
       "classification": "project_source"
     },
     {
@@ -3032,8 +3032,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_windows_threads.py",
-      "source_sha256": "d7502e274fd016ac87fae63f06b6db94524931a8f5b88ffd84807daa905023c7",
-      "sha256": "d7502e274fd016ac87fae63f06b6db94524931a8f5b88ffd84807daa905023c7",
+      "source_sha256": "1f8a6eedafce3eaaaead24326ef879a920f53f9c395007a298f5a394cb6f0988",
+      "sha256": "1f8a6eedafce3eaaaead24326ef879a920f53f9c395007a298f5a394cb6f0988",
       "classification": "project_source"
     },
     {

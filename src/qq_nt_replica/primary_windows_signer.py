@@ -6,6 +6,7 @@ import hashlib
 import os
 from pathlib import Path
 import stat
+import sys
 import struct
 import threading
 
@@ -462,7 +463,17 @@ class WindowsSigner:
                 phase = 'initialization' if method.startswith('initialize') else 'core'
                 with self._core_observations.phase(phase) if self._core_observations is not None else nullcontext():
                     with self._independent_setup.operation(method) if self._independent_setup is not None else nullcontext():
-                        result = getattr(self._signer, method)(*arguments, **options)
+                        try:
+                            result = getattr(self._signer, method)(*arguments, **options)
+                        finally:
+                            original_error=sys.exception()
+                            try:
+                                from .primary_client_configuration_startup import detach_public_cold
+                                detach_public_cold(self)
+                            except BaseException as cleanup_error:
+                                if original_error is None:raise
+                                original_error.add_note('cold SRW detach also failed: '+type(cleanup_error).__name__)
+                                self._operation_outcomes.append({'method':method,'status':'cold_srw_cleanup_failed','error':cleanup_error})
             self._operation_outcomes.append({'method': method, 'status': 'completed',
                                              'call_count': self._signer.calls})
             if method in ('sign', 'sign_result'):
