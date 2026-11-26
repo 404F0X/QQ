@@ -1976,8 +1976,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_qimei_application_binding.py",
-      "source_sha256": "97f9d9e38e72a48847889dc49a14afed1e23023e98948086a3917bd8f98cc16e",
-      "sha256": "dd60145f92f7a9db1de8655993d90c85e808bd9f5bffd38466fe81153ffc3359",
+      "source_sha256": "eee60e1d4d551db79e754caadd77d35bcd438bffc59dcc4feb8a346f4d7b6f50",
+      "sha256": "eee60e1d4d551db79e754caadd77d35bcd438bffc59dcc4feb8a346f4d7b6f50",
       "classification": "project_source",
       "origin": "QQ-APPLICATION-BINDER-IMPLEMENT/a1 first-retained-source/primary_qimei_application_binding.py"
     },

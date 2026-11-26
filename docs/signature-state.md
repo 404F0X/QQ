@@ -17,6 +17,12 @@ PUBLIC LLOneBot8.3.2 支持 `send_pb`，但唯一一次实际 NativeEnvelope SDK
 
 安全结果及错误补充见 `A/overall-signing-service/native-sdk-body-control/OUTCOME.md`、`OUTCOME.json`。既定一次 exact error boundary 只读核对已完成，见 `A/overall-signing-service/PMHQ-SCRATCH-ERROR-BOUNDARY.md`：公开／已装JS与已知binary ASCII未找到确切literal／-2出处；llbot.js:72789–72794仅封装收到的res.code/message，未发现可实施的caller contract修复，实际Native失败步骤仍opaque，不能证明未发送。Root已搁置此诊断信道，等待上游支持契约或可用替代地址；用户地址问题仍待答，不要求内部keys。无SDK重试或新GO。取舍背景见 `A/overall-signing-service/POST-NATIVE-FAILURE-OPUS.md`。完整 Goal ACTIVE；SDK／Token／Qimei、合法通知及 protocolTokenHex 异步消费者仍待完整验收，禁止将 SIGN.token 别名为 protocolTokenHex。
 
+## Qimei startup 组合增量（Source／MODEL）
+
+`primary_qimei_application_binding.start_application` 现消费原 ApplicationBinding 与调用方共享 StartupState、context／selector／raw-cipher observations，cold mode1显式folder API先0x23、仅失败再0x1A，成功路径追加Tencent/qimei并检查／创建目录。复用原StartupState、codec及identity parser，main.profile_records实际进入assemble_provider_profile；返回bool仅指identity未变，普通缺失／坏文件可正常置once，异常保留前缀且不强制once。callback引用由调用方跨appid共享、非NULL首次获胜，arg7仅NULL gate；无callback调用／Native注册证明。
+
+该有限组合为Source／MODEL输入链，不是实际用户缓存恢复、Qimei发行或完整a2。getter.initialize/restore及cold bootstrap保持原Boundary；697FA后续任务、AUX690A5、ready与完整模块生命周期仍未闭合。SDK认证安装发布／同runtime新材料消费仍0，Full Goal ACTIVE。实现证据：`A/overall-signing-service/qimei-startup-composition-implementation/`。
+
 ## Own completion 的可观察结果
 
 `complete_own_device_request` 返回 frozen `OwnCompletionResult(outcome, stage, code, cache_updated, publication)`；outcome为failed／processed。stage仅覆盖现有transport、sdk_envelope、sdk_status、auth、material、token_parse、publication路径，code按stage区分namespace，无源数值时为None。非法envelope不再把mode冒充状态码。1003经原状态树规范化后返回failed/sdk_status/1003，保留current及其他pending；不新增retry／refresh／callback／owner关闭策略。
