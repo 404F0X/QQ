@@ -7,9 +7,9 @@
 COORDINATION 只记录调度和操作，不另立业务状态机。
 原长篇过程记录已由 Git 历史及既有 before/input-versions 快照保留，不再复制归档。
 
-## 当前结论（2cee40d，2026-11-26）
+## 当前结论（实际输入源码 e846a5b，2026-11-26）
 
-当前行为源码为 `2cee40dc888f26bca62c537de7ca28edd3fca3b5`：selected12 reply 的可选 extension 缺省已修复。原 Own type1 实际收到184B，当时止于旧 parser；修复后对同一保存 frame 的离线解包得到关联 command/wire、SSO -10003 与空 payload，不追记为当时已完成 public completion。该 SSO 负状态与历史143B的 SDK1003分属不同层，均无已证根因。
+当前实际 Qimei 启动运行绑定源码 `e846a5b9afaf84886262f7bc8e7ac8b2da7e0480`；本次仅同步文档，不改写实际运行版本。该版本承接 `2cee40dc888f26bca62c537de7ca28edd3fca3b5` 的 selected12 reply 可选 extension 修复。原 Own type1 实际收到184B，当时止于旧 parser；修复后对同一保存 frame 的离线解包得到关联 command/wire、SSO -10003 与空 payload，不追记为当时已完成 public completion。该 SSO 负状态与历史143B的 SDK1003分属不同层，均无已证根因。
 
 PUBLIC LLOneBot8.3.2 支持 `send_pb`，但唯一一次实际 NativeEnvelope SDK-body 控制失败：OneBot status=failed／retcode1200，携带 PMHQ code=-2／`build scratch failed`，data=null；outer echo 匹配，回复 command 关联未建立，无 SDK reply。1200不是 SDK retcode；也不能据此断言 SDK 请求未上网或服务器未检查 body。该控制绕过 Own SSO/header/initial SIGN，Native 是否改写／再签未知，可能依赖 Original SIGN，不能作为 fullOwn 证明。
 
@@ -21,7 +21,17 @@ PUBLIC LLOneBot8.3.2 支持 `send_pb`，但唯一一次实际 NativeEnvelope SDK
 
 `primary_qimei_application_binding.start_application` 现消费原 ApplicationBinding 与调用方共享 StartupState、context／selector／raw-cipher observations，cold mode1显式folder API先0x23、仅失败再0x1A，成功路径追加Tencent/qimei并检查／创建目录。复用原StartupState、codec及identity parser，main.profile_records实际进入assemble_provider_profile；返回bool仅指identity未变，普通缺失／坏文件可正常置once，异常保留前缀且不强制once。callback引用由调用方跨appid共享、非NULL首次获胜，arg7仅NULL gate；无callback调用／Native注册证明。
 
-该有限组合为Source／MODEL输入链，不是实际用户缓存恢复、Qimei发行或完整a2。getter.initialize/restore及cold bootstrap保持原Boundary；697FA后续任务、AUX690A5、ready与完整模块生命周期仍未闭合。SDK认证安装发布／同runtime新材料消费仍0，Full Goal ACTIVE。实现证据：`A/overall-signing-service/qimei-startup-composition-implementation/`。
+该组合实现的原证据为Source／MODEL输入链；后续实际identity1读取见下节，不将其外推为非空record1恢复、Qimei发行或完整a2。getter.initialize/restore及cold bootstrap保持原Boundary；697FA后续任务、AUX690A5、ready与完整模块生命周期仍未闭合。SDK认证安装发布／同runtime新材料消费仍0，Full Goal ACTIVE。实现证据：`A/overall-signing-service/qimei-startup-composition-implementation/`。
+
+## Qimei 实际启动：identity changed，main 按 Source 跳过
+
+`OP-QIMEI-OWN-STARTUP-01` 在上述 e846 源码完成一次实际 Own 配置启动。输入域明确为 OWN_KNOWN_ZERO_BEFORE_API：11264B在GetAdaptersInfo前由本方实际初始化为零，已知性来源与API写覆盖分开，不冒充OriginalQQ未知preimage。GetAdaptersInfo调用1次，primary adapter分支产出非零6B selected6，fresh producer经实际classifier/storage流程得到空context；NetBIOS调用0，未到RESET或compiled fallback。
+
+合法所选identity1文件读取144B，经原raw codec与identity projection产生3次更新；随后Source比较判identity changed并清空3个identity记录，跳过main读取，正常置once1。identity0未读，identity0与main文件存在性均UNKNOWN。record1未恢复；profile_associated=true仅表示None==None，不是非空profile、材料认证或消费。所选adapter AddressLength未记录，原比较identity在clear前未保存，不能把不匹配归因于Own preimage或某个adapter。
+
+backend/context/core显式close返回，child RC0并已reap；folder WinDLL引用由child退出释放，没有explicit close。本地静止，无cache内容写入、SDK／网络调用或本探针Native pending。实际1次special-folder createTRUE及1次directory check，无CreateDirectory调用；special-folder原先是否存在／是否由该调用创建UNKNOWN，Source持久目录效果按授权保留，实际路径仅在T。未生成Qimei发行材料，fulla2／getter initialize/restore／AUX／ready仍未闭合，真实install/publication/next SIGN新材料消费仍0，Full Goal ACTIVE。
+
+证据与身份补充：`A/overall-signing-service/qimei-actual-startup-probe/OUTCOME.md`、`OUTCOME.json`。最新取舍见 `A/overall-signing-service/QIMEI-POSTSTARTUP-PRIORITY-OPUS.md`：下一步仅沿Source a2启动后697FA及必要相连链研究第一个合法main.record1 producer/install；不是新actual GO，不读取被跳过main、不换key／MAC或绕过identity changed。既有14项Source／MODEL测试按原输入范围复用，不将其重标为此次实际材料验收。
 
 ## Own completion 的可观察结果
 
@@ -412,13 +422,13 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 
 | 范围 | 必须取得的业务证据 | 当前状态 / 最早缺口 |
 | --- | --- | --- |
-| 固定版本及当前候选 | 固定52230源、候选身份与执行绑定 | 源码基线固定；137正常域候选已冻结 [W] |
+| 固定版本及当前候选 | 固定52230源、候选身份与执行绑定 | 最新Qimei实际运行输入为e846a5b；SDK历史版本分别保留，本次仅文档同步，不重标实际运行。 |
 | 本地17B | 真实输入、独立重算、资源退出 | 局部真实 PASS [M]，非材料B |
 | key25 | 完整生产、持久恢复、真实分支 | method6 局部真实 PASS [D]；其他分支未 actual |
 | 完整137 | 正常采集到编码的真实完整输入 | a7返回137；a5 offline schema/order/types仅适用a5；a7当前schema/order及值语义未独立验证 |
 | SDK请求 | 完整载荷、所需 SIGN、真实发送 | Own 历史 SDK1003与后续184B SSO -10003分开保留；最新 NativeEnvelope 控制为 API1200／PMHQ -2 build scratch failed，不证明服务器 body 接受，见当前结论。 |
 | SDK回包 / Token | 真实关联回包、校验、解析、安装 | 当前2cee修复optional extension；184B离线解包为SSO -10003／空payload。最新控制无SDK reply／completion，认证、安装、发布及消费仍0；历史143B SDK1003证据仅限原交易。 |
-| Qimei | cold / initialized / restored 各自真实契约 | cold 局部受控 PASS [Q]；完整更新未证明 |
+| Qimei | cold / initialized / restored 各自真实契约 | e846实际Own启动：known-zero-before-API域，identity1解码3更新后identity changed清除／main跳过，once1；record1未恢复，profile仅None==None。fulla2/getter/AUX及发行仍未证，见文首实际结论。 |
 | 通知与回调 | 来源合法、注册、分发、生命周期、安装 | 完整真实通知路径未证明 |
 | protocolTokenHex | 异步真实消费者及绑定、空/非法语义 | Native12/V8 等未闭合 |
 | UIN与配置 | 显式配置到实际消费者，身份一致 | freshOptions源投影及本次已安装machine identity进frame逐bytes匹配；UIN/warm/完整运行仍不足，不输出原值 [BR1] |
@@ -434,7 +444,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 传输两侧只读事实已核对：L raw connector本身不认证；C现authenticated51728入口要求ONLINE／session／D2等材料，另建socket并以mode1封包。这不证明fixed52230必须同样；fixed cold12构造未显式D2也不证明prelogin许可。fixed sender更底层readiness实际U类型／vtable尚未绑定，TCP／握手／登录／D2语义均unknown，未证match或mismatch，更未证1003因果；51728标签不等于不兼容，同host也不等于资格完备。最终证据见[TR]，不据临时producer推断扩展结论。
 
 当前同owner本地SIGN结构返回＋正常close的局部里程碑已在a7达成 [L7]，范围NO_NETWORK。
-`c7226cf` 引入有限 reply complete/cancel 入口，后续 fresh binder 已完成一次真实同 owner request→prepare wirecounter→原正常 SIGN 一次→frame→一次发送并收到首个响应 [BR1]。独立读取保存数据确认 command/body、wire32／SDK64、SIGN三字段及sourcefresh配置 bytes 全部匹配，不是长度比较。**当前状态以文首结论为准**：历史SDK1003、实际Own184B的离线SSO -10003、最新NativeEnvelope API1200／PMHQ -2三者分别保留，不混用命名或因果。真实材料链未闭合，完整SIGN独立真值／seq alias仍unknown。既定 exact error boundary 只读核对已完成且无可实施的caller contract修复；此信道已搁置，不扩MSF／VM、Native heap扫描或新SDK请求。根因未证，不归因于特定凭据、登录owner、KDF、cipher或参数。
+`c7226cf` 引入有限 reply complete/cancel 入口，后续 fresh binder 已完成一次真实同 owner request→prepare wirecounter→原正常 SIGN 一次→frame→一次发送并收到首个响应 [BR1]。独立读取保存数据确认 command/body、wire32／SDK64、SIGN三字段及sourcefresh配置 bytes 全部匹配，不是长度比较。**当前状态以文首结论为准**：历史SDK1003、实际Own184B的离线SSO -10003、最新NativeEnvelope API1200／PMHQ -2三者分别保留，不混用命名或因果。真实材料链未闭合，完整SIGN独立真值／seq alias仍unknown。既定 exact error boundary 只读核对已完成且无可实施的caller contract修复；此信道已搁置；Qimei下一步转为上述697FA后续合法producer的Source研究，不扩MSF／VM、Native heap扫描或新SDK请求。根因未证，不归因于特定凭据、登录owner、KDF、cipher或参数。
 
 a7实际请求AES-256-GCM已用独立cryptography AESGCM完成认证解密并匹配保存plain，wire加密字段与保存ciphertext一致 [AE7]。
 该PASS只覆盖一个实际request AEAD边界，不验证key derivation、137 cipher、SIGN算法或server接受。
