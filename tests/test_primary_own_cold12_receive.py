@@ -76,7 +76,7 @@ class Receive(unittest.TestCase):
         cases = [(encoded, b'', InputError),
                  (encoded, frame(sequence=2, command=first.command), InputError),
                  (encoded, frame(sequence=encoded.wire_sequence, command=b'wrong'), InputError),
-                 (encoded, self.wire(encoded, encryption=1), PrimarySemanticUnavailable),
+                 (encoded, self.wire(encoded, encryption=1), InputError),
                  (replace(encoded, sdk_sequence=99), self.wire(encoded), InputError),
                  (replace(encoded, wire_sequence=True), self.wire(encoded), InputError),
                  (foreign, self.wire(foreign), InputError)]

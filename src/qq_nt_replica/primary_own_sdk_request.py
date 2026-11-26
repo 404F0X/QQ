@@ -32,8 +32,10 @@ class OwnColdSdkRequestOwner:
         if self.closed or self.creator!=(os.getpid(),threading.get_native_id()):
             raise InputError('own request requires its open creator process/native thread')
 
-    def create_device_request(self, records):
+    def create_device_request(self, records, *, external_a2_selection=None):
         self._check();runtime=self.runtime
+        if external_a2_selection is not None and (type(external_a2_selection) is not bool or runtime.request_transport is not None):
+            raise InputError('external A2 selection requires bool and no configured transport')
         bound=bytes(_String.read(runtime,runtime.image_base+0x6751840+48).value())
         feature46=feature(runtime,_logger(runtime),46)
         metadata=_String.read(runtime,runtime.image_base+0x6751840+24).value()
@@ -57,6 +59,7 @@ class OwnColdSdkRequestOwner:
         else:
             second=binding.type(self.transport_context)
             a2=second==1
+        if external_a2_selection is not None:a2=external_a2_selection
         sequence=self.sequence
         request=finish_record_request(stage,sdk_sequence=sequence,a2=a2,commands=_COMMANDS)
         self.sequence=(sequence+1)&((1<<64)-1)

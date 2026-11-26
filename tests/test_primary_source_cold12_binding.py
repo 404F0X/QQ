@@ -90,7 +90,7 @@ class Binding(unittest.TestCase):
         owner=ModelOwner();inputs=Inputs();binder=self.bind(owner,inputs)
         first=owner.request();second=owner.request(2);order=[]
         prepare,encode=binder.encoder.prepare,binder.encoder.encode_signed
-        def prepared(command,body):order.append('prepare');return prepare(command,body)
+        def prepared(command,body,**kw):order.append('prepare');return prepare(command,body,**kw)
         def signed(command,body):order.append('sign');return ModelOwner.sign_result(owner,command,body)
         def encoded(request,**kw):
             order.append('encode');self.assertTrue(owner._busy)
@@ -155,3 +155,49 @@ class Binding(unittest.TestCase):
         self.assertEqual(inputs.closes,1)
 
 if __name__=='__main__':unittest.main()
+
+
+class Type1BindingModel(Binding):
+    def test_type1_same_original_pending_and_one_sign(self):
+        from qq_nt_replica.primary_source_cold12 import SourceType1RequestInputs, SourceType1StoredPeer
+        owner=ModelOwner();inputs=Inputs();binder=self.bind(owner,inputs)
+        old=owner.request();request=replace(old,command=b'trpc.o3.ecdh_access.EcdhAccess.SsoSecureA2Access')
+        component=owner._signer._own_sdk_request;component._pending=[(request,b'MODEL')]
+        before=binder.encoder.counter._value
+        with self.assertRaises(InputError):owner.encode_own_cold12(request)
+        self.assertEqual(binder.encoder.counter._value,before);self.assertEqual(owner.signs,[])
+        dto=SourceType1RequestInputs(b'lookup',SourceType1StoredPeer(b'inner',b'outer',bytes(16)))
+        encoded=owner.encode_own_cold12(request,type1=dto)
+        self.assertIs(encoded._request,request);self.assertEqual(encoded._prepared.command,request.command)
+        self.assertEqual(owner.signs,[(request.command,request.body)])
+        component.check_device_request(request)
+        binder.close();self.assertEqual(inputs.closes,0)
+
+    def test_external_selection_rejected_before_body_observation(self):
+        component=ModelOwner()._signer._own_sdk_request
+        component.runtime.request_transport=object()
+        for selection in (True,False,1,b'x'):
+            with patch('qq_nt_replica.primary_own_sdk_request._String.read') as read:
+                with self.assertRaises(InputError):component.create_device_request([],external_a2_selection=selection)
+                read.assert_not_called()
+
+
+    def test_external_selection_is_passed_before_finish_command(self):
+        from contextlib import ExitStack
+        for selected in (None,False,True):
+            component=ModelOwner()._signer._own_sdk_request
+            component.runtime=NS(request_transport=None,image_base=0)
+            component._encoded=False;component._tag=b'MODEL';component.flags=0
+            component.material=object();component.sequence=1;component.clocks={}
+            component.environment=NS();component.capi=object()
+            result=NS(command=b'MODEL final command')
+            prefix='qq_nt_replica.primary_own_sdk_request.'
+            with ExitStack() as stack:
+                stack.enter_context(patch(prefix+'_String.read',return_value=NS(value=lambda:b'')))
+                stack.enter_context(patch(prefix+'_logger',return_value=None))
+                stack.enter_context(patch(prefix+'feature',return_value=0))
+                encode=stack.enter_context(patch(prefix+'encode_record_request',return_value=object()))
+                finish=stack.enter_context(patch(prefix+'finish_record_request',return_value=result))
+                self.assertIs(component.create_device_request([],external_a2_selection=selected),result)
+                self.assertEqual(finish.call_args.kwargs['a2'],bool(selected))
+                self.assertEqual(component.sequence,2);self.assertIs(component._pending[0][0],result)

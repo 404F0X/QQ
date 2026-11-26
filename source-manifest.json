@@ -1832,8 +1832,8 @@
     {
       "path": "src/qq_nt_replica/primary_own_sdk_request.py",
       "classification": "project_source",
-      "source_sha256": "5fc62fea4e1c213f7bfd51f1199685bb991c3d26a7b04d33c4b4adb3bbb31469",
-      "sha256": "5fc62fea4e1c213f7bfd51f1199685bb991c3d26a7b04d33c4b4adb3bbb31469"
+      "source_sha256": "6a0332e39085de88f3437fc6671c61d6c8507a3cfdff8ed5bae06c1ebbce6c4d",
+      "sha256": "6a0332e39085de88f3437fc6671c61d6c8507a3cfdff8ed5bae06c1ebbce6c4d"
     },
     {
       "path": "src/qq_nt_replica/primary_payload.py",
@@ -2459,8 +2459,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_signer.py",
-      "source_sha256": "6e3445b7c3015c9d893dd998feda8999ecf17fff7bd6d011e1cc8e1b5e7a6feb",
-      "sha256": "6e3445b7c3015c9d893dd998feda8999ecf17fff7bd6d011e1cc8e1b5e7a6feb",
+      "source_sha256": "857b691a4e3b28d2645c0f5cfead5e7af8ea19c57ba11e7d0b6ce4da3932d18f",
+      "sha256": "857b691a4e3b28d2645c0f5cfead5e7af8ea19c57ba11e7d0b6ce4da3932d18f",
       "classification": "project_source"
     },
     {
@@ -2501,14 +2501,14 @@
     },
     {
       "path": "src/qq_nt_replica/primary_source_cold12.py",
-      "source_sha256": "557d002ab6f8df8fb4aa7c0f3664a14a97d6e3882ab8b53d299d60f81a5a708e",
-      "sha256": "557d002ab6f8df8fb4aa7c0f3664a14a97d6e3882ab8b53d299d60f81a5a708e",
+      "source_sha256": "5aa7e99eac694f1295869361e1ce8ac09964302bd346ae7739f580c02d41f69a",
+      "sha256": "5aa7e99eac694f1295869361e1ce8ac09964302bd346ae7739f580c02d41f69a",
       "classification": "project_source"
     },
     {
       "path": "src/qq_nt_replica/primary_source_cold12_binding.py",
-      "source_sha256": "d2b404d3b4d2f9c050ce8c0d905ccde3355d3ce31610c8948f6a97786d6138e7",
-      "sha256": "d2b404d3b4d2f9c050ce8c0d905ccde3355d3ce31610c8948f6a97786d6138e7",
+      "source_sha256": "9a7fec5742fa6d09069fbaf510eaad36b192fc34897033b49eec0607133b9136",
+      "sha256": "9a7fec5742fa6d09069fbaf510eaad36b192fc34897033b49eec0607133b9136",
       "classification": "project_source"
     },
     {
@@ -2519,8 +2519,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_source_cold12_reply.py",
-      "source_sha256": "076f42549dc642d83c435d086725102e922fc08ae3dce9ca561f7aca5266f6e7",
-      "sha256": "076f42549dc642d83c435d086725102e922fc08ae3dce9ca561f7aca5266f6e7",
+      "source_sha256": "2b01904197d6175af4b014326b8dfd6933acb302f12b920d6a35a0ab2b3da813",
+      "sha256": "2b01904197d6175af4b014326b8dfd6933acb302f12b920d6a35a0ab2b3da813",
       "classification": "project_source"
     },
     {
@@ -2555,8 +2555,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_sso_tea.py",
-      "source_sha256": "6aa49d9c20f6bb01baba15132d640757c178813ca2782bc971a92c56c5f7ce25",
-      "sha256": "6aa49d9c20f6bb01baba15132d640757c178813ca2782bc971a92c56c5f7ce25",
+      "source_sha256": "456f78ec9adef7ed86b4f3330b44a021317a3fccf7c92d55371db863445bbedb",
+      "sha256": "456f78ec9adef7ed86b4f3330b44a021317a3fccf7c92d55371db863445bbedb",
       "classification": "project_source"
     },
     {
@@ -3014,8 +3014,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_windows_signer.py",
-      "source_sha256": "bd1df5ebaf2a2921c6480813c255acd96874f8a0fc88edaf12199e165b693df4",
-      "sha256": "bd1df5ebaf2a2921c6480813c255acd96874f8a0fc88edaf12199e165b693df4",
+      "source_sha256": "52611c0393a64bb0e2d45421dbe691af03533f1d804f1cbb05a4e7691fd26753",
+      "sha256": "52611c0393a64bb0e2d45421dbe691af03533f1d804f1cbb05a4e7691fd26753",
       "classification": "project_source"
     },
     {

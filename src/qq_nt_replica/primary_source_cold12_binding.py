@@ -55,6 +55,7 @@ class EncodedOwnCold12:
     sdk_sequence: int
     signature_result: PrimarySignatureResult
     _request: object = field(repr=False, compare=False)
+    _prepared: object = field(default=None, repr=False, compare=False)
 
 
 class FreshCold12Binding:
@@ -94,14 +95,14 @@ class FreshCold12Binding:
                 self.component is not getattr(self.signer, '_own_sdk_request', None)):
             raise InputError('cold12 binding requires its idle initialized business owner and SDK component')
 
-    def encode(self, request):
+    def encode(self, request, *, type1=None):
         self._check()
         if self._active:
             raise InputError('cold12 encoding cannot reenter')
         self.component.check_device_request(request)
         self._active = True
         try:
-            prepared = self.encoder.prepare(request.command, request.body)
+            prepared = self.encoder.prepare(request.command, request.body, type1=type1)
             self._check();self.component.check_device_request(request)
             result = self.owner.sign_result(request.command, request.body)
             self._check();self.component.check_device_request(request)
@@ -112,10 +113,10 @@ class FreshCold12Binding:
                 self.owner._state = 'failed'
                 raise
             finally:self.owner._busy = False
-            return EncodedOwnCold12(frame, prepared.wire_sequence, request.sdk_sequence, result, request)
+            return EncodedOwnCold12(frame, prepared.wire_sequence, request.sdk_sequence, result, request, prepared)
         finally:self._active = False
 
-    def receive(self, encoded, frame):
+    def receive(self, encoded, frame, *, type1=None):
         from .primary_source_cold12_reply import decode_source_cold12_reply
         from .primary_own_sdk_response import OwnCompletionResult
         self._check()
@@ -130,7 +131,7 @@ class FreshCold12Binding:
             raise InputError('cold12 encoded request sequence mismatch')
         self._active = True
         try:
-            reply = decode_source_cold12_reply(frame)
+            reply = decode_source_cold12_reply(frame, type1=type1)
             if reply.wire_sequence != encoded.wire_sequence or reply.command != request.command:
                 raise InputError('cold12 reply wire sequence or command mismatch')
             self._check()

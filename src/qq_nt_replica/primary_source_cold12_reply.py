@@ -3,7 +3,8 @@ from dataclasses import dataclass
 
 from .errors import InputError
 from .primary_vm import PrimarySemanticUnavailable
-from .primary_sso_tea import tea_decrypt
+from .primary_sso_tea import tea_decrypt, _decrypt_attempt
+from .primary_source_cold12 import SourceType1ReplyInputs, _project_peer
 
 
 class _Reader:
@@ -81,12 +82,14 @@ def _extension(raw):
     return tuple(sorted(top.items()))
 
 
-def decode_source_cold12_reply(frame):
+def decode_source_cold12_reply(frame, *, type1=None):
     """Decode exactly one prefix-inclusive frame in the proven finite domain.
 
     InputError denotes malformed supported framing; SemanticUnavailable denotes
     an unsupported source branch. Neither result authenticates SDK material.
     """
+    if type1 is not None and type(type1) is not SourceType1ReplyInputs:
+        raise InputError('type1 reply inputs required')
     if type(frame) is not bytes:
         raise InputError('COLD12_REPLY_IMMUTABLE_BYTES_REQUIRED')
     outer = _Reader(frame)
@@ -102,6 +105,15 @@ def decode_source_cold12_reply(frame):
         raise InputError('COLD12_REPLY_EMPTY_BODY')
     if encryption == 2:
         body = tea_decrypt(body, bytes(16))
+    elif encryption == 1:
+        if type1 is None or routing != type1.routing_key:
+            raise InputError('type1 current snapshot and received routing required')
+        ok, count, accepted = _decrypt_attempt(body, _project_peer(type1.current, routing).key78, len(body))
+        if not ok and type1.previous is not None:
+            ok, count, accepted = _decrypt_attempt(body, _project_peer(type1.previous, routing).key78, count)
+        if not ok or not accepted:
+            raise InputError('type1 reply decrypt rejected')
+        body = accepted
     elif encryption != 0:
         raise PrimarySemanticUnavailable('cold12 reply encryption requires unsupported peer/mode')
     reader = _Reader(body)

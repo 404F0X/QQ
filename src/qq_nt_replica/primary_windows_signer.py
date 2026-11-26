@@ -516,20 +516,20 @@ class WindowsSigner:
         self._own_cold12 = FreshCold12Binding(self, inputs, own_inputs=own_inputs,
             appid_override=appid_override, env_setting=env_setting)
 
-    def encode_own_cold12(self, request):
+    def encode_own_cold12(self, request, *, type1=None):
         self._check_owner()
         if self._own_cold12 is None:
             raise InputError('own cold12 binding is not initialized')
-        return self._own_cold12.encode(request)
+        return self._own_cold12.encode(request, type1=type1)
 
-    def receive_own_cold12(self, encoded, frame):
+    def receive_own_cold12(self, encoded, frame, *, type1=None):
         self._check_owner()
         if self._own_cold12 is None:
             raise InputError('own cold12 binding is not initialized')
-        return self._own_cold12.receive(encoded, frame)
+        return self._own_cold12.receive(encoded, frame, type1=type1)
 
-    def create_own_device_request(self, records):
-        return self._operation('create_own_device_request', records)
+    def create_own_device_request(self, records, *, external_a2_selection=None):
+        return self._operation('create_own_device_request', records, external_a2_selection=external_a2_selection)
 
     def complete_own_device_request(self, request, responsebody, *, transport_status):
         return self._operation('complete_own_device_request', request, responsebody, transport_status=transport_status)

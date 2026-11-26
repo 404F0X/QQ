@@ -132,3 +132,47 @@ class Cold12(unittest.TestCase):
         self.assertTrue(failed.closed)
 
 if __name__=='__main__':unittest.main()
+
+
+class Type1Model(Cold12):
+    def test_stored_projection_and_independent_grammar(self):
+        from qq_nt_replica.primary_source_cold12 import SourceType1StoredPeer, SourceType1RequestInputs
+        command = b'trpc.o3.ecdh_access.EcdhAccess.SsoSecureA2Access'
+        for route in (b'', b'route\0binary'):
+            for n in (0, 1, 255, 256):
+                inner, outer, key = bytes(range(256))[:n], b'\0' * n, bytes(16)
+                peer = SourceType1StoredPeer(inner, outer, key)
+                encoder = SourceCold12Encoder(Inputs(), routing_number=0, own_inputs=False)
+                prepared = encoder.prepare(command, b'MODEL\0body', type1=SourceType1RequestInputs(route, peer))
+                wire = encoder.encode_signed(prepared, options=self.options(None), signature_result=PrimarySignatureResult(b'S', b'E', b'T'))
+                cursor = 9
+                def blob(data, width=4):
+                    nonlocal cursor
+                    size=int.from_bytes(data[cursor:cursor+width], 'big')
+                    value=data[cursor+width:cursor+size];cursor+=size;return value
+                def transform(value):
+                    return bytes(b ^ ((len(value) ^ (len(value)>>8)) & 255) ^ 255 for b in value) if route else value
+                self.assertEqual(wire[8], 1)
+                self.assertEqual(blob(wire), transform(outer));self.assertEqual(wire[cursor],0);cursor+=1
+                self.assertEqual(blob(wire),route)
+                plain=tea_decrypt(wire[cursor:], bytes(b^0xef for b in key) if route else key)
+                cursor=28
+                self.assertEqual(blob(plain),transform(inner));self.assertEqual(blob(plain),command)
+                self.assertEqual([blob(plain) for _ in range(3)],[b'',b'option20',b''])
+                self.assertEqual(blob(plain,2),b'option8')
+                self.assertEqual(fields(blob(plain))[24], [b'\x0a\x01S\x12\x01E\x1a\x01T'])
+                self.assertEqual(cursor,int.from_bytes(plain[:4],'big'));self.assertEqual(blob(plain),b'MODEL\0body')
+                self.assertEqual((peer.inner18,peer.outer48,peer.key78),(inner,outer,key))
+                self.assertNotIn('route',repr(prepared));encoder.close()
+
+    def test_type1_input_errors_before_counter(self):
+        from qq_nt_replica.primary_source_cold12 import SourceType1StoredPeer, SourceType1RequestInputs
+        encoder=SourceCold12Encoder(Inputs(),routing_number=0,own_inputs=False)
+        before=encoder.counter._value
+        for key in (b'', b'x'*15, bytearray(16)):
+            with self.assertRaises(InputError):SourceType1StoredPeer(b'',b'',key)
+        for command in (b'unknown',b'trpc.o3.ecdh_access.EcdhAccess.SsoSecureA2Access'):
+            with self.assertRaises(InputError):encoder.prepare(command,b'MODEL')
+        dto=SourceType1RequestInputs(b'',SourceType1StoredPeer(b'',b'',bytes(16)))
+        with self.assertRaises(InputError):encoder.prepare(b'trpc.o3.ecdh_access.EcdhAccess.SsoSecureAccess',b'MODEL',type1=dto)
+        self.assertEqual(encoder.counter._value,before)

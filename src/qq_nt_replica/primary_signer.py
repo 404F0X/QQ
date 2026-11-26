@@ -1173,13 +1173,13 @@ class PrimarySigner:
             raise InputError('own request component already attached')
         self._own_sdk_request = OwnColdSdkRequestOwner(self.runtime, **inputs)
 
-    def create_own_device_request(self, records):
+    def create_own_device_request(self, records, *, external_a2_selection=None):
         component = getattr(self, '_own_sdk_request', None)
         if component is None:
             raise InputError('own request component is not attached')
         from .primary_sign_lifecycle import public_call
         with public_call(self):
-            return component.create_device_request(records)
+            return component.create_device_request(records, external_a2_selection=external_a2_selection)
 
     def complete_own_device_request(self, request, responsebody, *, transport_status):
         from .primary_sign_lifecycle import public_call
