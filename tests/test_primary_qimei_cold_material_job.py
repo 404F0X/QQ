@@ -35,7 +35,7 @@ class ColdJob(unittest.TestCase):
    def check(self):pass
    def read_outer(self):events.append('beacon');return b'a'*32
   globals=QimeiTransportGlobals(None,beacon=QimeiBeacon(None,BeaconBackend()))
-  material=QimeiTransportMaterialProducer(globals=globals,system=producer.system,extras=extras,extension=extension,adapter=None,sdk=contexts,startup=startup,settings=settings,convert_ansi=lambda b:b)
+  material=QimeiTransportMaterialProducer(globals=globals,system=producer.system,extras=extras,extension=extension,adapter=None,sdk=contexts,startup=startup,settings=settings,convert_ansi=lambda b:b,settings_dependencies=producer.settings_dependencies)
   material.produce=lambda owner,kind,sequence:events.append(('material',owner,kind,sequence)) or NS(serialize=lambda:b'header')
   requests=[]
   def encode(value,**kw):
@@ -125,7 +125,7 @@ class ActualFactoryModel(unittest.TestCase):
   extension=QimeiRequestSources(obs,startup=k['startup'],adapter_sources=adapter)
   producer=QimeiRequestProducer(b.owner,b.settings,old.request_producer.sdk_contexts,system,extras,extension)
   globals=QimeiTransportGlobals(obs,beacon=old.material_producer.globals.beacon)
-  material=QimeiTransportMaterialProducer(globals=globals,system=system,extras=extras,extension=extension,adapter=adapter,sdk=producer.sdk_contexts,startup=k['startup'],settings=b.settings,convert_ansi=lambda b:b)
+  material=QimeiTransportMaterialProducer(globals=globals,system=system,extras=extras,extension=extension,adapter=adapter,sdk=producer.sdk_contexts,startup=k['startup'],settings=b.settings,convert_ansi=lambda b:b,settings_dependencies=producer.settings_dependencies)
   # Complete source constructors; codec/material/header/producer/dispatch methods stay original.
   pipeline=QimeiRequestPipeline(producer,material,envelope=QimeiEnvelopeCodec(),configuration=QimeiEnvelopeConfiguration(),transport=QimeiTransportCodec(obs,crt_initial_state=1,clock=lambda:1000000),convert_ansi=lambda b:b,sign_enabled=True)
   dispatch=QimeiSourceDispatch(QimeiDispatchState(7),material,envelope=pipeline.envelope,configuration=pipeline.configuration,transport=pipeline.transport,carrier=None,sign_enabled=True)

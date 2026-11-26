@@ -95,6 +95,7 @@ class QimeiRequestPipeline:
                 or material.sdk is not producer.sdk_contexts
                 or material.sdk.get(binding.owner) is not binding.context
                 or material.settings is not binding.settings
+                or material.settings_dependencies is not producer.settings_dependencies
                 or material.startup is not startup
                 or material.system is not producer.system
                 or material.extras is not producer.extras

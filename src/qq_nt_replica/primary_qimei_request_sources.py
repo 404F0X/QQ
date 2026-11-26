@@ -74,6 +74,9 @@ class QimeiRequestSources:
     def extension_95cfb(self):
         return self.extension_sources.extension_95cfb()
 
+    def firmware_strings(self, initial=(b'', b'', b'', b'', b'', b'')):
+        return self.extension_sources.firmware_strings(initial)
+
     def extension_93ade(self):
         return self.extension_sources.extension_93ade()
 

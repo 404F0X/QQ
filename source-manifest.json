@@ -2138,8 +2138,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_qimei_request_pipeline.py",
-      "source_sha256": "1dac4e8f66c0df90fade6a8a7e2b016332e0fdfcdbcb96e318a0a333bcad0dcb",
-      "sha256": "1dac4e8f66c0df90fade6a8a7e2b016332e0fdfcdbcb96e318a0a333bcad0dcb",
+      "source_sha256": "cbd5f146a2b30a60c932d834ef4af5d1cb96f78d80744ba6af32965054b3dd53",
+      "sha256": "cbd5f146a2b30a60c932d834ef4af5d1cb96f78d80744ba6af32965054b3dd53",
       "classification": "project_source"
     },
     {
@@ -2150,8 +2150,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_qimei_request_sources.py",
-      "source_sha256": "86a2057971cccb7a056ab25398faca82456471a17be7a37cc9511d1d3941d034",
-      "sha256": "86a2057971cccb7a056ab25398faca82456471a17be7a37cc9511d1d3941d034",
+      "source_sha256": "e884e8cdba718d3b105e63d24f158b603ab4b8fb91f52b3c4ea1798791df26cd",
+      "sha256": "e884e8cdba718d3b105e63d24f158b603ab4b8fb91f52b3c4ea1798791df26cd",
       "classification": "project_source"
     },
     {
@@ -2200,8 +2200,8 @@
     },
     {
       "path": "src/qq_nt_replica/primary_qimei_transport_material.py",
-      "source_sha256": "569ac4e27f64396efbbe3539e5478b4e4925e42aa41543498ea2fbf63cbce129",
-      "sha256": "b9f9cf01f54621189b7a14dcd732d2e7e0f7bd00c36241ae4469ede3810addee",
+      "source_sha256": "bfb80303ed20242bcadcff8fda3833030b80fdc4cab1136e3e20a7f1a0c2ed3b",
+      "sha256": "bfb80303ed20242bcadcff8fda3833030b80fdc4cab1136e3e20a7f1a0c2ed3b",
       "classification": "project_source"
     },
     {

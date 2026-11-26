@@ -52,10 +52,11 @@ class QimeiTransportGlobals:
                 self._manager = str(milliseconds).encode('ascii') + random.hex().encode('ascii')
             return self._manager
 
-    def model(self, extension, system, settings):
+    def model(self, extension, system, settings, *, settings_dependencies=None):
         with self._lock:
             if self._model is None:
-                value = extension.firmware_strings().values[5] if settings.flag(9) else b''
+                dependencies = {} if settings_dependencies is None else settings_dependencies
+                value = extension.firmware_strings().values[5] if settings.flag(9, **dependencies) else b''
                 if not value:
                     for name in (b'SystemFamily', b'SystemVersion'):
                         for path in MODEL_KEYS:
@@ -100,10 +101,11 @@ class QimeiTransportGlobals:
 
 
 class QimeiTransportMaterialProducer:
-    def __init__(self, *, globals, system, extras, extension, adapter, sdk, startup, settings, convert_ansi):
+    def __init__(self, *, globals, system, extras, extension, adapter, sdk, startup, settings, convert_ansi, settings_dependencies=None):
         self.globals, self.system, self.extras = globals, system, extras
         self.extension, self.adapter, self.sdk = extension, adapter, sdk
         self.startup, self.settings, self.convert_ansi = startup, settings, convert_ansi
+        self.settings_dependencies = {} if settings_dependencies is None else settings_dependencies
         self._lock = RLock()
         self._backend = None
 
@@ -128,7 +130,7 @@ class QimeiTransportMaterialProducer:
                 basename = path.rsplit(b'\\', 1)[-1]
                 version = self.extras.version_string(path)
                 windows = self._windows()
-                model = self.globals.model(self.extension, self.system, self.settings)
+                model = self.globals.model(self.extension, self.system, self.settings, settings_dependencies=self.settings_dependencies)
                 network = b'net_' + str(self.adapter.refresh().adapter_type & 0xFFFFFFFF).encode('ascii')
                 self._backend = basename, version, windows, model, network
             basename, version, windows, model, network = self._backend

@@ -69,6 +69,14 @@ OwnQimeiMainWriterObservations与typed factory复用原MainWriter／codec／cont
 
 10项检查（7新Own settings＋3原Windows settings回归）按未变输入复用：真实Own临时文件cipher refresh／timestamp／flags、原producer/material/header/envelope/dispatch/reply的完整工厂MODEL接线通过；底层API／熵／service回复为显式MODEL，不是Native I/O重跑或当前服务器settings证明。既有实际硬件GUID的831运行及Own I/O的6ec运行保持原范围，不重标到本次集成版本。没有新actual API／collector／HTTP／SDK／SIGN调用；真实Qimei服务材料、安装发布及新材料SIGN消费仍未证明，Full Goal ACTIVE。证据：`A/overall-signing-service/qimei-owned-settings-implementation/`。
 
+## Fresh-default settings 依赖图与完整纵向 MODEL
+
+当前有限cold job统一同一个原Own settings dependencies字典：producer的timestamp／flags／extras与material共用，material逐次传入globals.model再传flag9；globals不保存appid专属依赖。cold入口保留原owner/settings/context/signature/dispatch约束，并在IO前拒绝不同deps对象。真实缺失Own settings文件仍返回Source2、loaded保持0，后续getter按原语义重复读同一端口；不能预载配置、置loaded1或关默认flags掩盖错误，后续真实IO失败直接传播。QimeiRequestSources.firmware_strings只转发原inner六字段getter；原请求extension_93ade仍为前五字段投影，material取第六字段，无新算法或空值兜底。
+
+此前默认链失败及第四错重排见 `A/overall-signing-service/qimei-default-firmware-facade-implementation/` 和 `qimei-cold-settings-dependency-implementation/`，旧失败按其版本保留。当前12项受影响检查通过：5项fresh-default完整链／边界＋7项既有job。settings由Own工厂真实初始化默认数组（flag9=1、无预载MODEL settings），fresh context通过原classifier／NT storage处理明确的底层MODEL结果初始化；原producer、header/material、envelope、transport crypto、dispatch保留sequence/key/IV、原reply/commit均执行。SMBIOS原parser六个可区分字符串分别进入material第六项及请求前五；Source首次main0接受MODEL CoCreateGuid后53B经原MainWriter写真实Own临时文件，非空MODEL回复在原shared store上按main→identity→identity持久化并进入原profile assembler。bad reply不commit；部分persist失败保留前缀及pending；错deps在IO前拒绝；合法missing后重复读遇PermissionError不变成默认成功。
+
+这里的OS API结果、熵／时钟／服务回复均明确MODEL，部分硬件分支为合法ordinary失败结果；不是完整Windows分支验证或实际服务材料。没有替换高层produce／model／populate，没有新HTTP／SDK／Native／硬件调用。6ec实际Own I/O与831实际Own GUID证据不重标；fulla2/getter/真实HTTP材料认证、安装发布及新材料SIGN消费仍未证，Full Goal ACTIVE。manifest/core导入检查不实例化实际载体，文档／manifest集成不触发重复行为检查。
+
 ## Own completion 的可观察结果
 
 `complete_own_device_request` 返回 frozen `OwnCompletionResult(outcome, stage, code, cache_updated, publication)`；outcome为failed／processed。stage仅覆盖现有transport、sdk_envelope、sdk_status、auth、material、token_parse、publication路径，code按stage区分namespace，无源数值时为None。非法envelope不再把mode冒充状态码。1003经原状态树规范化后返回failed/sdk_status/1003，保留current及其他pending；不新增retry／refresh／callback／owner关闭策略。
