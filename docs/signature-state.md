@@ -71,6 +71,16 @@ parent／child均0、原Popen已reap、匹配owned live0，failures=[]只说明�
 
 官方A2外层需type1；fixed52230合法selector及transport peer／key／ticket producer实际绑定尚未ready。当前fresh cold12仅支持nonA2／type2，不得改命令、放宽白名单或将experimental51728 reference冒充fixed52230证明。官方A2与Own nonA2的场景差异不证明1003原因；登录另有owner，不把未知transport输入泛称登录必需材料。Own真实认证安装及同有效runtime下一SIGN消费仍0／未证，完整Goal保持ACTIVE [A2][RF]。
 
+## 修正内置指纹key后的唯一实际回归
+
+`OP-OWN-SDK-POSTKEY-01` 在候选cf012eb执行一次：实际137条records、发送8866B frame、收到143B reply，同一原pending经public completion返回failed／sdk_status／1003，cache0→0、cache_updated=False、publication=None。响应认证／安装及后续SIGN未达，选材／digest观察0，没有新材料消费；完整Goal仍ACTIVE。相同1003不证明outbound未改变，也不能排除修正与失败的因果关系；未重试，本次actual未另做独立密码数学复核 [POSTKEY]。
+
+本轮实际pending1→0，cancel因无pending而未执行；owner.close、core.close及四个采集资源close均正常返回，failures=[]。parent／child退出0、child已reap、resources0只证明该诊断和所记录清理，不是业务成功或逐handle全量证明 [POSTKEY]。
+
+当前`request_fingerprint`纯函数仅建模内置分支，修正的是该分支41B1CF0 key；合法VM路径使用独立41B1CA0，不能因修正key就称完整Source provider算法已完成。三个当前进程均观察到first predicate1BF81B0、second predicate1C00F90及provider1C00BC0已注册、latch0；但first predicate为false时不论latch都走VM/provider。后续被动读取在身份未变的三个进程中均遍历2个category节点，key0均MISS，故first predicate为FALSE、latch0；按Original控制流，若当前状态调用入口将选择VM/provider。config tree无需读取、state不适用。两个对象均非空，provider／second的实际vfunc分别为wrapper RVA2C5CAA0／2C5CB70；String内容与second返回bool仍unknown。93次／642B读取及关键readset复读稳定，但未持原mutex，非原子快照，不能证明历史SDK caller／分支或1003原因 [FPPROVIDER][FPSTATE]。
+
+现有通用PrimaryVM可复用；796B／85 records及嵌套5428B／638 records已静态解码，具体缺口是class4 opcode body、host1D2AB3E及8192B table绑定、少量parent host adapters与当前动态table输入；静态解码不是执行通过，也未证明需要新建整个VM。按当前取舍暂停VM实现；备选A的被动读取已完成并关闭全部handles／helper，resources0。下一未知为上述两个实际vfunc的provider输入语义Source契约，仍在只读核对；无新增VM实现或SDK请求 [FPVM][FPSTATE]。
+
 ## 整体大签名服务
 
 当前交付形态是 Python 库与 Windows 单 owner 的串行运行时；正常 core 已实现并实际产生 SIGN 三字段，不只是接口外壳。限定当前 C 的入口检索未发现 HTTP 服务；这不是新增 HTTP、部署或池化目标 [OS]。
@@ -587,3 +597,8 @@ R33旧域参考两次有限方向均STOP：四参直接投影未导出state17；
 
 - [FPKEY] `A/overall-signing-service/official-fingerprint-key-fix/{regenerate.py,STATIC-PROOF.json,CHECKS.txt}`：OFFICIAL-FINGERPRINT-KEY-FIX/a1有限静态RVA提取及当前资产绑定；复用固定52230源身份，不执行Original、不重哈希整个PE。历史P提取器与旧官方失败结果保留。
 - [FPRECHECK] `A/overall-signing-service/official-fingerprint-fix-recheck/RESULT.json`：修正后同一不可变官方tuple独立复核FAIL；一次调用，full48=false、tail32=false、首差异offset16，expected与历史失败未改。实际provider／caller状态未证，SDK install／Own consume=0。
+
+- [POSTKEY] `A/overall-signing-service/own-post-key-fix-regression/{OUTCOME.md,OUTCOME.json}`：cf012eb修key后唯一实际回归仍SDK1003；原pending已完成、清理返回及资源0，非业务闭环。
+- [FPPROVIDER] `A/overall-signing-service/official-fingerprint-provider-snapshot/RESULT.md`、`official-fingerprint-source-qualification/{TRANSFORM-CONTRACT.md,PROVIDER-TARGETS.md}`：当前三进程注册值及静态分支语义；历史caller和实际predicate返回未证。
+- [FPVM] `A/overall-signing-service/a2-material-business-contract/{VM-GAP.md,VM-NESTED-GAP.md}`、`official-fingerprint-source-qualification/VM-REUSE.md`：现有VM复用与具体未闭合语义／host／table边界；未执行VM或证明官方向量一致。
+- [FPSTATE] `A/overall-signing-service/official-fingerprint-provider-state/{RESULT.md,RESULT.json}`：三个当前进程category key0缺失及vfunc targets的被动非原子观察；不回推历史请求分支，provider输入语义仍待Source核对。
