@@ -1,11 +1,15 @@
 import ctypes
 import os
 
-from .primary_qimei_extra_sources import HKCU
+from .primary_qimei_extra_sources import ADVERTISING_KEY, EDGE_PROFILES_KEY, HKCU
 from .primary_qimei_observations import CLASSIFIER_RULES
 from .primary_qimei_request import QimeiRequestBoundary, QimeiRequestError
 from .primary_qimei_system_sources import HKLM, PROCESSOR_KEY, PROCESSOR_VALUES, WINDOWS_KEY, BIOS_KEY, BIOS_VALUES, KEYBOARD_KEY, COMPATIBILITY_KEY
 from .primary_windows_qimei_extras import WindowsQimeiExtraObservations
+
+
+_MODEL_REGISTRY_KEY = br'SYSTEM\HardwareConfig\Current'
+_MODEL_REGISTRY_VALUES = (b'SystemFamily', b'SystemVersion')
 
 
 class WindowsQimeiSystemObservations(WindowsQimeiExtraObservations):
@@ -46,7 +50,7 @@ class WindowsQimeiSystemObservations(WindowsQimeiExtraObservations):
         self._ntdll_procedure = None
 
     def _allowed_registry(self, root, path):
-        return ((root == HKLM and (path in (PROCESSOR_KEY, WINDOWS_KEY, BIOS_KEY, br'SYSTEM\ControlSet001\Control\SystemInformation', br'SYSTEM\CurrentControlSet\Control\SystemInformation') or path in {row[0] for row in CLASSIFIER_RULES} or path.startswith(KEYBOARD_KEY)
+        return ((root == HKLM and (path in (PROCESSOR_KEY, WINDOWS_KEY, BIOS_KEY, _MODEL_REGISTRY_KEY, br'SYSTEM\ControlSet001\Control\SystemInformation', br'SYSTEM\CurrentControlSet\Control\SystemInformation') or path in {row[0] for row in CLASSIFIER_RULES} or path.startswith(KEYBOARD_KEY)
                                   or path.startswith(b'BCD00000000\\Objects\\')))
                 or (root == HKCU and path == COMPATIBILITY_KEY))
 
@@ -57,6 +61,8 @@ class WindowsQimeiSystemObservations(WindowsQimeiExtraObservations):
             return value in PROCESSOR_VALUES
         if path in (br'SYSTEM\ControlSet001\Control\SystemInformation',br'SYSTEM\CurrentControlSet\Control\SystemInformation'):
             return value in (b'SystemManufacturer',b'SystemProductName')
+        if path in (_MODEL_REGISTRY_KEY, BIOS_KEY) and value in _MODEL_REGISTRY_VALUES:
+            return True
         if path == BIOS_KEY:
             return value in BIOS_VALUES
         if path == WINDOWS_KEY:
@@ -90,6 +96,12 @@ class WindowsQimeiSystemObservations(WindowsQimeiExtraObservations):
             raise QimeiRequestBoundary('unsupported system observation namespace')
         if name == 'RegOpenKeyExA':
             root, path, reserved, access, target = args
+            # Parent Extra owns these Source domains; retain its value/buffer checks.
+            if path == ADVERTISING_KEY or path == EDGE_PROFILES_KEY or path.startswith(EDGE_PROFILES_KEY + b'\\'):
+                expected_access = 0x108 if path == EDGE_PROFILES_KEY else 0x101
+                if access != expected_access:
+                    raise QimeiRequestBoundary('extra registry access leaves source domain')
+                return super().read(namespace, name, *args)
             if not self._allowed_registry(root, path) or reserved != 0 or access != 0x101 or len(target.data) != 8:
                 raise QimeiRequestBoundary('registry open leaves source system read-only paths')
             self._calls[name] = self._calls.get(name, 0) + 1
@@ -102,6 +114,8 @@ class WindowsQimeiSystemObservations(WindowsQimeiExtraObservations):
         if name == 'RegQueryValueExA':
             handle, key, reserved, type_pointer, target, size = args
             path = self._known_handle(handle)
+            if path == ADVERTISING_KEY or path.startswith(EDGE_PROFILES_KEY + b'\\'):
+                return super().read(namespace, name, *args)
             if reserved != 0 or type_pointer is not None or not self._allowed_value(path, key) or len(size.data) != 4:
                 raise QimeiRequestBoundary('registry query leaves source system contract')
             size_buffer = self._buffer(size)
