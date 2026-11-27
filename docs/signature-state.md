@@ -520,10 +520,12 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 
 ## 7. 最早断点、下一步与完成标准
 
-传输两侧只读事实已核对：L raw connector本身不认证；C现authenticated51728入口要求ONLINE／session／D2等材料，另建socket并以mode1封包。这不证明fixed52230必须同样；fixed cold12构造未显式D2也不证明prelogin许可。fixed sender更底层readiness实际U类型／vtable尚未绑定，TCP／握手／登录／D2语义均unknown，未证match或mismatch，更未证1003因果；51728标签不等于不兼容，同host也不等于资格完备。最终证据见[TR]，不据临时producer推断扩展结论。
+选中TCP路径的Source readiness现已部分闭合：U为`MSFChannelTCP`（ctor3C3CEB8／vtbl4595A38）；VT20表示发送completion仍在途，发送要求AL0，并非SSO reply pending或login枚举；VT28仅表示U+10下层socket owner非空。Source factory先connect，再收到匹配magic／UIN／index的ping，才经callback发布U；不能把raw connect、socket存在或该ping等同账号认证。此结论仅限已核定TCP路径，issuer／account／refresh／expiry／header／endpoint／当前selector仍未闭，旧REPLY_ONLY不升级。[TR]
+
+全局最早未达闭环仍是本方真实成功的SDK材料reply及其后认证、安装、发布与同runtime下一SIGN选材。已有_decode／tokenparse／cache／publish代码不等于这些成功分支已真实通过或全域行为验收；Qimei缺失导致1003等根因无证据，完整a2的必要性／充分性均未建立。Qimei目录、两P1未修、count3、WIP未通过、Native资格撤销与full SIGN等OPEN保持；下一实施合同未定，无自动GO。
 
 当前同owner本地SIGN结构返回＋正常close的局部里程碑已在a7达成 [L7]，范围NO_NETWORK。
-`c7226cf` 引入有限 reply complete/cancel 入口，后续 fresh binder 已完成一次真实同 owner request→prepare wirecounter→原正常 SIGN 一次→frame→一次发送并收到首个响应 [BR1]。独立读取保存数据确认 command/body、wire32／SDK64、SIGN三字段及sourcefresh配置 bytes 全部匹配，不是长度比较。**当前状态以文首结论为准**：历史SDK1003、实际Own184B的离线SSO -10003、最新NativeEnvelope API1200／PMHQ -2三者分别保留，不混用命名或因果。真实材料链未闭合，完整SIGN独立真值／seq alias仍unknown。既定 exact error boundary 只读核对已完成且无可实施的caller contract修复；此信道已搁置；Qimei下一步转为上述697FA后续合法producer的Source研究，不扩MSF／VM、Native heap扫描或新SDK请求。根因未证，不归因于特定凭据、登录owner、KDF、cipher或参数。
+`c7226cf` 引入有限 reply complete/cancel 入口，后续 fresh binder 已完成一次真实同 owner request→prepare wirecounter→原正常 SIGN 一次→frame→一次发送并收到首个响应 [BR1]。独立读取保存数据确认 command/body、wire32／SDK64、SIGN三字段及sourcefresh配置 bytes 全部匹配，不是长度比较。**当前状态以文首结论为准**：历史SDK1003、实际Own184B的离线SSO -10003、最新NativeEnvelope API1200／PMHQ -2三者分别保留，不混用命名或因果。真实材料链未闭合，完整SIGN独立真值／seq alias仍unknown。既定 exact error boundary 只读核对已完成且无可实施的caller contract修复；此信道已搁置；Qimei有限材料因果盘点及本轮type1／issuer来源图均是静态结果，下一实施合同未定，不自动进入a2组装、issuer adapter或任何新请求。根因未证，不归因于特定凭据、登录owner、KDF、cipher或参数。
 
 a7实际请求AES-256-GCM已用独立cryptography AESGCM完成认证解密并匹配保存plain，wire加密字段与保存ciphertext一致 [AE7]。
 该PASS只覆盖一个实际request AEAD边界，不验证key derivation、137 cipher、SIGN算法或server接受。
@@ -668,7 +670,7 @@ fresh成功主干的当前缺口是缺少真实认证成功的非空token／cach
 - [P256] `A/cold12-signed-exchange-a1/independent-p256-a1/RESULT.json`：实际私钥／sharedX未捕获，独立数学检查未执行，结论unknown。
 
 - [POST] `A/overall-signing-service/OPUS-AFTER-RECEIVER-{CONTEXT,ADVICE}.md`：交付后完整brief及顾问取舍，非source审查／行为证据。
-- [TR] `A/overall-signing-service/transport-contract/{fixed52230,login-side}.md`、`transport-contract/readiness-source/RESULT.md`：两侧传输入口与尚未绑定的readiness资格；未证明auth不匹配或1003原因，无新probe授权。
+- [TR] `A/overall-signing-service/transport-contract/{fixed52230,login-side}.md`、`transport-contract/readiness-source/RESULT.md`保留历史范围；新增`type1-issuer-readiness/RESULT.md`闭合选中TCP的U类型／send-completion及socket-owner门／匹配ping发布，`own-login-issuer-compatibility/RESULT.md`给出Own issuer结构候选。认证协议绑定／当前票据有效性仍OPEN，不证明1003原因，无新probe授权。
 
 - [RI] `A/overall-signing-service/request-independent-points/` 下 `p256-{controlled-check,interoperability-diag,source-diagnosis}`、`OPUS-P256-OUTCOME-{CONTEXT,ADVICE}.md`、`sdk-command-selection.md`、`establish-input-reachability.md`、`record137-nonzero-sensitivity/RESULT.json`及`actual137-counterfactual/`：受控独立检查／源边界／HYBRID对照与实际输入缺口各按原范围，不作1003归因。
 
@@ -731,7 +733,7 @@ Latest actual operation `OP-OWN-SDK-SOURCE-PROVIDER-01` (`A/overall-signing-serv
 
 The bounded passive operation `OP-PROVIDER-BOUNDARY-OBSERVE-01` armed two hooks for45s: normal matches0, history GET0, NO_CAPTURE. After the Own hooks were detached/flushed, code readback matched; that readback occurred explicitly before Session.detach. Script unload, session detach and CloseHandle completed, the same QQ remained alive, session13282 exited0 and resources0. The passive tools are sealed pending fresh input; no background hook or expanded observation remains active.
 
-Login-interface query B found existingSessionMaterial with D2,16B D2key and TGT provenance for InfoSync only. ResidentSigner reports SDK_WORK_UNSUPPORTED; R10 protocol_complete=false and sdk_complete=false. No fixed52230 peer+A78 key/ticket/selector contract was established, and D2 must not be treated as A78. The current authenticated-session path forces51728, creates another owner, performs a second SIGN and uses legacy completion; it cannot consume this original pending request. This is not a login-side algorithm takeover or a qualified replacement lane. Existing13+5+4 checks and independent review approval retain their scoped meaning; this documentation update adds no behavioral pass or new execution authority.
+Historical login-interface query B remains limited to its original InfoSync/SDK_WORK_UNSUPPORTED observations; no run or capture is relabeled. The later static source comparison below establishes structural field/wire-role correspondences, superseding a blanket claim that no corresponding input exists. The existing authenticated adapter still forces51728, creates another owner and uses its own SIGN/completion path; it cannot settle the original Own pending. Existing13+5+4 checks retain their scoped meaning; no new behavioral pass or execution authority follows.
 
 ## External type1 consumer（实现与历史 MODEL 范围）
 
@@ -739,7 +741,15 @@ The fixed52230 selected12 consumer accepts explicit immutable `SourceType1Stored
 
 `create_own_device_request(..., external_a2_selection=bool)` supplies the final external A2 selection before command creation, only without a configured request transport; None preserves the existing selection. `encode_own_cold12(..., type1=SourceType1RequestInputs(...))` and `receive_own_cold12(..., type1=SourceType1ReplyInputs(...))` retain the original Own pending and single SIGN. Type1 reply retry is limited to primitive false and shares the published capacity/count. Snapshots are borrowed immutable values, with no login-session ownership.
 
-The implementation itself consumed no SDK/network/Frida GO. A subsequent actual type1 run and the delivered optional-extension fix are described below and in the current conclusion; install/next-SIGN consumption remains unproved. Peer issuance, future snapshot validity, options and endpoint qualification remain unknown. Payload mode and material generation remain unchanged.
+The implementation itself consumed no SDK/network/Frida GO. A subsequent actual type1 run and the delivered optional-extension fix retain their historical scope; install/next-SIGN consumption remains unproved. Payload mode and material generation remain unchanged.
+
+| type1／issuer来源新事实 | 当前资格与必要边界 |
+| --- | --- |
+| 52230 `MSFService.vE8=7375AE UpdateSignaureInfo`接收外部ranges，Source日志角色为a2／d2／d2_key；Session.v40→raw88私有copy→Source加工／history | 注册接口及Source算法／ABI已有静态锚点，实际上层issuer／account绑定、refresh／expiry／撤销及当前header／endpoint／selector仍未闭；注册器本身不发行材料 |
+| OwnLogin实际119字段：143→D2，305→16B D2key，10A→TGT | reference wire的outer48／key78／inner18消费角色分别结构可对，支持**Own issuer输入候选**；不证明TGT语义就是52230 a2或51728票据获跨build接受。必须按Source **raw→stored** 加工，不能把原material直接装入`SourceType1StoredPeer` |
+| 实际导出profile强制51728；代码按注册SSO0／同bound进入同步`on_authenticated(material,profile)`，回调后login socket关闭 | 这是一次RAM快照接点，不移交活socket；没有TTL／刷新／撤销／current-previous API，当前server validity **NOT_RUN**。正常入口选用`login119_overlay`，其TLV遇截断break、重复tag覆盖，不要求完整count／尾部，TEA去末7B未检查全零，不能沿README泛称严格完整解析，不外推独立密码学服务方认证 |
+
+三轴分开：**Source算法／ABI已证到相应静态边界；认证协议与peer/header/account绑定仍未合格；当前server票据有效性NOT_RUN**。这是Own issuer候选，不是production ready，也未把旧REPLY_ONLY提升为outgoing pair或future资格；原pending／一次SIGN／exact reply关联要求保持。来源仅见本地`A/overall-signing-service/type1-issuer-readiness/RESULT.md`与`own-login-issuer-compatibility/RESULT.md`，不上传A/T原始资料或凭据。
 
 ## 已交付 optional selected12 reply extension 修复
 
