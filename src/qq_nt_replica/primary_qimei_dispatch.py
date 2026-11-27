@@ -37,8 +37,9 @@ class QimeiSourceDispatch:
         self.state,self.material_producer=module_state,material_producer
         self.envelope,self.configuration,self.transport=envelope,configuration,transport
         self.carrier,self.sign_enabled=carrier,sign_enabled
-    def dispatch(self,owner,kind,payload,completion,user_context):
-        if not isinstance(self.carrier,QimeiCarrierPort):
+    def dispatch(self,owner,kind,payload,completion,user_context,*,io=None):
+        carrier = self.carrier if io is None else io.carrier
+        if not isinstance(carrier,QimeiCarrierPort):
             raise QimeiRequestBoundary('real default carrier backend is unimplemented; explicit source carrier required')
         if not callable(completion):raise QimeiRequestBoundary('source completion required')
         owner,kind,payload=_bytes(owner),_integer(kind)&0xFFFFFFFF,_bytes(payload)
@@ -48,13 +49,13 @@ class QimeiSourceDispatch:
         signed=sequence-(1<<32) if sequence&0x80000000 else sequence
         prepared=encode_payload(owner,kind,signed,payload,material_producer=self.material_producer,
             envelope=self.envelope,configuration=self.configuration,transport=self.transport,
-            sign_enabled=self.sign_enabled)
+            sign_enabled=self.sign_enabled, **({} if io is None else dict(io=io)))
         record=_Pending(prepared,completion,user_context)
         with self.state.lock:
             if sequence in self.state.pending:raise QimeiRequestBoundary('pending sequence collision outside recovered finite domain')
             self.state.pending[sequence]=record
             # Synchronous outer provider: retain this exact record/key/IV/context.
-            outcome=self.carrier.perform(prepared.http)
+            outcome=carrier.perform(prepared.http)
             if not isinstance(outcome,CarrierOutcome):raise QimeiRequestBoundary('owned source carrier outcome required')
             success=bool(outcome.body)
             status=200 if success else outcome.source_status

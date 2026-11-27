@@ -1984,7 +1984,7 @@
     {
       "path": "src/qq_nt_replica/primary_qimei_beacon.py",
       "source_sha256": "43eea0f9609189b76fd2eefb211f5eb85c2d136a8165e03c9110ebbf779feb96",
-      "sha256": "43eea0f9609189b76fd2eefb211f5eb85c2d136a8165e03c9110ebbf779feb96",
+      "sha256": "40d996e88ffe3afcb41e4a281f1438c7dfae27ecfc6d58f02e7d336f2fe83fa4",
       "classification": "project_source",
       "origin": "MAT-QIMEI-BEACON-IMPLEMENT/a1 new source-derived NORMAL implementation; first stable authoring snapshot: qimei-beacon-implementation/origins/primary_qimei_beacon.py"
     },
@@ -2010,7 +2010,7 @@
     {
       "path": "src/qq_nt_replica/primary_qimei_dispatch.py",
       "source_sha256": "3251a610ebdad80686a9f033f532514ce1ba952fdde72ecbf1f65fd0d1122e69",
-      "sha256": "3251a610ebdad80686a9f033f532514ce1ba952fdde72ecbf1f65fd0d1122e69",
+      "sha256": "382e9d22e400f74f8bffe81077833181e4953ec393d50401861509778ccef478",
       "classification": "project_source",
       "origin": "KIND2-POSTPAYLOAD-DISPATCH-IMPLEMENT/a1 retained-source/primary_qimei_dispatch.py"
     },
@@ -2048,7 +2048,7 @@
     {
       "path": "src/qq_nt_replica/primary_qimei_getter.py",
       "source_sha256": "531684f4d4bc4f008a68026d7b3da8701aaf550ae30ade137463c68b49315bf8",
-      "sha256": "531684f4d4bc4f008a68026d7b3da8701aaf550ae30ade137463c68b49315bf8",
+      "sha256": "c002a6b108e6a3c0aff927be399c03f30cb33e9160e5bddd1bfe85418c6e3934",
       "classification": "project_source",
       "origin": "OWN-QIMEI-COLD-RECORD-INPUT-IMPLEMENT/a1 first-retained-source/primary_qimei_getter.py"
     },
@@ -2067,7 +2067,7 @@
     {
       "path": "src/qq_nt_replica/primary_qimei_ipc.py",
       "source_sha256": "882b573c9581e5a64ddf2b7d283fdf49de480c66ca167044751913604035cfa4",
-      "sha256": "ab12685cc6c7f7745fdc24e5d2e231146d53860aed2b1ed3751535e250c39b4b",
+      "sha256": "f379d57a13131d37792670120049e3aba83b61afc5057118602141b6b8e4557d",
       "classification": "project_source",
       "origin": "MAT-QIMEI-IPC-IMPLEMENT/a1 new source-derived implementation; authoring snapshot: qimei-ipc-implementation/primary_qimei_ipc.py"
     },
@@ -2139,19 +2139,19 @@
     {
       "path": "src/qq_nt_replica/primary_qimei_request_pipeline.py",
       "source_sha256": "cbd5f146a2b30a60c932d834ef4af5d1cb96f78d80744ba6af32965054b3dd53",
-      "sha256": "cbd5f146a2b30a60c932d834ef4af5d1cb96f78d80744ba6af32965054b3dd53",
+      "sha256": "269c2d1e9bd1c5eed4a92a1e212d224375c49cb77a0c3256a282cef8acae4947",
       "classification": "project_source"
     },
     {
       "path": "src/qq_nt_replica/primary_qimei_request_producer.py",
       "source_sha256": "a35dd5753a228c29fcf292d537db894ac7b26a1e192887cb85b32b8f330c6c46",
-      "sha256": "a35dd5753a228c29fcf292d537db894ac7b26a1e192887cb85b32b8f330c6c46",
+      "sha256": "3180ef43edc55d1185397677c36394ef2222bef42f505c13a8da18da6b26e1c6",
       "classification": "project_source"
     },
     {
       "path": "src/qq_nt_replica/primary_qimei_request_sources.py",
       "source_sha256": "e884e8cdba718d3b105e63d24f158b603ab4b8fb91f52b3c4ea1798791df26cd",
-      "sha256": "e884e8cdba718d3b105e63d24f158b603ab4b8fb91f52b3c4ea1798791df26cd",
+      "sha256": "184a5d6569ebadf9bba2c22b6025bc419f650a00eaa3882616fb859fe139bb4b",
       "classification": "project_source"
     },
     {
@@ -2176,7 +2176,7 @@
     {
       "path": "src/qq_nt_replica/primary_qimei_settings_writer.py",
       "source_sha256": "50d94facf0cc9b005d1f0ab140cfc048615bd602d84e3b0994eb356e10ef716b",
-      "sha256": "50d94facf0cc9b005d1f0ab140cfc048615bd602d84e3b0994eb356e10ef716b",
+      "sha256": "ac0e521ab69d815eaf755d11a98510329dd2e4286766aa0fc668e9e6ba2cffaf",
       "classification": "project_source",
       "origin": "MAT-QIMEI-CONFIG-IMPLEMENT/a1 new source-derived implementation; authoring snapshot: qimei-config-implementation/primary_qimei_settings_writer.py"
     },
@@ -2195,13 +2195,13 @@
     {
       "path": "src/qq_nt_replica/primary_qimei_transport_codec.py",
       "source_sha256": "a7b25be30b91c35fec248835261032a51419f45bcf6687ca289619cde3605011",
-      "sha256": "a7b25be30b91c35fec248835261032a51419f45bcf6687ca289619cde3605011",
+      "sha256": "90d2a28584bb54488ba2a3750c02dc51c036c385c366a8d062c1f4f5531ca87b",
       "classification": "project_source"
     },
     {
       "path": "src/qq_nt_replica/primary_qimei_transport_material.py",
       "source_sha256": "bfb80303ed20242bcadcff8fda3833030b80fdc4cab1136e3e20a7f1a0c2ed3b",
-      "sha256": "bfb80303ed20242bcadcff8fda3833030b80fdc4cab1136e3e20a7f1a0c2ed3b",
+      "sha256": "b57d2f395d2b5e6a4d44b3f17960cf75687d24c19110ce3a06528a8045f42d3a",
       "classification": "project_source"
     },
     {
@@ -2923,7 +2923,7 @@
     {
       "path": "src/qq_nt_replica/primary_windows_qimei_config.py",
       "source_sha256": "506eb8cdeed3996a7994702f682169e863b7581f00dbff8922c2a18c6a402155",
-      "sha256": "d54431d6a772ac5b8a34c749c45c74e40d80a0bedd259c8d91c288c67e8286e8",
+      "sha256": "cf5fcac2dfb48b1bd644da8b9a9880498ce0b628726577fdf7f1000bb28c0fd6",
       "classification": "project_source",
       "origin": "MAT-QIMEI-CONFIG-IMPLEMENT/a1 new source-derived implementation; authoring snapshot: qimei-config-implementation/primary_windows_qimei_config.py"
     },
@@ -2967,13 +2967,13 @@
     {
       "path": "src/qq_nt_replica/primary_windows_qimei_executor.py",
       "source_sha256": "6112eabda06ec3ea1584bcfffffc59cd604529c858f7810db518509301cf7922",
-      "sha256": "b71d1fa878cb07146dc2829843ccf6bd57d01f17d2586fb1c0e0dce8dd84e928",
+      "sha256": "8a781c4440fbdf0a879ffb1a6ef11a65f2ef5d2df5846e197d44fa628fa29e97",
       "classification": "project_source"
     },
     {
       "path": "src/qq_nt_replica/primary_windows_qimei_ipc.py",
       "source_sha256": "70146915a7368b99523a72cf2dcef7b42e3f5bfc1ae475f9a9a74cf7cbe4a40f",
-      "sha256": "87badb50f07c40a266695062d8741fc090cea50bfe02113470245add3c1ccabe",
+      "sha256": "8e6f67bdda90cf722bdd8bf23a0d5a5123c7d70d5af82ff12f120dbbc73adab8",
       "classification": "project_source",
       "origin": "MAT-QIMEI-IPC-IMPLEMENT/a1 new source-derived implementation; authoring snapshot: qimei-ipc-implementation/primary_windows_qimei_ipc.py"
     },
@@ -2994,7 +2994,7 @@
     {
       "path": "src/qq_nt_replica/primary_windows_qimei_owned_storage.py",
       "source_sha256": "8191e7709ee0ef39ae5bb77e992555115ab32a0aa920ee9f971206942d4dc682",
-      "sha256": "8191e7709ee0ef39ae5bb77e992555115ab32a0aa920ee9f971206942d4dc682",
+      "sha256": "ec1ac1ecf37ce2ae91477556b89f7ad3219170b4b8726256f6f26f6b1841e1f7",
       "classification": "project_source"
     },
     {
@@ -3013,7 +3013,7 @@
     {
       "path": "src/qq_nt_replica/primary_windows_qimei_settings_writer.py",
       "source_sha256": "c592c0e78c4272da57769c5fc2bc7537d75cd07fc7d83438d6a5be52927f6781",
-      "sha256": "25a9ba152bf9f7e5b87f624ff3b93e417502016bc3aaaf3431fcad74dc60e6b8",
+      "sha256": "d650a419bdcb6a7b7adae433a14412f133d5ecc958ee876d19cd97b68ec3161f",
       "classification": "project_source",
       "origin": "MAT-QIMEI-CONFIG-IMPLEMENT/a1 new source-derived implementation; authoring snapshot: qimei-config-implementation/primary_windows_qimei_settings_writer.py"
     },
@@ -3045,13 +3045,13 @@
     {
       "path": "src/qq_nt_replica/primary_windows_signer.py",
       "source_sha256": "52611c0393a64bb0e2d45421dbe691af03533f1d804f1cbb05a4e7691fd26753",
-      "sha256": "52611c0393a64bb0e2d45421dbe691af03533f1d804f1cbb05a4e7691fd26753",
+      "sha256": "83e60ecd66535b5dce5413a32b0efc634d3efacfd9d9edc2e44f498ba22af718",
       "classification": "project_source"
     },
     {
       "path": "src/qq_nt_replica/primary_windows_signer_setup.py",
       "source_sha256": "113f01339f99eccb2eb56d1cb703577959dd853fc74dcc85250bf5cdac7770d1",
-      "sha256": "113f01339f99eccb2eb56d1cb703577959dd853fc74dcc85250bf5cdac7770d1",
+      "sha256": "09233e1e628284316cae14d906d68e8a6f079f73e0d54e9653c64a271748aed3",
       "classification": "project_source"
     },
     {
@@ -3261,6 +3261,34 @@
       "source_sha256": "09dfc50c5c610b7f660fbb953fdf628679c9e43904114cd6d7b7beefb7f12bb3",
       "sha256": "09dfc50c5c610b7f660fbb953fdf628679c9e43904114cd6d7b7beefb7f12bb3",
       "classification": "fixed_source_derived"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_config_business.py",
+      "source_sha256": "a5a20325925941c5b1509fdd03cf9a2cd20f825a033eebcc04bd4dbb41f5b8f3",
+      "sha256": "a5a20325925941c5b1509fdd03cf9a2cd20f825a033eebcc04bd4dbb41f5b8f3",
+      "classification": "project_source",
+      "origin": "QIMEI-A2-GETTER-VERTICAL-IMPL/a1 Source-derived authored snapshot: qimei-a2-vertical/first-authored-source/primary_qimei_config_business.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_module_backend.py",
+      "source_sha256": "2e1bb4acc927175480a5583fda0e6a3ebc3aa2c60114d23cf6da0006afe9bf71",
+      "sha256": "2e1bb4acc927175480a5583fda0e6a3ebc3aa2c60114d23cf6da0006afe9bf71",
+      "classification": "project_source",
+      "origin": "QIMEI-A2-GETTER-VERTICAL-IMPL/a1 Source-derived authored snapshot: qimei-a2-vertical/first-authored-source/primary_qimei_module_backend.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_windows_qimei_module_io.py",
+      "source_sha256": "950ae9576133c4f3e885f5b35801989e5870f9cb4217a6ed6064f88a7767033d",
+      "sha256": "950ae9576133c4f3e885f5b35801989e5870f9cb4217a6ed6064f88a7767033d",
+      "classification": "project_source",
+      "origin": "QIMEI-A2-GETTER-VERTICAL-IMPL/a1 Source-derived authored snapshot: qimei-a2-vertical/first-authored-source/primary_windows_qimei_module_io.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_windows_qimei_schedule.py",
+      "source_sha256": "b77d222a0311f94cdb815fde8617e51cf618534dc2c892658227984767a55c41",
+      "sha256": "b77d222a0311f94cdb815fde8617e51cf618534dc2c892658227984767a55c41",
+      "classification": "project_source",
+      "origin": "QIMEI-A2-GETTER-VERTICAL-IMPL/a1 Source-derived authored snapshot: qimei-a2-vertical/first-authored-source/primary_windows_qimei_schedule.py"
     }
   ],
   "excluded_pending_assets": [

@@ -57,6 +57,8 @@ class QimeiIPCPool:
         self._unclosed_consumed_events = []
         self._io_lock = threading.RLock()
         self._executor = None
+        self._counter_owner = None
+        self._counter_once = False
         backend.bind(self)
 
     def _check(self, *, _host_cleanup=False):
@@ -71,7 +73,8 @@ class QimeiIPCPool:
         with self._io_lock:
             self._check(); object_name(owner, b'm')
             if self.identity != (os.getpid(), threading.get_native_id()):
-                if operation != 'publish' or not self._executor._permits(owner):
+                if not ((operation == 'publish' and self._executor._permits(owner)) or
+                        self._executor._permits_operation(owner, operation)):
                     raise IPCError('worker IPC operation leaves current publish owner domain')
             if self.active:
                 raise IPCError('IPC source operation is already active')
@@ -159,6 +162,37 @@ class QimeiIPCPool:
                 self.backend.set_event(owner, state.event)
             self._consume_event(state)
             return state.enabled
+
+    def _initialize_counter(self, owner):
+        self._check()
+        if self.identity != (os.getpid(), threading.get_native_id()) or self._counter_owner is not None:
+            raise IPCError('counter owner requires one creator initialization')
+        if owner not in self.states:
+            self.initialize(owner)
+        self._counter_owner = owner
+
+    def _usage_count(self):
+        owner = self._counter_owner
+        if owner is None:
+            raise IPCError('default counter owner not bound')
+        with self._operation(owner, 'counter'):
+            state = self._state(owner)
+            if not self._counter_once:
+                if state.enabled and self._read(state):
+                    value = (int.from_bytes(state.cache[37:41], 'little') + 1) & 0xffffffff
+                    state.cache[37:41] = value.to_bytes(4, 'little')
+                    self.backend.write_view(owner, state.view, _crypt(bytes(state.cache[:41])))
+                self._counter_once = True
+            if not state.enabled or not self._read(state):
+                return 0
+            return int.from_bytes(state.cache[37:41], 'little')
+
+    def _event_cleanup(self, owner):
+        operation = 'event_cleanup'
+        if self.identity != (os.getpid(), threading.get_native_id()) and self._executor._permits_operation(owner, 'event_cleanup_publish'):
+            operation = 'event_cleanup_publish'
+        with self._operation(owner, operation):
+            self._consume_event(self._state(owner))
 
     def dispose_terminal(self):
         if not self._io_lock.acquire(blocking=False):

@@ -18,6 +18,8 @@ class QimeiExecutorTask:
     errors: list = field(default_factory=list)
     thread_id: int = 0
     done: object = field(default_factory=threading.Event, repr=False)
+    business: str | None = None
+    application: object = field(default=None, repr=False)
 
 class OwnQimeiExecutor:
     """Borrow a pool and bridge. FIFO/drain/serialization are explicit Own policies."""
@@ -35,6 +37,7 @@ class OwnQimeiExecutor:
         self._condition=threading.Condition();self._queue=deque();self._slots=[]
         self._published=False;self._sealed=False;self._stop=False;self._shutdown=False
         self.failures=[]
+        self._module = None
         pool._executor=self
         try:
             for index in range(5):
@@ -98,6 +101,40 @@ class OwnQimeiExecutor:
             task=QimeiExecutorTask(owner,body,completion,release)
             self._queue.append(task);self._condition.notify()
             return task
+
+    def _submit_module(self, module, app, business, body):
+        """Finite scheduler capability; public submit remains creator-only."""
+        if (module is not self._module or module.applications.get(app.appid) is not app
+                or business not in ('6B01C', '6A923', '6B0CE')
+                or not module._submission_allowed()):
+            raise IPCError('module callback/task admission unavailable')
+        with self._condition:
+            if not self._published or self._sealed:
+                raise IPCError('executor sealed')
+            task = QimeiExecutorTask(app.appid, body, lambda t: None, lambda t: None,
+                                     business=business, application=app)
+            self._queue.append(task)
+            self._condition.notify()
+            return task
+
+    def _permits_operation(self, owner, operation):
+        if not self._permits():
+            return False
+        tid = threading.get_native_id()
+        with self._condition:
+            for slot in self._slots:
+                task = slot['current']
+                if task is None or task.thread_id != tid or task.application is None:
+                    continue
+                if self._module is None or self._module.applications.get(task.owner) is not task.application:
+                    return False
+                if operation in ('consume', 'event_cleanup'):
+                    return task.business == '6B0CE' and owner == task.owner
+                if operation == 'counter':
+                    return task.business == '6B0CE' and owner == self.pool._counter_owner
+                if operation == 'event_cleanup_publish':
+                    return task.business == '6A923' and owner == task.owner
+        return False
 
     def _worker(self,slot):
         try:

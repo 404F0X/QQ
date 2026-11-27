@@ -78,6 +78,7 @@ def test_owned_factory_real_refresh_real_material_cold_job(tmp_path):
  Path(settings.path.decode()).write_bytes(codec.encode_payload(bytes(record),context=b'').value)
  pipeline.request_producer.settings=settings;pipeline.request_producer.settings_dependencies=deps
  pipeline.material_producer.settings=settings
+ pipeline.material_producer.settings_dependencies=deps
  binding=ApplicationBinding(oldbinding.owner,settings,oldbinding.context,{})
  def clock():
   assert settings.loaded==1 and int.from_bytes(settings.record[1:9],'little')==5

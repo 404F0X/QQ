@@ -27,8 +27,15 @@ class IndependentWindowsSetup:
         self.state = 'preparing'
         self.bootstrap_state = 'not_observed'
 
-    def prepare_business(self, *, uin, machine_id):
-        metadata = business_metadata(uin=uin, machine_id=machine_id)
+    def prepare_business(self, *, uin, machine_id, qimei_owner=None):
+        if qimei_owner is not None:
+            from .primary_qimei_getter import QimeiGetterOwner
+            if (not isinstance(qimei_owner, QimeiGetterOwner) or qimei_owner.status != 'INITIALIZED'
+                    or qimei_owner._module is None
+                    or qimei_owner._module.runtime is not self.owner.signer.runtime):
+                raise InputError('business Qimei getter requires this already active runtime epoch')
+            qimei_owner._module._check(creator=True)
+        metadata = business_metadata(uin=uin, machine_id=machine_id, qimei_owner=qimei_owner)
         self._prepare_provider(metadata)
         self.owner._own_business_machine_id = bytes(metadata.field_20)
 
@@ -171,11 +178,21 @@ class IndependentWindowsSetup:
 
 BUSINESS_QUA = b'V1_WIN_NQ_9.9.33_52230_GW_B'
 
-def business_metadata(*, uin, machine_id):
-    """Explicit own cold profile; caller retains its persistent machine identity."""
+def validate_business_inputs(*, uin, machine_id, qimei_owner=None):
+    """Pure pre-construction validation; never query or initialize Qimei."""
     from .primary_qimei_getter import QimeiGetterOwner
     if type(uin) is not int or not 0 <= uin < 1 << 64:
         raise InputError('business UIN requires uint64')
     if type(machine_id) is not bytes or not machine_id or b'\0' in machine_id:
         raise InputError('business machine_id requires nonempty NUL-free own persistent bytes')
-    return ProviderInitializationMetadata(QimeiGetterOwner().get(), BUSINESS_QUA, str(uin).encode('ascii'), machine_id)
+    if qimei_owner is not None and not isinstance(qimei_owner, QimeiGetterOwner):
+        raise InputError('business metadata requires the same typed Qimei getter owner')
+
+
+def business_metadata(*, uin, machine_id, qimei_owner=None):
+    """First metadata borrows an explicit initialized getter, or the legacy cold domain."""
+    from .primary_qimei_getter import QimeiGetterOwner
+    validate_business_inputs(uin=uin, machine_id=machine_id, qimei_owner=qimei_owner)
+    if qimei_owner is None:
+        qimei_owner = QimeiGetterOwner()
+    return ProviderInitializationMetadata(qimei_owner.get(), BUSINESS_QUA, str(uin).encode('ascii'), machine_id)

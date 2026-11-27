@@ -102,7 +102,9 @@ class QimeiTransportCodec:
         self.crt = QimeiCrtRandom(crt_initial_state)
         self.clock = clock
 
-    def encode(self, plaintext, *, mode=1, long_names=True, extra, configuration=None, sign_enabled=True):
+    def encode(self, plaintext, *, mode=1, long_names=True, extra, configuration=None, sign_enabled=True, io=None):
+        random = self.random if io is None else io.random
+        clock = self.clock if io is None else io.clock
         plaintext = _bytes(plaintext)
         mode = _integer(mode) & 255
         configuration = QimeiEnvelopeConfiguration() if configuration is None else configuration
@@ -112,18 +114,18 @@ class QimeiTransportCodec:
             raise QimeiRequestBoundary('explicit source String extra map required')
         key, iv, wrapped = DEFAULT_K, DEFAULT_IV, b''
         if mode == 1:
-            key, iv = self.random.random_bytes(16), self.random.random_bytes(16)
+            key, iv = random.random_bytes(16), random.random_bytes(16)
             if len(key) != 16 or len(iv) != 16:
                 raise QimeiRequestBoundary('failed random allocation outside normal RSA domain')
             wrapped = _rsa_key(key + iv, self.crt)
         padding = 16 - len(plaintext) % 16
         params = base64.b64encode(_cbc(plaintext + bytes([padding]) * padding, key, iv))
-        nonce_raw = self.random.random_bytes(8)
+        nonce_raw = random.random_bytes(8)
         if len(nonce_raw) != 8:
             raise QimeiRequestBoundary('failed nonce allocation outside normal domain')
         nonce = nonce_raw.hex().encode('ascii')
-        time = str(_clock(self.clock) // 10000).encode('ascii')
-        sign = _sign(mode, wrapped, params, time, nonce, self.clock, configuration) if sign_enabled else b''
+        time = str(_clock(clock) // 10000).encode('ascii')
+        sign = _sign(mode, wrapped, params, time, nonce, clock, configuration) if sign_enabled else b''
         names = (b'crypt',b'key',b'params',b'time',b'nonce',b'sign',b'extra') if long_names else (b'cpt',b'ky',b'pms',b'tm',b'nn',b'sn',b'ext')
         copied = QimeiRequestExtras(dict(extra.values))
         if long_names and copied.values and b'crypt' not in copied.values:

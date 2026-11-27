@@ -41,12 +41,12 @@ class QimeiTransportGlobals:
         self._manager = self._config = b''
         self._model = None
 
-    def manager(self):
+    def manager(self, *, io=None):
         with self._lock:
             if not self._manager:
-                random = self.random.random_bytes(8)
+                random = (self.random if io is None else io.random).random_bytes(8)
                 data = StorageBuffer(bytes(8))
-                unused, output = self._api('GetSystemTimeAsFileTime', (data,), {'data': data})
+                unused, output = (self._api if io is None else io.globals_api)('GetSystemTimeAsFileTime', (data,), {'data': data})
                 delta = _signed(int.from_bytes(output['data'].read(), 'little') - 116444736000000000, 64)
                 milliseconds = abs(delta) // 10000 * (-1 if delta < 0 else 1)
                 self._manager = str(milliseconds).encode('ascii') + random.hex().encode('ascii')
@@ -70,19 +70,19 @@ class QimeiTransportGlobals:
                 self._model = _bytes(value)
             return self._model
 
-    def refresh_config(self):
+    def refresh_config(self, *, io=None):
         """Explicit697FA per-init refresh; no automatic a2 registration."""
         with self._lock:
             if self.beacon is None:
                 raise QimeiRequestBoundary('source beacon refresh producer required')
-            value=self.beacon.refresh()
+            value=self.beacon.refresh(**({} if io is None else dict(backend=io.beacon_backend, producer=io.beacon_producer)))
             self._config=value
             return value
 
-    def config(self):
+    def config(self, *, io=None):
         with self._lock:
             if not self._config and self.beacon is not None:
-                return self.refresh_config()
+                return self.refresh_config(io=io)
             if not self._config:
                 data = StorageBuffer(bytes(261))
                 status, output = self._api('SHGetFolderPathA', (0, 0x801A, 0, 0, data), {'data': data})
@@ -109,34 +109,37 @@ class QimeiTransportMaterialProducer:
         self._lock = RLock()
         self._backend = None
 
-    def _windows(self):
-        status, data = self.system.registry_value(WINDOWS_KEY, b'ProductName', StorageBuffer(bytes(260)))
+    def _windows(self, system=None):
+        system = self.system if system is None else system
+        status, data = system.registry_value(WINDOWS_KEY, b'ProductName', StorageBuffer(bytes(260)))
         product = _cstring(data) if status == 0 else b''
         numbers = []
         for name in (b'CurrentMajorVersionNumber', b'CurrentMinorVersionNumber'):
-            unused, data = self.system.registry_value(WINDOWS_KEY, name, StorageBuffer(bytes(4)))
+            unused, data = system.registry_value(WINDOWS_KEY, name, StorageBuffer(bytes(4)))
             numbers.append(_signed(int.from_bytes(data.read(), 'little'), 32))
-        unused, data = self.system.registry_value(WINDOWS_KEY, b'CurrentBuild', StorageBuffer(bytes(260)))
+        unused, data = system.registry_value(WINDOWS_KEY, b'CurrentBuild', StorageBuffer(bytes(260)))
         level = str(numbers[0]).encode('ascii') + b'.' + str(numbers[1]).encode('ascii') + b'.' + _cstring(data)
         if len(level) >= 260:
             raise QimeiRequestBoundary('Windows level formatting exceeds source buffer')
         return b'Windows ' + product + b',level ' + level
 
-    def produce(self, owner, mode, sequence):
+    def produce(self, owner, mode, sequence, *, io=None):
+        system, extras, extension, adapter = ((self.system, self.extras, self.extension, self.adapter) if io is None else (io.system, io.extras, io.extension, io.adapter))
+        dependencies = self.settings_dependencies if io is None else io.settings_dependencies
         owner, mode, sequence = _bytes(owner), _integer(mode) & 0xFFFFFFFF, _signed(sequence, 32)
         with self._lock:
             if self._backend is None:
-                path = self.system.executable_path().value
+                path = system.executable_path().value
                 basename = path.rsplit(b'\\', 1)[-1]
-                version = self.extras.version_string(path)
-                windows = self._windows()
-                model = self.globals.model(self.extension, self.system, self.settings, settings_dependencies=self.settings_dependencies)
-                network = b'net_' + str(self.adapter.refresh().adapter_type & 0xFFFFFFFF).encode('ascii')
+                version = extras.version_string(path)
+                windows = self._windows(system)
+                model = self.globals.model(extension, system, self.settings, settings_dependencies=dependencies)
+                network = b'net_' + str(adapter.refresh().adapter_type & 0xFFFFFFFF).encode('ascii')
                 self._backend = basename, version, windows, model, network
             basename, version, windows, model, network = self._backend
-            manager = self.globals.manager()
+            manager = self.globals.manager(io=io)
             third = _bytes(self.sdk.get(owner).third) or version
             startup = _bytes(self.startup.main.get(1))
-            config = self.globals.config()
+            config = self.globals.config(io=io)
             return QimeiTransportMaterial((mode, manager, 3, owner, b'5.1.3.16.1', third, windows, model,
-                                           startup[:-1] if startup else b'', config, self.convert_ansi(basename), network, sequence))
+                                           startup[:-1] if startup else b'', config, (self.convert_ansi if io is None else io.convert_ansi)(basename), network, sequence))

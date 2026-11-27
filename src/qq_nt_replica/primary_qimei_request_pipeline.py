@@ -72,7 +72,7 @@ class QimeiRequestPipeline:
     def run_cold_material_job(self, binding, *, startup, dispatch, reply,
                               source_clock,
                               selector, persist, selector_observations=None,
-                              allocate=None, observe=lambda *args: None):
+                              allocate=None, observe=lambda *args: None, io=None):
         """One synchronous attempt; caller owns borrowed resources and persistence.
 
         Only the cold main-empty Source gate is supported. No scheduler, retry,
@@ -117,27 +117,27 @@ class QimeiRequestPipeline:
                 or not callable(source_clock)
                 or not callable(persist)):
             raise QimeiRequestBoundary('explicit beacon, Source clock/timestamp and authorized persistence required')
-        material.globals.refresh_config()
+        material.globals.refresh_config(**({} if io is None else dict(io=io)))
         # 50D00 -> A3F9A refreshes this exact settings record before QWORD+1.
-        binding.settings.refresh(**producer.settings_dependencies)
+        binding.settings.refresh(**(producer.settings_dependencies if io is None else io.settings_dependencies))
         timestamp = int.from_bytes(binding.settings.record[1:9], 'little')
         now = _integer(source_clock())
         elapsed = ((now & 0xffffffffffffffff) - (timestamp & 0xffffffffffffffff)) & 0xffffffffffffffff
         if elapsed < 86400 and startup.main.get(1).split(b'\0',1)[0]:
             raise QimeiRequestBoundary('cold material readiness gate no longer holds')
-        payload = producer.populate().encode(convert_ansi=self.convert_ansi)
+        payload = producer.populate(**({} if io is None else dict(io=io))).encode(convert_ansi=self.convert_ansi if io is None else io.convert_ansi)
         def complete(body, local_code, status, server_code, original):
             parsed = original.receive(body,result_code=local_code,http_status=status,
                 server_code=server_code,allocate=allocate,observe=observe)
             if parsed is not None and parsed.accepted and original.qimei:
                 commit_server_reply(startup,original,selector=selector,persist=persist,
                     selector_observations=selector_observations,observe=observe)
-        dispatch.dispatch(binding.owner,1,payload,complete,reply)  # 972D4 request_object+8; not retry budget3.
+        dispatch.dispatch(binding.owner,1,payload,complete,reply,**({} if io is None else dict(io=io)))  # 972D4 request_object+8; not retry budget3.
         return reply
 
 
 def encode_payload(owner,logical_mode,sequence,payload,*,material_producer,envelope,
-                   configuration,transport,sign_enabled,extra=None):
+                   configuration,transport,sign_enabled,extra=None,io=None):
     """Common post-payload65B74 encoding; does not invoke a device producer."""
     owner,payload=_bytes(owner),_bytes(payload)
     logical_mode,sequence=_integer(logical_mode)&0xFFFFFFFF,_integer(sequence)
@@ -146,9 +146,9 @@ def encode_payload(owner,logical_mode,sequence,payload,*,material_producer,envel
     if type(sign_enabled)is not bool:raise QimeiRequestError('explicit independent signature gate required')
     external={} if extra is None else {_bytes(k):_bytes(v) for k,v in extra.values.items()}
     effective=QimeiRequestExtras(external if external else {b'app_key':owner})
-    header=material_producer.produce(owner,logical_mode,sequence).serialize()
+    header=material_producer.produce(owner,logical_mode,sequence,**({} if io is None else dict(io=io))).serialize()
     encoded=envelope.encode(header,payload,configuration=configuration)
     request=transport.encode(encoded,mode=1 if logical_mode in (1,2) else 2,
-        long_names=bool(external),extra=effective,configuration=configuration,sign_enabled=sign_enabled)
+        long_names=bool(external),extra=effective,configuration=configuration,sign_enabled=sign_enabled,**({} if io is None else dict(io=io)))
     if len(request.body)>=1<<32:raise QimeiRequestBoundary('HTTP body length exceeds source DWORD domain')
     return PreparedQimeiRequest(QimeiHttpRequest(request.body),request,owner,logical_mode,sequence)

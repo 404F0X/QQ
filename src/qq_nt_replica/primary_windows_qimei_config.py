@@ -33,10 +33,11 @@ class WindowsQimeiConfigSources:
         self.__binding = (runtime,epoch,current_epoch,permit,os.getpid(),threading.get_native_id())
         self.__libraries = {}
         self.__wow64 = None
+        self.__closed = False
 
     def _check(self):
         runtime,epoch,current,permit,pid,thread = self.__binding
-        if (not callable(permit) or not permit(runtime,epoch) or current(runtime) is not epoch or
+        if (self.__closed or not callable(permit) or not permit(runtime,epoch) or current(runtime) is not epoch or
                 pid != os.getpid() or thread != threading.get_native_id()):
             raise QimeiRequestBoundary('config platform observation scope unavailable')
 
@@ -95,3 +96,13 @@ class WindowsQimeiConfigSources:
         tm = (C.c_int32*9)(second,minute,hour,day,month-1,year-1900,0,0,0)
         seconds = self._call('ucrtbase','_mktime64',C.c_int64,(C.c_void_p,),C.byref(tm))
         return (seconds*1000+millis)&0xFFFFFFFFFFFFFFFF
+
+    def close(self):
+        if self.__closed:
+            return
+        self._check()
+        from _ctypes import FreeLibrary
+        for name, library in tuple(self.__libraries.items()):
+            FreeLibrary(library._handle)
+            del self.__libraries[name]
+        self.__closed = True

@@ -66,7 +66,7 @@ class WindowsQimeiIPCBackend:
     def _call(self, name, result, types, args):
         self._check()
         if self._pool.identity != (os.getpid(), threading.get_native_id()) and name not in (
-                'SetEvent','CloseHandle'):
+                'SetEvent','CloseHandle','WaitForSingleObject','ResetEvent'):
             raise IPCError('worker Native IPC call leaves publish domain')
         if self._kernel is None:
             if os.name != 'nt' or C.sizeof(C.c_void_p) != 8:
@@ -90,7 +90,8 @@ class WindowsQimeiIPCBackend:
 
     def _raw(self, owner, lease, kind):
         self._check()
-        if self._pool.identity != (os.getpid(), threading.get_native_id()) and not self._pool._executor._permits(owner):
+        if self._pool.identity != (os.getpid(), threading.get_native_id()) and not (
+                self._pool._executor._permits(owner) or self._pool._executor._permits_operation(owner, 'counter')):
             raise IPCError('worker resource owner differs from current task')
         record = self.__resources.get(lease) if type(lease) is _Lease else None
         if (record is None or record.closed or record.owner != owner or record.kind != kind or
@@ -116,7 +117,11 @@ class WindowsQimeiIPCBackend:
             (C.c_void_p,C.c_uint32,C.c_uint32,C.c_uint32,C.c_size_t),(raw,6,0,0,0x400)))
 
     def read_view(self, owner, view):
-        self._creator_only()
+        self._check()
+        if self._pool.identity != (os.getpid(), threading.get_native_id()) and not (
+                self._pool._executor._permits_operation(owner, 'consume') or
+                self._pool._executor._permits_operation(owner, 'counter')):
+            raise IPCError('read requires qualified business task')
         return C.string_at(self._raw(owner,view,'view'),41)
 
     def write_view(self, owner, view, raw):

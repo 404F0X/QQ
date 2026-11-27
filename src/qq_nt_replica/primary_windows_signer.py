@@ -131,13 +131,16 @@ def open_windows_signer(*, bridge_path, storage_root, host_profile_string, initi
                     request_transport=None, construction_setup=None, display_environment='independent_windows', outer_login_config=None, outer_sync_permit=None, own_business_config=None):
     business = None
     if own_business_config is not None:
-        from .primary_windows_signer_setup import business_metadata, validate_independent
+        from .primary_windows_signer_setup import BUSINESS_QUA, validate_business_inputs
         if any(value is not None for value in (outer_login_config, independent_provider_metadata)):
             raise InputError('choose one business, diagnostic or outer initialization mode')
-        if type(own_business_config) is not dict or set(own_business_config) != {'uin', 'machine_id'}:
+        if (type(own_business_config) is not dict or not {'uin', 'machine_id'} <= set(own_business_config)
+                or set(own_business_config) - {'uin', 'machine_id', 'qimei_owner'}):
             raise InputError('business configuration requires explicit uin and machine_id')
-        business = business_metadata(**own_business_config)
-        validate_independent(business, host_profile_string, primary_backend, worker_bridge_path)
+        validate_business_inputs(**own_business_config)
+        if host_profile_string != BUSINESS_QUA or primary_backend != 'direct' or worker_bridge_path is None:
+            raise InputError('business Windows setup requires fixed QUA, direct backend and owned worker bridge')
+        business = True  # Selection only; metadata is produced after construction_setup.
     if outer_login_config is not None and construction_setup is not None:
         raise InputError('source outer entry cannot run an unrelated construction hook first')
     if outer_sync_permit is not None and (outer_login_config is None or not callable(outer_sync_permit)):

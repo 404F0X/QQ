@@ -234,23 +234,25 @@ class QimeiRequestSources:
             raise QimeiRequestBoundary('live startup identity store required')
         return self.startup.identity1.get(2)
 
-    def identity_3fafa(self):
+    def identity_3fafa(self, *, observations=None, write_main=None):
+        api = self._api if observations is None else QimeiExtraSources(observations)._api
+        persist = self.write_main if write_main is None else write_main
         if self.startup is None:
             raise QimeiRequestBoundary('live startup main store required')
         value = self.startup.main.get(0)
         if len(value) != 16 or not any(value):
             value = bytes(16)
-            initialized, unused = self._api('CoInitialize', (None,))
+            initialized, unused = api('CoInitialize', (None,))
             try:
                 data = StorageBuffer.unknown(16)
-                result, output = self._api('CoCreateGuid', (data,), {'data': data})
+                result, output = api('CoCreateGuid', (data,), {'data': data})
                 if result == 0:
                     value = output['data'].read()
             finally:
                 if not initialized & 0x80000000:
-                    self._api('CoUninitialize', ())
+                    api('CoUninitialize', ())
             self.startup.main.set(0, value)
-            if not callable(self.write_main):
+            if not callable(persist):
                 raise QimeiRequestBoundary('source identity update requires complete main-store persistence')
-            self.write_main(self.startup.main)
+            persist(self.startup.main)
         return value.hex().upper().encode('ascii')

@@ -102,19 +102,21 @@ class QimeiBeacon:
         self._raw=bytearray(16)  # Actual mapped132000 initial bytes.
         self._once=0;self._lock=RLock()
 
-    def raw(self):
+    def raw(self, *, backend=None, producer=None):
+        backend = self.backend if backend is None else backend
+        producer = self.producer if producer is None else producer
         with self._lock:
-            self.backend.check()
+            backend.check()
             if self._once==1:return bytes(self._raw)
             if self._once:raise QimeiRequestBoundary('beacon once incomplete after host exception')
             self._once=0xff
-            inputs=self.producer.produce()
+            inputs=producer.produce()
             if inputs.selector_status!=1:raise QimeiRequestBoundary('non-normal selector return unavailable')
-            handle,path,status=self.backend.open_main()
+            handle,path,status=backend.open_main()
             add_cpu=False
             try:
                 if handle is not None and status==0x50:
-                    accepted,add_cpu,digests=validate(inputs,self.backend.read_config(path),self._raw)
+                    accepted,add_cpu,digests=validate(inputs,backend.read_config(path),self._raw)
                 else:accepted=False;digests=None
                 if not accepted:
                     text=inputs.selected6.hex().encode()
@@ -123,18 +125,19 @@ class QimeiBeacon:
                     self._raw[:]=hashlib.md5(text).digest()
                     if digests is None:
                         unused,unused2,digests=validate(inputs,(b'',b'',b'',b'',1),bytearray(16))
-                    if handle is not None:self.backend.persist(handle,path,bytes(self._raw),digests)
+                    if handle is not None:backend.persist(handle,path,bytes(self._raw),digests)
             finally:
-                if handle is not None:self.backend.close(handle)
+                if handle is not None:backend.close(handle)
             self._once=1
             return bytes(self._raw)
 
-    def refresh(self):
-        self.backend.check()
-        value=self.backend.read_outer()
-        if value is None:return self.raw().hex().encode()
+    def refresh(self, *, backend=None, producer=None):
+        backend = self.backend if backend is None else backend
+        backend.check()
+        value=backend.read_outer()
+        if value is None:return self.raw(backend=backend, producer=producer).hex().encode()
         value=_ascii(value)
-        if len(value)!=32:return self.raw().hex().encode()
+        if len(value)!=32:return self.raw(backend=backend, producer=producer).hex().encode()
         if any(byte not in b'0123456789abcdefABCDEF' for byte in value):
             raise QimeiRequestBoundary('outer6914D malformed/unwritten scanf domain unavailable')
         return bytes.fromhex(value.decode()).hex().encode()

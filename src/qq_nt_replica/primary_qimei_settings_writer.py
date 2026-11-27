@@ -4,10 +4,12 @@ from .primary_qimei_settings import RECORD_SIZE
 
 
 class QimeiSettingsWriter:
-    def __init__(self, backend, codec, context_producer, observations):
+    def __init__(self, backend, codec, context_producer, observations, *, attempted=None):
         self.backend,self.codec = backend,codec
         self.context_producer,self.observations = context_producer,observations
-        self.__attempted = set()
+        self.__attempted = set() if attempted is None else attempted
+        if not isinstance(self.__attempted, set):
+            raise QimeiRequestBoundary('shared Source ACL path cache required')
 
     def save(self, path, record):
         self.backend.validate_path(path)

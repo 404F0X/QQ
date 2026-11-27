@@ -320,7 +320,7 @@ def create_owned_qimei_beacon(runtime,epoch,current_epoch,*,permit,root,producer
 
 
 def create_owned_qimei_settings(runtime,epoch,current_epoch,*,permit,root,owner,
-                                codec,context_producer,context_observations):
+                                codec,context_producer,context_observations, _settings=None):
     """Own settings location only; Source record initialization/refresh unchanged.
 
     Caller owns the borrowed codec/context/observations and dedicated root. No
@@ -371,7 +371,16 @@ def create_owned_qimei_settings(runtime,epoch,current_epoch,*,permit,root,owner,
             if physical.is_symlink() or not settings_directory.is_dir():
                 raise QimeiRequestBoundary('Own settings missing leaf not qualified')
             return b''
-    settings=QimeiSettings()
-    settings.initialize_owned_path(path=logical)
+    settings=QimeiSettings() if _settings is None else _settings
+    if _settings is None:
+        settings.initialize_owned_path(path=logical)
+    elif settings.path != logical:
+        raise QimeiRequestBoundary('worker settings path differs from canonical settings')
     return settings,dict(read_file=read_file,codec=codec,context_producer=context_producer,
                          observations=context_observations)
+
+
+def bind_owned_qimei_settings(settings, runtime, epoch, current_epoch, **kwargs):
+    """Bind worker-local file/context IO to the existing canonical record."""
+    unused, dependencies = create_owned_qimei_settings(runtime, epoch, current_epoch, _settings=settings, **kwargs)
+    return dependencies

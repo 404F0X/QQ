@@ -19,11 +19,29 @@ PUBLIC LLOneBot8.3.2 支持 `send_pb`，但唯一一次实际 NativeEnvelope SDK
 
 最新真实里程碑 `QIMEI-COLD-ACTUAL-REGISTRY-REPAIRED-20261127/a1` 绑定Source `21691d2194ecfaf65dfc6d4c660a40a7ea74824c`、manifest `039d9435604a79ff969693976704859447c65e293a088e9032fc84c9989e6ee6`。Root在完整端口表、集中修复及review后明确授权第三次具名exception，使用fresh独立Own store，旧两场景原样保留。唯一parent／perform／send为1／1／1，exit0，无重试；原pending保留的key／IV及请求context完成原回复decode与Source接受gates，accepted=true且Qimei非空，随后commit到Own StartupState.main.record1并按main→identity1→identity1有序持久化；总prefix为[mainGUIDinit,mainreply,identity1,identity1]。pending空、failure0、13项cleanup全成功，两writer的streams／allocations均0、child reaped、资源0，实际运行后C clean。独立证据review APPROVE；见`A/overall-signing-service/qimei-cold-actual-probe/registry-domain-fix/actual/OUTCOME.md`、`RUN-RESULT.json`、`REVIEW.md`。
 
-本次已证明材料网络获取与Own store commit成功；实际HTTP status仍UNKNOWN，逻辑200不是实测HTTP200。runner的“authenticated”仅指上述原decode／accept检查，不是独立密码学发送者认证。public live runtime安装／publication／后续SIGN消费仍0，全Goal未完成。原count2 STOP历史保留；上述具名exception已用完，目前无额外HTTP GO。经Opus咨询，后续继续准备same-live-runtime的有界b初始化读侧／AUX flag12 lifecycle，跨重启材料保留另保持OPEN，两者互不替代；真实store→getter→首次runtime选材尚未实现，原网络成功进程已退出，不声称live reinit或同runtime消费，目前无新HTTP或consumer implementation GO。
+本次已证明材料网络获取与Own store commit成功；实际HTTP status仍UNKNOWN，逻辑200不是实测HTTP200。runner的“authenticated”仅指上述原decode／accept检查，不是独立密码学发送者认证。public live runtime安装／publication／后续SIGN消费仍0，全Goal未完成。原count2 STOP历史保留；上述具名exception已用完，目前无额外HTTP GO。经Opus咨询，后续继续准备same-live-runtime的有界b初始化读侧／AUX flag12 lifecycle，跨重启材料保留另保持OPEN，两者互不替代；真实store→getter→首次runtime选材尚未实现，原网络成功进程已退出，不声称live reinit或同runtime消费，目前无新HTTP GO；fresh OwnHost 实现候选见下文，尚无实际纵向验收资格。
 
 最新只读恢复核对仍绑定Source21691／manifest039d：normal readonly restart的identity解密accepted、context初始化正常、Own profile同path恢复，但selector mismatch触发Source清除内存identity并skip main；postrestore record1为空不代表磁盘为空。清除前actual identity1.record1（AUX）非空为TRUE，flag12默认true，内容本身可进入既有AUX分支，getter／startup资格却未通过。最终attempt4排除hex大小写／reverse表示差异，旧record0未匹配本次唯一actual adapter候选；历史成功时selector／API观察未保存，不能证明硬件变化或caller bug，不强制predicate、不以disk expected回填、不继续采样。跨重启材料保留仍OPEN；原文件未写入，必要资源close正常、无进程债务。初次pure-only审计过严及activation cleanup失败保留为已退出的历史尝试，不冒充外部策略／OS失败。集中证据：`A/overall-signing-service/QIMEI-ACTUAL-RESTORE-RESULT-20261127.md`。
 
-普通first initialize的a2契约已进一步核定：IPC→settings/config→startup→AUX refresh→provider once→executor与任务提交正常return0后，wrapper才发布appid／ready1；cold material job成功不是a2普通返回。50B58可复用既有default settings；61B84是module once构造并发布619C2共享provider，不是arg7 String copy；2CE00(...,5)初始化5个worker，不是等待5秒。必要619C2 provider业务状态／dispatch接口及完整worker shutdown/join仍未知，有限完整组合尚未就绪；不得手置ready1或增加材料成功barrier。来源：`A/overall-signing-service/QIMEI-A2-ORDINARY-CALL-CONTRACT-20261127.md`。
+普通first initialize的a2契约已进一步核定：IPC→settings/config→startup→AUX refresh→provider once→executor与任务提交正常return0后，wrapper才发布appid／ready1；cold material job成功不是a2普通返回。50B58可复用既有default settings；61B84是module once构造并发布619C2共享provider，不是arg7 String copy；2CE00(...,5)初始化5个worker，不是等待5秒。619C2有限provider ctor／module once／shared pair及现有retained dispatch的关联已由后续Source补正闭合；当前fresh OwnHost候选实现见下表，Native实际纵向仍未执行。不得手置ready1或增加材料成功barrier。来源：`A/overall-signing-service/QIMEI-A2-ORDINARY-CALL-CONTRACT-20261127.md`。
+
+fresh OwnHost 纵向本地候选 `QIMEI-A2-GETTER-VERTICAL-IMPL/a1` 当前状态为 **WIP / REQUEST_CHANGES，未通过审查，不是功能交付**。最后批准的feature版本仍为 `653f7a09798404896205181275902d1d718c9954`；当前26个本地候选文件与该版本必须区分，main `27ad5508` 不动。Root仅授权将这26个安全源码／模型tests／manifest／本状态文档作为WIP备份到现有feature draft PR；Git存档不等于批准、合并、发布或目标完成，A/T采集资料不得上传。
+
+独立审查两项P1均未修复：(1)6A923冷材料commit后提前event cleanup并返回，缺失Source成功发布、必要业务续段及通知，getter可读到值不能证明发布／消费闭环；(2)timer queue quiescence提前禁用整个调度adapter的mutex IO，accepted任务drain期间首次instance producer可能失败，而close仍可能继续完成。原失败候选／CHECKS／pins／REVIEW保留历史，不把后续状态文档hash改写为原观察值。
+
+| Source任务／状态 | 当前WIP与有限证据 | 未完成边界 |
+| --- | --- | --- |
+| 501B6／50000／6B659／6B67A | 已写Own mutex／timer真实API适配与fake API分支检查；物理namespace独立，不与QQ对象互操作 | 真实timer未执行；整体生命周期仍有P1-2，不具备纵向Native资格 |
+| B01FD／AFE3C／kind3、6B01C／kind4、6B0CE／6AD70 | 计数／有限payload／retained dispatch／通知辅助路径有受控检查 | 6A923自然成功续段未连通；内部_submit覆盖的部分辅助路径不能作为该续段组合证据 |
+| 6A923成功／空／失败续段 | 纠偏前置静态核对确认6ABB2入队目标为6A3D4，而非6B0CE；6A3D4为kind2 post，必要发送分支依次kind5→kind2→b70/AD488→54411 | 完整52359 producer、AD488第二flag10分支、6A8A7 timer/default flag15→B0A15、first flag14→6BBCE及54211未闭合。540D4明确kind7／4payload／1response，经first flag13 mask0x02/0x04触发；材料副作用Unknown，不能称telemetry或认定无影响 |
+| b70／wrapper／首次metadata | 同store读取、CString／cache和同runtime getter接口在其受控范围通过 | 新材料自然发布／后续业务不完整；单独getter有值不是完整因果闭环。empty AUX690A5、跨restore selector mismatch仍OPEN |
+| Host close | 预期顺序是seal→timer callbacks quiescence→accepted workers drain/join/retire→IO/IPC/mutex/bridge→owner release | 当前实现P1-2违反drain前mutex可用性；不能以close返回声称整个接受任务成功或无债务 |
+
+原216项定向fixture检查是其实际覆盖范围的有效证据，包含自然入口及辅助路径，并非全为内部手调或全部无效；其中一部分内部_submit检查不能证明缺失的6A923自然成功续段。API结果、服务回复和Python控制线程均为MODEL，非Native bridge/timer/IPC/network集成重跑。既往实际IPC／five-worker证据继续限于原版本／原范围。实际Native纵向为 **NOT_RUN**；本方failed composition count为 **3**，Native GO资格已撤销，观察driver准备继续停止。
+
+唯一静态纠偏在预声明的新协议／必要业务unknown硬前置处STOP，未修改代码、未形成新corrective candidate，也未发生第四轮审查。Root已接受材料因果链重规划：full a2组装撤下优先路线，下一步仅做一次只读静态family＋state-effects材料因果图，完成后由Root另立合同，不能自动转实现或恢复Native GO。kind7在材料影响分类前按可能影响材料处理，不能省略。full SIGN、SDK/Token发行、跨重启restore、empty AUX与nonNULL curl等仍OPEN，Goal保持ACTIVE。
+
+证据：`A/overall-signing-service/qimei-a2-vertical/REVIEW.md`、`correction/RESULT.md`、原`CHECKS.json`及pins；决策见`A/overall-signing-service/QIMEI-MATERIAL-CAUSALITY-REPLAN-20261127.md`。本次WIP存档的精确当前26文件指纹与原25个非文档文件未变证明在`WIP-ARCHIVE-PINS.json`、`WIP-ARCHIVE-HANDOFF.json`；它们仅为归档交接，不另立业务状态文档。
 
 此前两次 cold actual 均绑定源码 `7c169b1eb8b87b37b2bf96d3fc66fa5dba9c7942`，各一次parent均exit1，perform/send均0、HTTP无发送、accepted服务材料0，install/publication/同runtime新材料SIGN消费仍0。首次在adapter的GetSystemDirectoryW调用前因错误观察端口拒绝，persist prefix为空；随后仅A内driver改接windows adapter端口及独立extension端口，受控assembly检查与whole-port-map review已完成，不据此声称所有真实Windows路径已验。第二次经req/system进入advertising_id，在OS调用前被registry path guard拒绝；actual prefix `['main']` 仅首次运输GUID main0持久化，不是server材料install。两次child均reaped，cleanup分别12/12、13/13成功，writer stream/allocation债务0，资源0。历史初始preflight NOT_RUN及两次真实失败均保留。证据：`A/overall-signing-service/qimei-cold-actual-probe/OUTCOME.md`、`RUN-RESULT.json`及其`port-wiring-fix/OUTCOME.md`、`RUN-RESULT.json`、`PORT-MAP.md`。
 
@@ -337,8 +355,8 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
   get 合法 empty，不入 DLL、不 auto-init；不是原 QQ 正常 startup 或已初始化 a2 [Q]。
 - fresh SDK config58 的源 constructor 独立零写；非空才 copy，empty 不清 warm 旧值。
   共享 SDK records27/28/89 已接入，3 pure PASS；不是完整 Qimei 或真实服务器接受 [Q]。
-- initialized b 主段取 main record1、最多36B；aux32 的 690A5 未闭合。
-  CONFIG refresh 两次，startup/cache 恢复另属 a2；这些未知仍是 Boundary [Q]。
+- initialized b的fresh Own实现取同main.record1、最多36B/NUL，flag12从同identity1.record1取aux32；合法NEW非空field2支持，empty690A5与restore仍Boundary。
+  当前仅fixture集成通过，实际同epoch getter消费未验收，见上文纵向候选 [Q]。
 - 全新 SDK metadata cache pair24 由真实源 ctor 清空；成功解析且 token 非空才更新。
   失败或 empty 不清 warm metadata；它不等同 Qimei、17B 或 protocolTokenHex [S]。
 
@@ -365,7 +383,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 - `open_windows_signer(..., own_business_config={'uin': uint64_int, 'machine_id': persistent_bytes})`
   显式选择本方 cold profile；`host_profile_string` 必须为 `b'V1_WIN_NQ_9.9.33_52230_GW_B'`，
   必须使用 direct backend 与 owned worker bridge；与 outer login、diagnostic metadata 互斥；可选 construction hook 保留在业务初始化前执行。
-- 从本方 UNINITIALIZED Qimei getter 取得合法 empty，固定源默认 QUA、规范 UIN ASCII、
+- 省略qimei_owner时保留本方UNINITIALIZED getter合法empty域；供应qimei_owner时复用construction stage初始化的同runtime/epoch getter。固定源默认 QUA、规范 UIN ASCII、
   required 非空 NUL-free machine_id 构建既有 ProviderInitializationMetadata；不恢复原 QQ effective profile。
   machine_id 是本方持久 caller 配置，provider 与后续 SDK27/login handoff 须保持同值。
 - 业务及 diagnostic 分别调用共有 provider-init/Host129 primitive，保留公共 owner operation fencing、

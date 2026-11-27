@@ -36,6 +36,12 @@ class WindowsQimeiSettingsWriterBackend(WindowsQimeiConfigSources):
         if path != self.__path:
             raise QimeiRequestBoundary('settings path is outside owned file scope')
 
+    def close(self):
+        if (any(not record.closed for record in self.__files.values()) or
+                self.__failed_allocations or self.__unfreed_netapi):
+            raise QimeiRequestBoundary('settings writer retains native cleanup debt')
+        super().close()
+
     def _api(self,dll,name,result,types,*args):
         return self._call(dll,name,result,types,*args)
 
@@ -185,7 +191,7 @@ class WindowsQimeiSettingsWriterBackend(WindowsQimeiConfigSources):
                 self.acl_results.append(('HeapFree_failed',len(errors)))
 
 
-def create_windows_qimei_settings_writer(runtime,epoch,current_epoch,*,path,permit,codec,context_producer,observations):
+def create_windows_qimei_settings_writer(runtime,epoch,current_epoch,*,path,permit,codec,context_producer,observations,attempted=None):
     from .primary_qimei_settings_writer import QimeiSettingsWriter
     backend=WindowsQimeiSettingsWriterBackend(runtime,epoch,current_epoch,path=path,permit=permit)
-    return QimeiSettingsWriter(backend,codec,context_producer,observations)
+    return QimeiSettingsWriter(backend,codec,context_producer,observations,attempted=attempted)
