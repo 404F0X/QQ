@@ -137,6 +137,7 @@ def open_windows_signer(*, bridge_path, storage_root, host_profile_string, initi
         if (type(own_business_config) is not dict or not {'uin', 'machine_id'} <= set(own_business_config)
                 or set(own_business_config) - {'uin', 'machine_id', 'qimei_owner'}):
             raise InputError('business configuration requires explicit uin and machine_id')
+        own_business_config = dict(own_business_config)
         validate_business_inputs(**own_business_config)
         if host_profile_string != BUSINESS_QUA or primary_backend != 'direct' or worker_bridge_path is None:
             raise InputError('business Windows setup requires fixed QUA, direct backend and owned worker bridge')
@@ -262,6 +263,7 @@ def open_windows_signer(*, bridge_path, storage_root, host_profile_string, initi
             from .primary_windows_signer_setup import IndependentWindowsSetup
             owner._independent_setup = IndependentWindowsSetup(owner)
             owner._independent_setup.prepare_business(**own_business_config)
+            owner._own_business_uin = own_business_config['uin']
             owner._own_business_initialized = True
         elif independent_provider_metadata is not None:
             from .primary_windows_signer_setup import IndependentWindowsSetup
@@ -503,6 +505,16 @@ class WindowsSigner:
 
     def initialize_sdk(self):
         return self._operation('initialize_sdk')
+
+    def own_business_identity(self):
+        self._check_owner()
+        if (self._state != 'open' or self._busy or
+                not getattr(self, '_own_business_initialized', False)):
+            raise InputError('OWN_SESSION_BUSINESS_OWNER_REQUIRED')
+        return self._own_business_uin, self._own_business_machine_id
+
+    def set_own_session_id(self, session_id, *, sender):
+        return self._operation('set_own_session_id', session_id, sender=sender)
 
     def initialize_own_sdk_request(self, **inputs):
         if not getattr(self, '_own_business_initialized', False):

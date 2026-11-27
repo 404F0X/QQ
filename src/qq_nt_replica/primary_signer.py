@@ -1173,10 +1173,18 @@ class PrimarySigner:
             raise InputError('own request component already attached')
         self._own_sdk_request = OwnColdSdkRequestOwner(self.runtime, **inputs)
 
+    def set_own_session_id(self, session_id, *, sender):
+        component = getattr(self, '_own_sdk_request', None)
+        if component is None:
+            raise InputError('own request component is not attached')
+        # No native call is implied by this Own service projection.
+        return component.set_own_session_id(session_id, sender=sender)
+
     def create_own_device_request(self, records, *, external_a2_selection=None):
         component = getattr(self, '_own_sdk_request', None)
         if component is None:
             raise InputError('own request component is not attached')
+        component.check_create_device_request(external_a2_selection)
         from .primary_sign_lifecycle import public_call
         with public_call(self):
             return component.create_device_request(records, external_a2_selection=external_a2_selection)

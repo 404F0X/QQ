@@ -9,6 +9,18 @@ from .primary_sdk_request import encode_record_request, finish_record_request
 from .primary_logger import _String, feature
 from .primary_worker_consumer import _logger
 
+class _SessionReceiver:
+    """Own projection of 1BE3060 / VT10=63EC0; retains the actual sender."""
+    def __init__(self, sender):
+        self.sender = sender
+
+    def type(self, context):
+        return 0
+
+    def send(self, request):
+        return self.sender.send_original(request)
+
+
 class OwnColdSdkRequestOwner:
     def __init__(self, runtime, *, request_capi, clock_inputs, random_environment,
                  state17_owner=None, transport_context=None):
@@ -25,6 +37,8 @@ class OwnColdSdkRequestOwner:
         self.environment=random_environment;self.state17_owner=state17_owner
         self.transport_context=transport_context;self.material=RequestMaterialState()
         self.sequence=1;self.flags=0;self.closed=False;self._pending=[];self._completion=None
+        self._session_id = self._session_receiver = None
+        self._session_binding_failed = False
         self.creator=(os.getpid(),threading.get_native_id())
         self._tag=bytes.fromhex('4d4c5c7b4146494d');self._encoded=True
 
@@ -32,10 +46,47 @@ class OwnColdSdkRequestOwner:
         if self.closed or self.creator!=(os.getpid(),threading.get_native_id()):
             raise InputError('own request requires its open creator process/native thread')
 
-    def create_device_request(self, records, *, external_a2_selection=None):
+    def set_own_session_id(self, session_id, *, sender):
+        self._check()
+        if (type(session_id) is not str or not session_id or '\0' in session_id or
+                not all(callable(getattr(sender, name, None)) for name in
+                        ('start', 'check_request', 'send_original', 'check_binding'))):
+            raise InputError('OWN_SESSION_INPUTS')
+        try:
+            session_id.encode('utf-8', errors='strict')
+        except UnicodeError:
+            raise InputError('OWN_SESSION_INPUTS') from None
+        if (self.runtime.request_transport is not None or self._session_id is not None or
+                self._pending or self._completion is not None or self._session_binding_failed):
+            raise InputError('OWN_SESSION_BINDING_CONFLICT')
+        sender.check_binding(self)
+        # Source 72B078 saves String before receiver publication, then exchanges
+        # the gate BYTE before the remaining service startup effects.
+        self._session_id = session_id
+        try:
+            self._session_receiver = _SessionReceiver(sender)
+            self.flags = (self.flags & ~255) | 1
+            sender.start()
+        except BaseException:
+            self._session_binding_failed = True
+            raise
+
+    def check_create_device_request(self, external_a2_selection):
         self._check();runtime=self.runtime
+        receiver = getattr(self, '_session_receiver', None)
+        if getattr(self, '_session_binding_failed', False):
+            raise InputError('OWN_SESSION_BOOTSTRAP_FAILED')
+        if receiver is not None:
+            if runtime.request_transport is not None or external_a2_selection is not None:
+                raise InputError('OWN_SESSION_BINDING_CONFLICT')
+            receiver.sender.check_request()
         if external_a2_selection is not None and (type(external_a2_selection) is not bool or runtime.request_transport is not None):
             raise InputError('external A2 selection requires bool and no configured transport')
+
+    def create_device_request(self, records, *, external_a2_selection=None):
+        self.check_create_device_request(external_a2_selection)
+        runtime = self.runtime
+        receiver = getattr(self, '_session_receiver', None)
         bound=bytes(_String.read(runtime,runtime.image_base+0x6751840+48).value())
         feature46=feature(runtime,_logger(runtime),46)
         metadata=_String.read(runtime,runtime.image_base+0x6751840+24).value()
@@ -53,7 +104,7 @@ class OwnColdSdkRequestOwner:
             cipher_inputs=cipher,
             encoding_inputs=dict(self.clocks,random_word=lambda:int.from_bytes(self.environment.random_bytes(4),'little'),capi=self.capi,
                 fingerprint_operation=lambda digest,nonce:source_request_fingerprint(runtime,digest,nonce)))
-        binding=runtime.request_transport
+        binding=receiver if receiver is not None else runtime.request_transport
         first=None if binding is None else binding.type(self.transport_context)
         if first in (None,0):a2=bool(self.flags&1)
         else:

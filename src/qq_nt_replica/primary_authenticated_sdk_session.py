@@ -225,3 +225,283 @@ class AuthenticatedSdkSession:
         self._context = self._wire_profile = self._transport = self._channel = None
         self._owner = self._runtime = None
         self._state = 'closed'
+
+class _OwnBootstrapCarrier:
+    """Single-thread, prefix-inclusive channel; Source matching ping precedes use."""
+    _MAX = 0x500000
+
+    def __init__(self, connector, *, uin, ping_index, deadline, clock):
+        import threading
+        self._thread = (os.getpid(), threading.get_native_id())
+        self._connector, self._uin, self._index = connector, uin, ping_index
+        self._deadline, self._clock = deadline, clock
+        self._channel = None
+        self._buffer = bytearray()
+        self._published = self._inflight = self._closed = False
+        self._close_failure = None
+
+    def _live(self):
+        import threading
+        if self._thread != (os.getpid(), threading.get_native_id()):
+            raise AuthenticatedSessionError('OWN_BOOTSTRAP_THREAD')
+        remaining = self._deadline - self._clock()
+        if self._closed or remaining <= 0:
+            raise AuthenticatedSessionError('OWN_BOOTSTRAP_DEADLINE_OR_CLOSED')
+        return remaining
+
+    def _send(self, frame):
+        self._live()
+        if self._channel is None or self._inflight:
+            raise AuthenticatedSessionError('OWN_BOOTSTRAP_SEND_BUSY_OR_NO_SOCKET')
+        self._inflight = True
+        try:
+            offset = 0
+            while offset < len(frame):
+                self._live()
+                count = self._channel.send(frame[offset:])
+                # SsoSocket.send uses sendall and returns None. Injectable raw
+                # ports may return the number actually written.
+                if count is None:
+                    offset = len(frame)
+                elif type(count) is int and 0 < count <= len(frame) - offset:
+                    offset += count
+                else:
+                    raise AuthenticatedSessionError('OWN_BOOTSTRAP_PARTIAL_WRITE')
+        finally:
+            self._inflight = False
+
+    def _frame(self, minimum=4):
+        while True:
+            remaining = self._live()
+            if len(self._buffer) >= 4:
+                count = int.from_bytes(self._buffer[:4], 'big')
+                if not minimum <= count <= self._MAX:
+                    raise AuthenticatedSessionError('OWN_BOOTSTRAP_FRAME_LENGTH')
+                if len(self._buffer) >= count:
+                    frame = bytes(self._buffer[:count])
+                    del self._buffer[:count]
+                    return frame
+            chunk = self._channel.receive(timeout=min(.1, remaining))
+            if chunk is None:
+                continue
+            if type(chunk) is not bytes or not chunk:
+                raise AuthenticatedSessionError('OWN_BOOTSTRAP_EOF_OR_CHUNK')
+            self._buffer.extend(chunk)
+
+    def start(self):
+        self._live()
+        if self._channel is not None:
+            raise AuthenticatedSessionError('OWN_BOOTSTRAP_CONNECT_ONCE')
+        self._channel = self._connector(timeout=min(10., self._live()))
+        self._channel._claim_transport()
+        ping = bytearray.fromhex('000000150133523900000000044d53460500000000')
+        ping[8:12] = (self._uin & 0xffffffff).to_bytes(4, 'big')
+        ping[17:21] = self._index.to_bytes(4, 'big')
+        self._send(bytes(ping))
+        reply = self._frame(21)
+        if (reply[4:8] != ping[4:8] or reply[8:12] != ping[8:12] or
+                reply[12:16] != ping[12:16] or reply[17:21] != ping[17:21]):
+            raise AuthenticatedSessionError('OWN_BOOTSTRAP_PING_MISMATCH')
+        self._published = True
+
+    def exchange(self, frame):
+        self._live()
+        if not self._published:
+            raise AuthenticatedSessionError('OWN_BOOTSTRAP_MATCHING_PING_REQUIRED')
+        if (type(frame) is not bytes or not 4 <= len(frame) <= self._MAX or
+                int.from_bytes(frame[:4], 'big') != len(frame)):
+            raise AuthenticatedSessionError('OWN_BOOTSTRAP_COMPLETE_FRAME_REQUIRED')
+        self._send(frame)
+        return self._frame()
+
+    def close(self):
+        import threading
+        if self._thread != (os.getpid(), threading.get_native_id()) or self._inflight:
+            raise AuthenticatedSessionError('OWN_BOOTSTRAP_CLOSE_THREAD_OR_BUSY')
+        if self._close_failure is not None:
+            raise self._close_failure
+        if self._closed:
+            return
+        self._published = False
+        try:
+            if self._channel is not None:
+                self._channel.close()
+        except BaseException as error:
+            self._close_failure = error
+            raise
+        self._closed = True
+        self._buffer.clear()
+
+
+class OwnBootstrapSdkSession:
+    """Experimental Own 51728 wire candidate / Source 52230 algorithm boundary.
+
+    SID is a local service label, independent of protocol account/routing. No
+    ticket TTL, renewal, Native issuer or server acceptance is asserted here.
+    The initialized business owner is supplied by the existing Windows factory.
+    """
+    def __init__(self, material, profile, *, owner, records, session_id,
+                 request_capi, clock_inputs, random_environment, state17_owner,
+                 cold12_inputs, own_cold12_inputs, appid_override, env_setting,
+                 connector, ping_index, deadline, own_owner, clock=time.monotonic):
+        self._context, self._wire_profile = packet_inputs(material, profile)
+        context = self._context
+        if (not callable(connector) or not callable(clock) or
+                type(deadline) not in (int, float) or not math.isfinite(deadline) or deadline <= clock() or
+                type(ping_index) is not int or not 0 <= ping_index < 1 << 32 or
+                type(own_owner) is not bool or type(own_cold12_inputs) is not bool):
+            raise AuthenticatedSessionError('OWN_BOOTSTRAP_EXPLICIT_INPUTS')
+        if type(session_id) is not str or not session_id or '\0' in session_id:
+            raise AuthenticatedSessionError('OWN_SESSION_INPUTS')
+        session_id.encode('utf-8', errors='strict')
+        uin = material.uin
+        if type(uin) is not int or not 0 < uin < 1 << 64:
+            raise AuthenticatedSessionError('OWN_BOOTSTRAP_POSITIVE_UIN')
+        identity = owner.own_business_identity()
+        if identity != (uin, context.guid.hex().encode('ascii')):
+            raise AuthenticatedSessionError('OWN_BOOTSTRAP_OWNER_IDENTITY')
+        if (owner._signer.runtime.request_transport is not None or
+                getattr(owner._signer, '_own_sdk_request', None) is not None or
+                getattr(owner, '_own_cold12', None) is not None):
+            raise AuthenticatedSessionError('OWN_SESSION_BINDING_CONFLICT')
+        from .primary_source_cold12 import store_own_type1_peer, SourceType1RequestInputs
+        key = str(uin).encode('ascii')
+        peer = store_own_type1_peer(context.tgt, context.d2, context.d2_key, lookup_key=key)
+        self._request_inputs = SourceType1RequestInputs(key, peer)
+        self._owner, self._own_owner = owner, own_owner
+        self._runtime = owner._signer.runtime
+        self._component = None
+        self._records, self._session_id = records, session_id
+        self._request_config = dict(request_capi=request_capi, clock_inputs=clock_inputs,
+            random_environment=random_environment, state17_owner=state17_owner)
+        self._cold_config = dict(inputs=cold12_inputs, own_inputs=own_cold12_inputs,
+            appid_override=appid_override, env_setting=env_setting)
+        self._carrier = _OwnBootstrapCarrier(connector, uin=uin, ping_index=ping_index,
+            deadline=deadline, clock=clock)
+        self._state = 'new'
+        self._original = self._encoded = self._binding = None
+        self._bind_attempted = self._unbound_inputs_closed = False
+        self._unbound_inputs_failure = None
+        self.diagnostic_stage = 'own_bootstrap_inputs'
+
+    def __repr__(self):
+        return '<OwnBootstrapSdkSession private>'
+
+    def check_binding(self, component):
+        from .errors import InputError
+        if self._state != 'running':
+            raise InputError('OWN_BOOTSTRAP_FOREIGN_BINDING')
+        try:
+            self._carrier._live()
+        except AuthenticatedSessionError as error:
+            raise InputError('OWN_BOOTSTRAP_BINDING_NOT_LIVE') from error
+        self._owner._check_owner()
+        if (self._state != 'running' or self._component is not component or
+                component is not self._owner._signer._own_sdk_request or
+                component.runtime is not self._runtime or
+                self._owner._signer.runtime is not self._runtime):
+            raise InputError('OWN_BOOTSTRAP_FOREIGN_BINDING')
+
+    def check_request(self):
+        from .errors import InputError
+        if self._state != 'running':
+            raise InputError('OWN_BOOTSTRAP_SINGLE_ORIGINAL')
+        self._carrier._live()
+        if (self._state != 'running' or self._original is not None or
+                self._owner._signer.runtime is not self._runtime or
+                self._component is not self._owner._signer._own_sdk_request):
+            raise AuthenticatedSessionError('OWN_BOOTSTRAP_SINGLE_ORIGINAL')
+
+    def start(self):
+        if self._state != 'running':
+            raise AuthenticatedSessionError('OWN_BOOTSTRAP_SINGLE_USE')
+        self.diagnostic_stage = 'own_bootstrap_ping'
+        self._carrier.start()
+
+    def send_original(self, request):
+        from .primary_source_cold12 import SourceType1ReplyInputs
+        if self._state != 'running' or self._original is not request:
+            raise AuthenticatedSessionError('OWN_BOOTSTRAP_ORIGINAL_REQUIRED')
+        # Hold this original across encode, socket callbacks and reply settlement.
+        self._state = 'sending'
+        self._carrier._live()
+        self.diagnostic_stage = 'own_bootstrap_encode'
+        self._encoded = self._owner.encode_own_cold12(request, type1=self._request_inputs)
+        self.diagnostic_stage = 'own_bootstrap_exchange'
+        frame = self._carrier.exchange(self._encoded.frame)
+        # Read actual outer routing before selecting a current peer snapshot.
+        # Full decoder and exact command/wire correlation remain authoritative.
+        if len(frame) < 14:
+            raise AuthenticatedSessionError('OWN_BOOTSTRAP_REPLY_OUTER')
+        size = int.from_bytes(frame[10:14], 'big')
+        if size < 4 or 10 + size > len(frame):
+            raise AuthenticatedSessionError('OWN_BOOTSTRAP_REPLY_ROUTING_LENGTH')
+        routing = frame[14:10 + size]
+        if routing != self._request_inputs.lookup_key:
+            raise AuthenticatedSessionError('OWN_BOOTSTRAP_UNKNOWN_RECEIVED_ROUTING')
+        reply_inputs = SourceType1ReplyInputs(routing, self._request_inputs.peer, None)
+        self.diagnostic_stage = 'own_bootstrap_receive'
+        return self._owner.receive_own_cold12(self._encoded, frame, type1=reply_inputs)
+
+    def run(self):
+        if self._state != 'new':
+            raise AuthenticatedSessionError('OWN_BOOTSTRAP_SINGLE_USE')
+        self._state = 'running'
+        try:
+            self._owner.initialize_own_sdk_request(**self._request_config)
+            self._component = self._owner._signer._own_sdk_request
+            self._bind_attempted = True
+            self._owner.bind_own_cold12(**self._cold_config)
+            self._binding = self._owner._own_cold12
+            self.diagnostic_stage = 'own_bootstrap_bind'
+            self._owner.set_own_session_id(self._session_id, sender=self)
+            self.diagnostic_stage = 'own_bootstrap_create'
+            self._original = self._owner.create_own_device_request(self._records)
+            result = self._component._session_receiver.send(self._original)
+            self._state = 'returned' if result.outcome != 'failed' else 'failed'
+            return result
+        except BaseException as original:
+            self._state = 'failed'
+            try:
+                self.close()
+            except BaseException as cleanup:
+                raise BaseExceptionGroup('Own bootstrap operation and cleanup failed', [original, cleanup]) from None
+            raise
+
+    def close(self):
+        if self._state == 'closed':
+            return
+        self._state = 'stopping'
+        self.diagnostic_stage = 'own_bootstrap_carrier_close'
+        self._carrier.close()
+        if (self._original is None and self._component is not None and
+                self._component._pending):
+            raise AuthenticatedSessionError('OWN_BOOTSTRAP_UNRETURNED_PENDING')
+        if self._original is not None and self._component is not None:
+            if any(request is self._original for request, bound in self._component._pending):
+                self.diagnostic_stage = 'own_bootstrap_cancel'
+                self._owner.cancel_own_device_request(self._original)
+        self.diagnostic_stage = 'own_bootstrap_inputs_close'
+        # Construction failures may retain a binder with actual cleanup debt.
+        binding = self._binding or getattr(self._owner, '_own_cold12', None)
+        if binding is not None and binding.component is self._component:
+            binding.close()
+        if (not self._bind_attempted and self._cold_config['own_inputs'] and
+                not self._unbound_inputs_closed):
+            if self._unbound_inputs_failure is not None:
+                raise self._unbound_inputs_failure
+            try:
+                self._cold_config['inputs'].close()
+            except BaseException as error:
+                self._unbound_inputs_failure = error
+                raise
+            self._unbound_inputs_closed = True
+        if self._own_owner:
+            self.diagnostic_stage = 'own_bootstrap_owner_close'
+            self._owner.close()
+        self._context = self._wire_profile = self._request_inputs = None
+        self._records = self._request_config = self._cold_config = None
+        self._owner = self._runtime = None
+        self._component = self._original = self._encoded = self._binding = None
+        self._carrier = None
+        self._state = 'closed'

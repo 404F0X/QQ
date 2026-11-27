@@ -7,6 +7,24 @@
 COORDINATION 只记录调度和操作，不另立业务状态机。
 原长篇过程记录已由 Git 历史及既有 before/input-versions 快照保留，不再复制归档。
 
+## Experimental Own bootstrap session 增量（SDK-OWN-BOOTSTRAP-IMPL/a3，独立审查 APPROVE）
+
+现有 authenticated entry 的 `run(..., own_bootstrap_factory=None)` 增加显式工厂接点。省略时沿用原流程，CLI 没有新增发包选项。工厂接收实际 ONLINE、恰好一次 `on_authenticated` 留下的同一份 material/profile，以及现有 paths、restricted connector 和有限 deadline；登录连接仍先清理，再创建独立连接。显式工厂须返回具体 session，并负责把已有 `open_windows_signer(own_business_config=...)` 初始化的同进程 business owner 及下列必需输入传给 `OwnBootstrapSdkSession`。
+
+`OwnBootstrapSdkSession(material, profile, *, owner, records, session_id, request_capi, clock_inputs, random_environment, state17_owner, cold12_inputs, own_cold12_inputs, appid_override, env_setting, connector, ping_index, deadline, own_owner, clock=...)` 是一次有限 Own 实验。`state17_owner`、`appid_override`、`env_setting`、`ping_index` 都须显式提供；None appid 使用既有 Source fallback，feature46 仍由实际状态决定，不补 state17。owner 核对实际成功 business setup 后保存的 UIN/machine identity；GUID 来自本次 material.device，machine policy 为 GUID lowercase hex，routing/lookup policy 为 positive UIN decimal ASCII。SID 是独立本地 label，不是 UIN/UID、header 或协议 identity。
+
+`set_own_session_id(session_id, *, sender)` 经现有串行 wrapper 保存 SID、发布持有实际 sender 的 receiver（type 返回0），再以 `(flags & ~255) | 1` 复现 Source gate 低字节交换，之后才连接并做 matching ping。混合 configured transport、重绑、已有 pending、foreign sender/thread 均拒绝；绑定后任何非 None external_a2_selection（包括 False）都拒绝。原 external bool 仅保留未绑定 controlled 域。setter 部分失败保留真实 String/receiver/gate 前缀，停止新请求，不伪造回滚。
+
+raw TGT/D2/D2key16 仅作为 Own wire candidate，经 `store_own_type1_peer(..., lookup_key=...)` 共享长度 mask／EF 变换为 stored 三字段，再由既有 consumer 还原到 inner18/outer48/key78。不是完整88h／history setter，也不证明 TGT 语义等同 Native52230 a2。fresh52230 header 使用同 GUID machine bytes 与显式 appid/env；不用51728 fixed header 或旧 REPLY_ONLY outgoing 材料。
+
+新 carrier 使用独立 socket owner、真实同步 send 在途状态、线程／deadline fence；Source21B ping 模板按本次 UIN low32BE 与显式 uint32 index 关联，允许合格长回复／非05 byte16，保留分片与 coalesced bytes。完整 SSO frame 保留 BE32 prefix，hardmax0x500000，处理 partial write／recv chunks。没有额外 MSF application envelope、第二 SIGN 或 legacy SsoTransport dispatch。实际 received routing 选择唯一 current peer（previous=None），未知 routing 拒绝；既有 create→encode/一次 SIGN→receive 原 pending 的 wire32／SDK64／完整 command 关联与完成语义复用。
+
+检查限定为注入 fake socket/API、controlled Python thread 和真实纯 request/codec/pending 的 MODEL／自然入口；合成 SDKERROR 只证明原结算及失败传播，未伪造正材料。close 按停止新请求→carrier→尚存原 pending→owned encoder inputs→owned owner，成功 close 释放 component／original／encoded／binding／已关闭 carrier 的引用，保留在 owner 上的 closed sender 先按生命周期状态拒绝调用；失败保留必要 backing 与真实 cleanup debt，不能重复取消已 take 的请求或以 close 清空未知 pending。当前 a3 指纹、命令和结果见 `A/overall-signing-service/sdk-own-bootstrap/implementation-a3/`；a1/a2 冻结与全部失败日志原样保存在 `implementation/`、`implementation-a2/`。
+
+a2 独立审查 REQUEST_CHANGES 的 receiver→send 同 original 重入 P1 已由单场景独立复现：第二次 SIGN／wire 消耗并覆盖 encoded，首回复随后关联失败。count4 STOP／Opus重规划后，a3 仅在 encode/SIGN 前占用既有 sending phase，拒绝嵌套进入，保留首 encoded／sequence／原 pending 的单次结算；新增精确 socket.on_send→published receiver 回归保留确定性 SDK 错误。同一独立审查者已对 a3 实际复审 APPROVE，范围仅为 experimental Own bootstrap SDK 增量，见 `A/overall-signing-service/sdk-own-bootstrap/REVIEW-A3.md`。不将受控修复／单测／审查通过作为真实 SDK 材料闭环；a2 原拒绝候选、P1 与复现证据保留。四项旧 pipeline 基线失败仍未通过，不包含在本增量通过范围内。
+
+**Auth 协议51728、Source算法／ABI52230、server validity 是三轴；server validity、Native执行、真实登录／发包、SDK正材料、安装／下一 SIGN 消费均 NOT_RUN。** 无 TTL、刷新、撤销、rotation/reconnect 接口；本地 deadline 不是票据期限。a3 的上述有界增量审查已通过；Native GO 仍撤销，历史 count4 不清零；若后续实质 REQUEST_CHANGES 达 count5 则本实现路线整体 STOP。Qimei全a2／两P1与整体 Goal OPEN 保持。
+
 ## 当前结论（实际探针分别绑定版本，2026-11-27）
 
 实际 Qimei 启动运行绑定源码 `e846a5b9afaf84886262f7bc8e7ac8b2da7e0480`；后续自有存储Native I/O探针绑定 `6ecfc5338ebd46e1edd4b4bc4b6ca9c364ae7676`。Own硬件GUID实际探针另绑定 `831027cf87963a6fd2c0abe41f0053354146298d`，有限新设备身份生成／持久恢复通过，不改写前两个实际运行版本。该版本承接 `2cee40dc888f26bca62c537de7ca28edd3fca3b5` 的 selected12 reply 可选 extension 修复。原 Own type1 实际收到184B，当时止于旧 parser；修复后对同一保存 frame 的离线解包得到关联 command/wire、SSO -10003 与空 payload，不追记为当时已完成 public completion。该 SSO 负状态与历史143B的 SDK1003分属不同层，均无已证根因。
@@ -174,7 +192,7 @@ parent／child均0、原Popen已reap、匹配owned live0，failures=[]只说明�
 
 当前Own已有A2／nonA2 body、四命令选择及共用response认证／安装入口；f6是本方生成的device_random32，f7是nonce16＋对SHA256(完整f5)的确定性transform32，并非已证登录凭据要求。官方完整f5／f7提供独立指纹参考点；一次纯生产request_fingerprint(SHA256(完整官方f5), 官方f7前16B)与独立官方f7比较已完成：完整48B及尾32B均不相等，首差异offset16；前16B相等是输入透传，不构成算法验证。该合格官方向量DISAGREEMENT不等于已证Source bug或1003原因。相关输入前后身份一致；首次harness命令selector断言在调用前失败，仅修正selector后执行一次纯函数，未试算法参数。独立静态Original Source核对已证当前内置mode1指纹资产取钥地址错误：冻结r37提取器读RVA41B1CA0，实际内置分支读RVA41B1CF0；当前资产及loader／manifest绑定已按后者修正。AES S-box、BE128当前counter先用后增、SHA256完整f5输入和nonce均未改。运行时provider／hook门状态及实际调用路径仍未知，不能据此证明官方捕获走内置分支或解释1003。修正后的官方同向量独立复核已完成：相同不可变tuple、一次纯函数调用，完整48B及尾32B仍均不相等，首差异offset16；独立expected与修正前失败记录未改。因此内置资产来源修正有效，但未解决官方指纹不一致，SDK install／Own consume仍为0 [A2][FP][FPKEY][FPRECHECK]。
 
-官方A2外层需type1；fixed52230合法selector及transport peer／key／ticket producer实际绑定尚未ready。当前fresh cold12仅支持nonA2／type2，不得改命令、放宽白名单或将experimental51728 reference冒充fixed52230证明。官方A2与Own nonA2的场景差异不证明1003原因；登录另有owner，不把未知transport输入泛称登录必需材料。Own真实认证安装及同有效runtime下一SIGN消费仍0／未证，完整Goal保持ACTIVE [A2][RF]。
+官方A2外层需type1；fixed52230合法selector及transport peer／key／ticket producer实际绑定尚未ready。该历史发送样本的fresh cold12当时仅支持nonA2／type2；现有显式type1及上方Own bootstrap候选不改变该样本资格，不能将experimental51728 reference冒充fixed52230认证证明。官方A2与Own nonA2的场景差异不证明1003原因；登录另有owner，不把未知transport输入泛称登录必需材料。Own真实认证安装及同有效runtime下一SIGN消费仍0／未证，完整Goal保持ACTIVE [A2][RF]。
 
 ## 修正内置指纹key后的唯一实际回归
 
@@ -739,7 +757,7 @@ Historical login-interface query B remains limited to its original InfoSync/SDK_
 
 The fixed52230 selected12 consumer accepts explicit immutable `SourceType1StoredPeer` projections (inner18, outer48, explicit key16), request lookup bytes and received-routing current/optional previous snapshots. Nonempty routing applies the Source local transform once. These stored-form shapes do not establish lawful issuance or authentication. Explicit zero16 is representable; no key is defaulted.
 
-`create_own_device_request(..., external_a2_selection=bool)` supplies the final external A2 selection before command creation, only without a configured request transport; None preserves the existing selection. `encode_own_cold12(..., type1=SourceType1RequestInputs(...))` and `receive_own_cold12(..., type1=SourceType1ReplyInputs(...))` retain the original Own pending and single SIGN. Type1 reply retry is limited to primitive false and shares the published capacity/count. Snapshots are borrowed immutable values, with no login-session ownership.
+`create_own_device_request(..., external_a2_selection=bool)` supplies the final external A2 selection before command creation, only without a configured request transport or Own session binding; None preserves the existing selection. Bound Own sessions reject every non-None override, including False. `encode_own_cold12(..., type1=SourceType1RequestInputs(...))` and `receive_own_cold12(..., type1=SourceType1ReplyInputs(...))` retain the original Own pending and single SIGN. Type1 reply retry is limited to primitive false and shares the published capacity/count. Snapshots are borrowed immutable values, with no login-session ownership.
 
 The implementation itself consumed no SDK/network/Frida GO. A subsequent actual type1 run and the delivered optional-extension fix retain their historical scope; install/next-SIGN consumption remains unproved. Payload mode and material generation remain unchanged.
 

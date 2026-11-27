@@ -26,7 +26,11 @@ _STAGES = frozenset(('entry', 'inputs', 'login_inputs', 'login_factory', 'login_
     'login_transport_close', 'login_observer_close', 'login_owner_close',
     'login_activation_exit', 'login_core_close', 'sdk_core', 'sdk_inputs', 'sdk_connect',
     'sdk_factory', 'sdk_refresh', 'sdk_completion', 'sdk_proof', 'sdk_transport_close',
-    'sdk_owner_close', 'sdk_activation_exit', 'sdk_core_close'))
+    'sdk_owner_close', 'sdk_activation_exit', 'sdk_core_close',
+    'own_bootstrap_inputs', 'own_bootstrap_ping', 'own_bootstrap_bind',
+    'own_bootstrap_create', 'own_bootstrap_encode', 'own_bootstrap_exchange',
+    'own_bootstrap_receive', 'own_bootstrap_carrier_close', 'own_bootstrap_cancel',
+    'own_bootstrap_inputs_close', 'own_bootstrap_owner_close'))
 _LOGIN_STATES = frozenset(('FAILED', 'QR_ISSUED', 'PHONE_CONFIRMED', 'EXPIRED',
     'CANCELLED', 'UNKNOWN_STATUS', 'LOCAL_EXPIRED', 'POLL_CAP_REACHED',
     'LOGIN_NOT_COMPLETED', 'CREDENTIALS_VALIDATED', 'ONLINE',
@@ -542,7 +546,8 @@ def _login_phase(options, network, notify, sleep, timing=None, local_capture=Non
     return captured.pop()
 
 
-def run(options, notify, sleep=time.sleep, *, timing=None, local_capture=None):
+def run(options, notify, sleep=time.sleep, *, timing=None, local_capture=None,
+        own_bootstrap_factory=None):
     global _STAGE, _FAILURE
     _STAGE, _FAILURE = 'inputs', None
     if (type(options.timeout) not in (int, float) or not math.isfinite(options.timeout) or
@@ -571,7 +576,8 @@ def run(options, notify, sleep=time.sleep, *, timing=None, local_capture=None):
 
         network.stage = 'sdk_connect'
         _STAGE = 'sdk_inputs'
-        phase = AuthenticatedSdkSession(material, profile, bridge_path=options.bridge,
+        factory = AuthenticatedSdkSession if own_bootstrap_factory is None else own_bootstrap_factory
+        phase = factory(material, profile, bridge_path=options.bridge,
             worker_bridge_path=options.worker_bridge, storage_root=options.storage_root / 'sdk',
             loader_profile=options.loader_profile,
             connector=network.connect_sdk,

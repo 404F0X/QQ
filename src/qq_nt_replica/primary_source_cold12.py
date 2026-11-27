@@ -1,4 +1,4 @@
-"""Fixed52230 fresh cold/type2 byte encoding; no send, native admission or profile defaults."""
+"""Fixed52230 fresh cold12 type1/type2 byte encoding; no send, native admission or profile defaults."""
 from dataclasses import dataclass
 from .errors import InputError
 from .primary_sso_tea import tea_encrypt
@@ -72,13 +72,29 @@ class _WirePeer:
     key78: bytes
 
 
+def _transform_peer_vector(value):
+    mask = (len(value) ^ (len(value) >> 8)) & 255
+    return bytes(b ^ mask ^ 255 for b in value)
+
+
+def store_own_type1_peer(inner18, outer48, key78, *, lookup_key):
+    """Three-field Own projection of raw->stored 1B4C8BC, not full 88h setter.
+
+    Nonempty lookup causes the consumer to reverse these involutions. This does
+    not reproduce prefix/history/random effects or qualify an auth issuer.
+    """
+    _bytes(lookup_key)
+    raw = SourceType1StoredPeer(inner18, outer48, key78)
+    if not lookup_key:
+        return raw
+    return SourceType1StoredPeer(_transform_peer_vector(inner18),
+        _transform_peer_vector(outer48), bytes(b ^ 0xef for b in key78))
+
+
 def _project_peer(peer, routing):
-    def transform(value):
-        mask = (len(value) ^ (len(value) >> 8)) & 255
-        return bytes(b ^ mask ^ 255 for b in value)
     if not routing:
         return _WirePeer(peer.inner18, peer.outer48, peer.key78)
-    return _WirePeer(transform(peer.inner18), transform(peer.outer48),
+    return _WirePeer(_transform_peer_vector(peer.inner18), _transform_peer_vector(peer.outer48),
                      bytes(b ^ 0xef for b in peer.key78))
 
 
