@@ -25,23 +25,20 @@ PUBLIC LLOneBot8.3.2 支持 `send_pb`，但唯一一次实际 NativeEnvelope SDK
 
 普通first initialize的a2契约已进一步核定：IPC→settings/config→startup→AUX refresh→provider once→executor与任务提交正常return0后，wrapper才发布appid／ready1；cold material job成功不是a2普通返回。50B58可复用既有default settings；61B84是module once构造并发布619C2共享provider，不是arg7 String copy；2CE00(...,5)初始化5个worker，不是等待5秒。619C2有限provider ctor／module once／shared pair及现有retained dispatch的关联已由后续Source补正闭合；当前fresh OwnHost候选实现见下表，Native实际纵向仍未执行。不得手置ready1或增加材料成功barrier。来源：`A/overall-signing-service/QIMEI-A2-ORDINARY-CALL-CONTRACT-20261127.md`。
 
-fresh OwnHost 纵向本地候选 `QIMEI-A2-GETTER-VERTICAL-IMPL/a1` 当前状态为 **WIP / REQUEST_CHANGES，未通过审查，不是功能交付**。最后批准的feature版本仍为 `653f7a09798404896205181275902d1d718c9954`；当前26个本地候选文件与该版本必须区分，main `27ad5508` 不动。Root仅授权将这26个安全源码／模型tests／manifest／本状态文档作为WIP备份到现有feature draft PR；Git存档不等于批准、合并、发布或目标完成，A/T采集资料不得上传。
+fresh OwnHost 本地候选 `QIMEI-A2-GETTER-VERTICAL-IMPL/a1` 为 **WIP / REQUEST_CHANGES**，已作为WIP存档于feature commit `c5f59a7`，不是批准的功能交付。最后批准feature版本仍为 `653f7a0`，main `27ad5508` 不动。两P1仍未修：6A923缺完整成功／空／失败续段；timer quiescence提前禁用accepted worker drain所需mutex IO。实际Native纵向 **NOT_RUN**，failed composition count保持 **3**，Native GO资格撤销、观察准备停止。有限材料因果盘点已完成；full a2组装继续撤下优先路线，下一实施合同尚未决定。kind7／13、AD488与52359缺段不能因fresh未触发就省略；其材料影响未排除时保持PotentialImpact／Unknown。full SIGN、SDK/Token发行与通知安装消费、跨restore selector mismatch、empty AUX690A5、nonNULL curl仍OPEN，Goal保持ACTIVE。
 
-独立审查两项P1均未修复：(1)6A923冷材料commit后提前event cleanup并返回，缺失Source成功发布、必要业务续段及通知，getter可读到值不能证明发布／消费闭环；(2)timer queue quiescence提前禁用整个调度adapter的mutex IO，accepted任务drain期间首次instance producer可能失败，而close仍可能继续完成。原失败候选／CHECKS／pins／REVIEW保留历史，不把后续状态文档hash改写为原观察值。
+| Source family | 材料因果分类／当前范围 |
+| --- | --- |
+| **kind1，51 payload／3 reply，6A923** | 有直接Qimei安装证据：特定response先填request，6A923外层commit到同main.record1／identity1并persist，随后还有settings／publish／业务／timer／notify续段。Source发送预算3且有成功／失败分支；当前cold-only实现仅单attempt／commit，未实现全续段。旧Source21691 actual保留原run版本／范围；本轮仅静态明确Source安装路径为kind1，未重新观测或重命名旧capture的请求kind，不追改历史原始观测 |
+| **kind2，48／1，6A3D4后续producer** | 特定response52D66本身无install；完整52359、b70→AD488及helpers／后续排队仍PotentialImpact，不能称整个family无影响或可省略。不是安装server Qimei的kind1 |
+| **kind3，16／1，ig／w1／w2／w3** | response本身无install；identity_3fafa可能生成main.record0并persist，ig还有usage／instance effects。当前新C只接ig，未覆盖w1失败／w2成功采样／w3定时向量全部变体 |
+| **kind4，5／22；kind5，5／16** | 分别更新FIRST／SECOND settings及timestamp／flags并persist，改变后续材料输入和合法分支；不直接安装main.record1仍不能省略 |
+| **kind7，4／1** | 虽52D66特定response无install，整个family仍Unknown／PotentialImpact；FIRST flag13 mask0x01／0x02／0x04三条gate均在图内，不归类为无影响telemetry |
+| **kind13，大payload直接发送** | producer／平台文件helpers与间接effects仍Unknown；无固定request-object cell／reply槽目录，不能以context0推导无材料影响 |
 
-| Source任务／状态 | 当前WIP与有限证据 | 未完成边界 |
-| --- | --- | --- |
-| 501B6／50000／6B659／6B67A | 已写Own mutex／timer真实API适配与fake API分支检查；物理namespace独立，不与QQ对象互操作 | 真实timer未执行；整体生命周期仍有P1-2，不具备纵向Native资格 |
-| B01FD／AFE3C／kind3、6B01C／kind4、6B0CE／6AD70 | 计数／有限payload／retained dispatch／通知辅助路径有受控检查 | 6A923自然成功续段未连通；内部_submit覆盖的部分辅助路径不能作为该续段组合证据 |
-| 6A923成功／空／失败续段 | 纠偏前置静态核对确认6ABB2入队目标为6A3D4，而非6B0CE；6A3D4为kind2 post，必要发送分支依次kind5→kind2→b70/AD488→54411 | 完整52359 producer、AD488第二flag10分支、6A8A7 timer/default flag15→B0A15、first flag14→6BBCE及54211未闭合。540D4明确kind7／4payload／1response，经first flag13 mask0x02/0x04触发；材料副作用Unknown，不能称telemetry或认定无影响 |
-| b70／wrapper／首次metadata | 同store读取、CString／cache和同runtime getter接口在其受控范围通过 | 新材料自然发布／后续业务不完整；单独getter有值不是完整因果闭环。empty AUX690A5、跨restore selector mismatch仍OPEN |
-| Host close | 预期顺序是seal→timer callbacks quiescence→accepted workers drain/join/retire→IO/IPC/mutex/bridge→owner release | 当前实现P1-2违反drain前mutex可用性；不能以close返回声称整个接受任务成功或无债务 |
+首次SDK输入的静态链已明确：getter main CString→metadata.field08→SDK context+30→非空copy至SDK config+58→device-record schema sdk30（key28）。**首次初始化后Store变更不会自动更新SDK config**，该链也不等于SDKToken安装或后续SIGN实际选择消费；不得虚构live reinit或用材料barrier／手ready取得正例。所有family还共享sequence／matching pending、header缓存／settings refresh、envelope、random/time等effects；kind1／2另用mode1 RSA-CRT路径，特定response无install不抵消这些影响。
 
-原216项定向fixture检查是其实际覆盖范围的有效证据，包含自然入口及辅助路径，并非全为内部手调或全部无效；其中一部分内部_submit检查不能证明缺失的6A923自然成功续段。API结果、服务回复和Python控制线程均为MODEL，非Native bridge/timer/IPC/network集成重跑。既往实际IPC／five-worker证据继续限于原版本／原范围。实际Native纵向为 **NOT_RUN**；本方failed composition count为 **3**，Native GO资格已撤销，观察driver准备继续停止。
-
-唯一静态纠偏在预声明的新协议／必要业务unknown硬前置处STOP，未修改代码、未形成新corrective candidate，也未发生第四轮审查。Root已接受材料因果链重规划：full a2组装撤下优先路线，下一步仅做一次只读静态family＋state-effects材料因果图，完成后由Root另立合同，不能自动转实现或恢复Native GO。kind7在材料影响分类前按可能影响材料处理，不能省略。full SIGN、SDK/Token发行、跨重启restore、empty AUX与nonNULL curl等仍OPEN，Goal保持ACTIVE。
-
-证据：`A/overall-signing-service/qimei-a2-vertical/REVIEW.md`、`correction/RESULT.md`、原`CHECKS.json`及pins；决策见`A/overall-signing-service/QIMEI-MATERIAL-CAUSALITY-REPLAN-20261127.md`。本次WIP存档的精确当前26文件指纹与原25个非文档文件未变证明在`WIP-ARCHIVE-PINS.json`、`WIP-ARCHIVE-HANDOFF.json`；它们仅为归档交接，不另立业务状态文档。
+原216项fixture检查继续是实际局部覆盖的有效证据，含自然入口与辅助路径，并非全manual或全部无效；部分内部_submit不能证明缺失的6A923自然成功续段。它们不构成本候选Native或full a2验收。有限分类来源：`A/overall-signing-service/qimei-material-causality/MAP.md`、`RESULT.md` §1／2／7／8；原失败审查及纠偏unknown见`qimei-a2-vertical/REVIEW.md`、`correction/RESULT.md`，均保留历史。旧WIP-ARCHIVE pins和doc hash不重写；本次仅DOC状态同步，证据指针在`qimei-a2-vertical/causality-doc/`，无A/T原始资料上传。
 
 此前两次 cold actual 均绑定源码 `7c169b1eb8b87b37b2bf96d3fc66fa5dba9c7942`，各一次parent均exit1，perform/send均0、HTTP无发送、accepted服务材料0，install/publication/同runtime新材料SIGN消费仍0。首次在adapter的GetSystemDirectoryW调用前因错误观察端口拒绝，persist prefix为空；随后仅A内driver改接windows adapter端口及独立extension端口，受控assembly检查与whole-port-map review已完成，不据此声称所有真实Windows路径已验。第二次经req/system进入advertising_id，在OS调用前被registry path guard拒绝；actual prefix `['main']` 仅首次运输GUID main0持久化，不是server材料install。两次child均reaped，cleanup分别12/12、13/13成功，writer stream/allocation债务0，资源0。历史初始preflight NOT_RUN及两次真实失败均保留。证据：`A/overall-signing-service/qimei-cold-actual-probe/OUTCOME.md`、`RUN-RESULT.json`及其`port-wiring-fix/OUTCOME.md`、`RUN-RESULT.json`、`PORT-MAP.md`。
 
