@@ -11,7 +11,7 @@ from qq_nt_replica.primary_windows_qimei_ipc import WindowsQimeiIPCBackend, crea
 
 class ABI(WindowsQimeiIPCBackend):
     def __init__(self):
-        super().__init__(); self.view=C.create_string_buffer(1024)
+        super().__init__(physical_namespace=b"test_nonce"); self.view=C.create_string_buffer(1024)
         self.calls=[];self.null=set();self.wait_status=258;self.on_wait=None;self.close_fail=False
     def _call(self,name,result,types,args):
         self._check();self.calls.append((name,result,types,args))
@@ -176,7 +176,7 @@ class IPCChecks(unittest.TestCase):
     def test_factory_is_lazy(self):
         epoch=object()
         with patch('ctypes.WinDLL',create=True,side_effect=AssertionError('native load')):
-            pool=create_windows_qimei_ipc(object(),epoch,lambda runtime:epoch)
+            pool=create_windows_qimei_ipc(object(),epoch,lambda runtime:epoch,physical_namespace=b"test_nonce")
             self.assertIsNone(pool.backend._kernel)
             pool.dispose_terminal()
 
@@ -189,6 +189,34 @@ class IPCChecks(unittest.TestCase):
         self.assertEqual(calls['MapViewOfFile'][3],(0x1234567887654321,6,0,0,1024))
         self.assertEqual(calls['CreateEventA'][3][:3],(None,0,0))
         self.assertEqual(calls['MapViewOfFile'][2][-1],C.c_size_t)
+        for api,suffix in (('OpenFileMappingA',b'm'),('CreateFileMappingA',b'm'),('OpenEventA',b'e'),('CreateEventA',b'e')):
+            self.assertEqual(calls[api][3][-1],b'Local\\QQReplicaOwnIPC_test_nonce_'+object_name(b'x',suffix))
         p.dispose_terminal()
+
+    def test_terminal_cleanup_retry_is_host_only(self):
+        p,b,epoch=self.pool();p.initialize(b'x');b.close_fail=True
+        with self.assertRaises(ExceptionGroup):p.dispose_terminal()
+        state=p.states[b'x'];self.assertIsNotNone(state.mapping);self.assertIsNotNone(state.event)
+        self.assertIsNotNone(state.event_wrapper)
+        for operation in (lambda:p.initialize(b'y'),lambda:p.consume(b'x'),lambda:p.publish(b'x',b'a'*36,1)):
+            with self.assertRaises(IPCError):operation()
+        saved=epoch[0];epoch[0]=object()
+        with self.assertRaises(IPCError):p.dispose_terminal()
+        epoch[0]=saved
+        failures=[]
+        def foreign():
+            try:p.dispose_terminal()
+            except IPCError:failures.append(True)
+        t=threading.Thread(target=foreign);t.start();t.join();self.assertEqual(failures,[True])
+        b.close_fail=False;p.dispose_terminal()
+        self.assertFalse(b._leases);self.assertIsNone(state.event_wrapper)
+        self.assertTrue(p.terminal)
+        with self.assertRaises(IPCError):p.consume(b'x')
+
+    def test_namespace_validation_and_immutable_property(self):
+        for value in (None,b'',b'a/b',b'a\\b',b'a\0',b'a'*65,b'nonascii\xff',123):
+            with self.assertRaises(IPCError):WindowsQimeiIPCBackend(physical_namespace=value)
+        b=WindowsQimeiIPCBackend(physical_namespace=b'abc-123_')
+        with self.assertRaises(AttributeError):b.physical_namespace=b'changed'
 
 if __name__=='__main__':unittest.main()

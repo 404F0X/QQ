@@ -153,7 +153,10 @@ class QimeiIPCPool:
             return state.enabled
 
     def dispose_terminal(self):
-        self._check()
+        # Host disposal may retry retained debt, but never resumes Source IO.
+        if (self.identity != (os.getpid(), threading.get_native_id()) or
+                self.current_epoch(self.runtime) is not self.epoch):
+            raise IPCError('IPC cleanup is foreign-thread or stale-epoch')
         if self.active:
             raise IPCError('active IPC operation prevents terminal disposal')
         self.terminal = True
@@ -170,6 +173,8 @@ class QimeiIPCPool:
                     setattr(state, field, None)
                 except Exception as error:
                     errors.append(error)
+            if state.event is None:
+                state.event_wrapper = None
             state.cache = None
         retained = []
         for owner, event in self._unclosed_consumed_events:

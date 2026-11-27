@@ -31,6 +31,8 @@ PUBLIC LLOneBot8.3.2 支持 `send_pb`，但唯一一次实际 NativeEnvelope SDK
 
 原Source静态新进展见 `A/overall-signing-service/QIMEI-COMMIT-GETTER-SOURCE-SEAM-20261127.md`：flag0开启时DLL导出b读取commit写入的同一共享record1；wrapper空cache可以在后续publication后再查询，startup once不阻断该内存读取。独立AUX flag12路径、b完整返回、非空wrapper cache刷新、有效runtime配置更新及后续SIGN消费仍未知；该静态报告本身不证明实际服务材料成功，也不把replica的getter stub当作原Source缺失证明。
 
+Own IPC适配现要求显式ASCII namespace，四个Open/Create统一转换为Local命名空间的QQReplicaOwnIPC私有名，逻辑owner/appid及Source MD5名称不变；这是Own环境政策，不声称Original名称行为相同。terminal后仅同thread／epoch的HOST清理可重试，失败leases保留，Source initialize／consume／publish仍拒绝。16项受控ABI检查通过；随后Root另行授权的一次Own Native IPC小实验实际PASS：两个随机Own名称initial Open均error2，实际initialize后cache42／shared41为零，36B publish／consume相等，HOST dispose后leases空、两个名称post Open均error2，parent／child均0且reaped，无timeout kill或资源债务。证据见`A/overall-signing-service/qimei-own-ipc-adapter/actual/OUTCOME.md`、`RUN-RESULT.json`。本次捕获版本是base882597f32295e5ed1897d69040ef5fbd62e3ef53加冻结IPC源码／测试／manifest指纹，不把后续文档commit当作当时执行版本。没有逐call Native trace或CreateLastError观测，不声称严格new-created、race-free或完整原始API序列遥测。event wrapper与42B cache为Python内存，不是Native HeapAlloc／Free；Own物理名称不等于Original。结果只证明Own Native IPC依赖实测可用，runtime／epoch harness只用于lease上下文，不证明a2-ready、getter、live publication或SIGN消费；授权仅此一次IPC实验，无新网络／材料请求或Native qimei调用GO。该增量不改变上述Source21691网络材料成功、selector mismatch／preclear AUX非空及a2尚未组合的边界。
+
 外部依赖现状仅为unknown：LLOneBot8.3.2实例监听不等于online，两次WS握手timeout、API调用0；不据此解释既往SDK失败或启动新故障修复。完整Goal仍ACTIVE，当前没有新的actual操作授权。
 
 ## Qimei startup 组合增量（Source／MODEL）

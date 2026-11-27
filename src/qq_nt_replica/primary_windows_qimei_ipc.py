@@ -21,13 +21,26 @@ class _Resource:
 
 
 class WindowsQimeiIPCBackend:
-    def __init__(self):
+    def __init__(self, *, physical_namespace):
+        if (type(physical_namespace) is not bytes or not 1 <= len(physical_namespace) <= 64
+                or any(c not in b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-" for c in physical_namespace)):
+            raise IPCError("explicit bounded ASCII Own IPC namespace required")
+        self.__physical_namespace = physical_namespace
         self._pool = None
         self._leases = set()
         self.__resources = {}
         self._kernel = None
         self.records = []
         self._disposing = False
+
+    @property
+    def physical_namespace(self):
+        return self.__physical_namespace
+
+    def _physical_name(self, logical):
+        if type(logical) is not bytes or len(logical) != 32 or any(c not in b'0123456789ABCDEF' for c in logical):
+            raise IPCError('Source logical IPC hash required')
+        return b'Local\\QQReplicaOwnIPC_' + self.__physical_namespace + b'_' + logical
 
     def bind(self, pool):
         if self._pool is not None:
@@ -79,12 +92,12 @@ class WindowsQimeiIPCBackend:
 
     def open_mapping(self, owner, name):
         return self._new(owner, 'mapping', self._call('OpenFileMappingA', C.c_void_p,
-            (C.c_uint32,C.c_int32,C.c_char_p), (6,0,name)))
+            (C.c_uint32,C.c_int32,C.c_char_p), (6,0,self._physical_name(name))))
 
     def create_mapping(self, owner, name):
         return self._new(owner, 'mapping', self._call('CreateFileMappingA', C.c_void_p,
             (C.c_void_p,C.c_void_p,C.c_uint32,C.c_uint32,C.c_uint32,C.c_char_p),
-            (C.c_void_p(-1),None,4,0,0x400,name)))
+            (C.c_void_p(-1),None,4,0,0x400,self._physical_name(name))))
 
     def map_view(self, owner, mapping):
         raw = self._raw(owner,mapping,'mapping')
@@ -105,15 +118,15 @@ class WindowsQimeiIPCBackend:
 
     def allocate_cache(self, owner):
         self._check()
-        return bytearray(42)  # Source successful HeapAlloc(heap,8,42).
+        return bytearray(42)  # Own Python backing; not a Native HeapAlloc implementation.
 
     def open_event(self, owner, name):
         return self._new(owner,'event',self._call('OpenEventA',C.c_void_p,
-            (C.c_uint32,C.c_int32,C.c_char_p),(0x1F0003,0,name)))
+            (C.c_uint32,C.c_int32,C.c_char_p),(0x1F0003,0,self._physical_name(name))))
 
     def create_event(self, owner, name):
         return self._new(owner,'event',self._call('CreateEventA',C.c_void_p,
-            (C.c_void_p,C.c_int32,C.c_int32,C.c_char_p),(None,0,0,name)))
+            (C.c_void_p,C.c_int32,C.c_int32,C.c_char_p),(None,0,0,self._physical_name(name))))
 
     def wait_event(self, owner, event):
         return self._call('WaitForSingleObject',C.c_uint32,(C.c_void_p,C.c_uint32),
@@ -141,5 +154,5 @@ class WindowsQimeiIPCBackend:
     def unmap_view(self, owner, view): return self._close(owner,view,'view','UnmapViewOfFile')
 
 
-def create_windows_qimei_ipc(runtime, epoch, current_epoch):
-    return QimeiIPCPool(runtime,epoch,current_epoch,WindowsQimeiIPCBackend())
+def create_windows_qimei_ipc(runtime, epoch, current_epoch, *, physical_namespace):
+    return QimeiIPCPool(runtime,epoch,current_epoch,WindowsQimeiIPCBackend(physical_namespace=physical_namespace))
