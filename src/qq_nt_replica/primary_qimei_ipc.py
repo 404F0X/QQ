@@ -55,26 +55,34 @@ class QimeiIPCPool:
         self.states = {}; self.active = 0; self.terminal = False
         self.diagnostics = []
         self._unclosed_consumed_events = []
+        self._io_lock = threading.RLock()
+        self._executor = None
         backend.bind(self)
 
-    def _check(self):
-        if (self.terminal or self.identity != (os.getpid(), threading.get_native_id()) or
-                self.current_epoch(self.runtime) is not self.epoch):
+    def _check(self, *, _host_cleanup=False):
+        creator = self.identity == (os.getpid(), threading.get_native_id())
+        worker = (not creator and self._executor is not None and self._executor._permits())
+        if (self.current_epoch(self.runtime) is not self.epoch or
+                (self.terminal and not (_host_cleanup and creator)) or not (creator or worker)):
             raise IPCError('IPC session is terminal, foreign-thread or stale-epoch')
 
     @contextmanager
-    def _operation(self, owner):
-        self._check(); object_name(owner, b'm')
-        if self.active:
-            raise IPCError('IPC source operation is already active')
-        self.active += 1
-        try:
-            yield
-        finally:
-            self.active -= 1
+    def _operation(self, owner, operation):
+        with self._io_lock:
+            self._check(); object_name(owner, b'm')
+            if self.identity != (os.getpid(), threading.get_native_id()):
+                if operation != 'publish' or not self._executor._permits(owner):
+                    raise IPCError('worker IPC operation leaves current publish owner domain')
+            if self.active:
+                raise IPCError('IPC source operation is already active')
+            self.active += 1
+            try:
+                yield
+            finally:
+                self.active -= 1
 
     def initialize(self, owner):
-        with self._operation(owner):
+        with self._operation(owner, 'initialize'):
             if owner in self.states:
                 raise IPCError('repeat initialization unsupported before any source IO')
             state = self.states[owner] = _State(owner)
@@ -120,7 +128,7 @@ class QimeiIPCPool:
             self.diagnostics.append(('source_event_consumed', state.owner))
 
     def consume(self, owner):
-        with self._operation(owner):
+        with self._operation(owner, 'consume'):
             state = self._state(owner)
             if not state.enabled:
                 return b''
@@ -135,7 +143,7 @@ class QimeiIPCPool:
             return result
 
     def publish(self, owner, backing, signed_length):
-        with self._operation(owner):
+        with self._operation(owner, 'publish'):
             if type(signed_length) is not int or not -(1 << 31) <= signed_length < (1 << 31):
                 raise IPCError('publish requires a signed32 length')
             if backing is None or signed_length >= 37:
@@ -153,6 +161,16 @@ class QimeiIPCPool:
             return state.enabled
 
     def dispose_terminal(self):
+        if not self._io_lock.acquire(blocking=False):
+            raise IPCError('active IPC task prevents terminal disposal')
+        try:
+            if self._executor is not None and self._executor._has_tasks():
+                raise IPCError('accepted executor tasks prevent terminal disposal')
+            return self._dispose_terminal_unlocked()
+        finally:
+            self._io_lock.release()
+
+    def _dispose_terminal_unlocked(self):
         # Host disposal may retry retained debt, but never resumes Source IO.
         if (self.identity != (os.getpid(), threading.get_native_id()) or
                 self.current_epoch(self.runtime) is not self.epoch):

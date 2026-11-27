@@ -1,6 +1,7 @@
 """Dedicated Win32 IPC ports. Construction is lazy: no DLL load until first IO."""
 import ctypes as C
 import os
+import threading
 from dataclasses import dataclass, replace
 from .primary_qimei_ipc import IPCError, QimeiIPCPool
 
@@ -53,15 +54,20 @@ class WindowsQimeiIPCBackend:
         # Terminal management is permitted only on the original epoch/thread.
         if self._pool.terminal and not self._disposing:
             raise IPCError('terminal IPC backend cannot resume source IO')
-        terminal = self._pool.terminal
-        self._pool.terminal = False
-        try:
-            self._pool._check()
-        finally:
-            self._pool.terminal = terminal
+        self._pool._check(_host_cleanup=self._disposing)
+        if self._pool.identity != (os.getpid(), threading.get_native_id()) and self._pool.active != 1:
+            raise IPCError('worker backend requires active publish operation')
+
+    def _creator_only(self):
+        self._pool._check(_host_cleanup=True)
+        if self._pool.identity != (os.getpid(), threading.get_native_id()):
+            raise IPCError('IPC resource construction/disposal requires creator')
 
     def _call(self, name, result, types, args):
         self._check()
+        if self._pool.identity != (os.getpid(), threading.get_native_id()) and name not in (
+                'SetEvent','CloseHandle'):
+            raise IPCError('worker Native IPC call leaves publish domain')
         if self._kernel is None:
             if os.name != 'nt' or C.sizeof(C.c_void_p) != 8:
                 raise IPCError('IPC backend requires Windows x64')
@@ -84,6 +90,8 @@ class WindowsQimeiIPCBackend:
 
     def _raw(self, owner, lease, kind):
         self._check()
+        if self._pool.identity != (os.getpid(), threading.get_native_id()) and not self._pool._executor._permits(owner):
+            raise IPCError('worker resource owner differs from current task')
         record = self.__resources.get(lease) if type(lease) is _Lease else None
         if (record is None or record.closed or record.owner != owner or record.kind != kind or
                 record.runtime is not self._pool.runtime or record.epoch is not self._pool.epoch):
@@ -91,20 +99,24 @@ class WindowsQimeiIPCBackend:
         return record.raw
 
     def open_mapping(self, owner, name):
+        self._creator_only()
         return self._new(owner, 'mapping', self._call('OpenFileMappingA', C.c_void_p,
             (C.c_uint32,C.c_int32,C.c_char_p), (6,0,self._physical_name(name))))
 
     def create_mapping(self, owner, name):
+        self._creator_only()
         return self._new(owner, 'mapping', self._call('CreateFileMappingA', C.c_void_p,
             (C.c_void_p,C.c_void_p,C.c_uint32,C.c_uint32,C.c_uint32,C.c_char_p),
             (C.c_void_p(-1),None,4,0,0x400,self._physical_name(name))))
 
     def map_view(self, owner, mapping):
+        self._creator_only()
         raw = self._raw(owner,mapping,'mapping')
         return self._new(owner,'view',self._call('MapViewOfFile',C.c_void_p,
             (C.c_void_p,C.c_uint32,C.c_uint32,C.c_uint32,C.c_size_t),(raw,6,0,0,0x400)))
 
     def read_view(self, owner, view):
+        self._creator_only()
         return C.string_at(self._raw(owner,view,'view'),41)
 
     def write_view(self, owner, view, raw):
@@ -113,18 +125,22 @@ class WindowsQimeiIPCBackend:
         C.memmove(self._raw(owner,view,'view'),raw,41)
 
     def allocate_event_wrapper(self, owner):
+        self._creator_only()
         self._check()
         return object()
 
     def allocate_cache(self, owner):
+        self._creator_only()
         self._check()
         return bytearray(42)  # Own Python backing; not a Native HeapAlloc implementation.
 
     def open_event(self, owner, name):
+        self._creator_only()
         return self._new(owner,'event',self._call('OpenEventA',C.c_void_p,
             (C.c_uint32,C.c_int32,C.c_char_p),(0x1F0003,0,self._physical_name(name))))
 
     def create_event(self, owner, name):
+        self._creator_only()
         return self._new(owner,'event',self._call('CreateEventA',C.c_void_p,
             (C.c_void_p,C.c_int32,C.c_int32,C.c_char_p),(None,0,0,self._physical_name(name))))
 
@@ -150,8 +166,12 @@ class WindowsQimeiIPCBackend:
             self._disposing = False
 
     def close_event(self, owner, event): return self._close(owner,event,'event','CloseHandle')
-    def close_mapping(self, owner, mapping): return self._close(owner,mapping,'mapping','CloseHandle')
-    def unmap_view(self, owner, view): return self._close(owner,view,'view','UnmapViewOfFile')
+    def close_mapping(self, owner, mapping):
+        self._creator_only()
+        return self._close(owner,mapping,'mapping','CloseHandle')
+    def unmap_view(self, owner, view):
+        self._creator_only()
+        return self._close(owner,view,'view','UnmapViewOfFile')
 
 
 def create_windows_qimei_ipc(runtime, epoch, current_epoch, *, physical_namespace):

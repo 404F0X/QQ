@@ -2067,7 +2067,7 @@
     {
       "path": "src/qq_nt_replica/primary_qimei_ipc.py",
       "source_sha256": "882b573c9581e5a64ddf2b7d283fdf49de480c66ca167044751913604035cfa4",
-      "sha256": "6c7dd7b04bdbe2026e2f1534d0d2213fe8d363ab96a0e0fe54f497bfb388f81d",
+      "sha256": "ab12685cc6c7f7745fdc24e5d2e231146d53860aed2b1ed3751535e250c39b4b",
       "classification": "project_source",
       "origin": "MAT-QIMEI-IPC-IMPLEMENT/a1 new source-derived implementation; authoring snapshot: qimei-ipc-implementation/primary_qimei_ipc.py"
     },
@@ -2965,9 +2965,15 @@
       "classification": "project_source"
     },
     {
+      "path": "src/qq_nt_replica/primary_windows_qimei_executor.py",
+      "source_sha256": "6112eabda06ec3ea1584bcfffffc59cd604529c858f7810db518509301cf7922",
+      "sha256": "b71d1fa878cb07146dc2829843ccf6bd57d01f17d2586fb1c0e0dce8dd84e928",
+      "classification": "project_source"
+    },
+    {
       "path": "src/qq_nt_replica/primary_windows_qimei_ipc.py",
       "source_sha256": "70146915a7368b99523a72cf2dcef7b42e3f5bfc1ae475f9a9a74cf7cbe4a40f",
-      "sha256": "8067486419c7185f408762c693fb56112ca3ee58ccdb9e62467f7df17bb0c2c3",
+      "sha256": "87badb50f07c40a266695062d8741fc090cea50bfe02113470245add3c1ccabe",
       "classification": "project_source",
       "origin": "MAT-QIMEI-IPC-IMPLEMENT/a1 new source-derived implementation; authoring snapshot: qimei-ipc-implementation/primary_windows_qimei_ipc.py"
     },
