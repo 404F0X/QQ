@@ -1,13 +1,13 @@
 ﻿# 签名业务状态机、当前进度与验收
 
-唯一权威标识：`SIGNATURE-STATE`；更新日期：2026-11-26。
+唯一权威标识：`SIGNATURE-STATE`；更新日期：2026-11-27。
 
 本文件是签名业务状态、进度和验收的唯一现行入口。完整 Goal **未完成**。
 旧 HANDOFF、报告、输入快照及 Git 历史只作历史证据，不是现行状态入口。
 COORDINATION 只记录调度和操作，不另立业务状态机。
 原长篇过程记录已由 Git 历史及既有 before/input-versions 快照保留，不再复制归档。
 
-## 当前结论（实际探针分别绑定版本，2026-11-26）
+## 当前结论（实际探针分别绑定版本，2026-11-27）
 
 实际 Qimei 启动运行绑定源码 `e846a5b9afaf84886262f7bc8e7ac8b2da7e0480`；后续自有存储Native I/O探针绑定 `6ecfc5338ebd46e1edd4b4bc4b6ca9c364ae7676`。Own硬件GUID实际探针另绑定 `831027cf87963a6fd2c0abe41f0053354146298d`，有限新设备身份生成／持久恢复通过，不改写前两个实际运行版本。该版本承接 `2cee40dc888f26bca62c537de7ca28edd3fca3b5` 的 selected12 reply 可选 extension 修复。原 Own type1 实际收到184B，当时止于旧 parser；修复后对同一保存 frame 的离线解包得到关联 command/wire、SSO -10003 与空 payload，不追记为当时已完成 public completion。该 SSO 负状态与历史143B的 SDK1003分属不同层，均无已证根因。
 
@@ -16,6 +16,14 @@ PUBLIC LLOneBot8.3.2 支持 `send_pb`，但唯一一次实际 NativeEnvelope SDK
 本次 genuine137、Source f7 call/return 各1，CAPI acquire/generate/release 各2，CREATE1、运输初始 Own SIGN0、completion0、next SIGN0，真实认证／安装／发布／消费均未达，install/consume仍0。Local pending cancel1→0；socket、owner、core及4个借用采集资源 close 返回，child已reap，session87493已退出。仅本地资源静止，remote Native pending UNKNOWN。
 
 安全结果及错误补充见 `A/overall-signing-service/native-sdk-body-control/OUTCOME.md`、`OUTCOME.json`。既定一次 exact error boundary 只读核对已完成，见 `A/overall-signing-service/PMHQ-SCRATCH-ERROR-BOUNDARY.md`：公开／已装JS与已知binary ASCII未找到确切literal／-2出处；llbot.js:72789–72794仅封装收到的res.code/message，未发现可实施的caller contract修复，实际Native失败步骤仍opaque，不能证明未发送。Root已搁置此诊断信道，等待上游支持契约或可用替代地址；用户地址问题仍待答，不要求内部keys。无SDK重试或新GO。取舍背景见 `A/overall-signing-service/POST-NATIVE-FAILURE-OPUS.md`。完整 Goal ACTIVE；SDK／Token／Qimei、合法通知及 protocolTokenHex 异步消费者仍待完整验收，禁止将 SIGN.token 别名为 protocolTokenHex。
+
+最新两次 cold actual 均绑定源码 `7c169b1eb8b87b37b2bf96d3fc66fa5dba9c7942`，各一次parent均exit1，perform/send均0、HTTP无发送、accepted服务材料0，install/publication/同runtime新材料SIGN消费仍0。首次在adapter的GetSystemDirectoryW调用前因错误观察端口拒绝，persist prefix为空；随后仅A内driver改接windows adapter端口及独立extension端口，受控assembly检查与whole-port-map review已完成，不据此声称所有真实Windows路径已验。第二次经req/system进入advertising_id，在OS调用前被registry path guard拒绝；actual prefix `['main']` 仅首次运输GUID main0持久化，不是server材料install。两次child均reaped，cleanup分别12/12、13/13成功，writer stream/allocation债务0，资源0。历史初始preflight NOT_RUN及两次真实失败均保留。证据：`A/overall-signing-service/qimei-cold-actual-probe/OUTCOME.md`、`RUN-RESULT.json`及其`port-wiring-fix/OUTCOME.md`、`RUN-RESULT.json`、`PORT-MAP.md`。
+
+第二次归入本方集成缺口，累计count2，所有actual operation **STOP**；不得以backend/domain别名排除计数或换名继续。System必须覆盖父Extra的advertising/id与Edge域契约，不能只放开open或泛化guard。广告字段的固定52230原始Source provenance现已核定：原README映射advertising_id到96737、edge_id到96B60；固定qimei.dll的96737..96AF1解码AdvertisingInfo路径与id字段，96A85..96A95经8001A／8002C的HKCU路径调用7FD87，保留RegOpen的0／access101契约。先前明文搜索未命中是路径编码所致，不能证明无Source；依据为`R/replica-primary-sign-core-20261019/bounded-prior-main-natural-replay-implementation-20261101/README-before.md:1197`及上述固定PE地址。System domain分派修复与全默认dispatch map仍未完成；重建代码本身不充当Source证据，本次文档更新不授予C代码修复权限。既往12项DEFAULT MODEL及6ec实际Own I/O、831实际Own GUID仍只适用于各自原版本与范围，不能替代本次实际失败。
+
+原Source静态新进展见 `A/overall-signing-service/QIMEI-COMMIT-GETTER-SOURCE-SEAM-20261127.md`：flag0开启时DLL导出b读取commit写入的同一共享record1；wrapper空cache可以在后续publication后再查询，startup once不阻断该内存读取。独立AUX flag12路径、b完整返回、非空wrapper cache刷新、有效runtime配置更新及后续SIGN消费仍未知；这不是实际服务材料成功，也不把replica的getter stub当作原Source缺失证明。
+
+外部依赖现状仅为unknown：LLOneBot8.3.2实例监听不等于online，两次WS握手timeout、API调用0；不据此解释既往SDK失败或启动新故障修复。完整Goal仍ACTIVE，当前没有新的actual操作授权。
 
 ## Qimei startup 组合增量（Source／MODEL）
 
