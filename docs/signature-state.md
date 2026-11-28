@@ -1,6 +1,6 @@
 ﻿# 签名业务状态机、当前进度与验收
 
-唯一权威标识：`SIGNATURE-STATE`；更新日期：2026-11-27。
+唯一权威标识：`SIGNATURE-STATE`；更新日期：2026-11-28。
 
 本文件是签名业务状态、进度和验收的唯一现行入口。完整 Goal **未完成**。
 旧 HANDOFF、报告、输入快照及 Git 历史只作历史证据，不是现行状态入口。
@@ -19,11 +19,35 @@ raw TGT/D2/D2key16 仅作为 Own wire candidate，经 `store_own_type1_peer(...,
 
 新 carrier 使用独立 socket owner、真实同步 send 在途状态、线程／deadline fence；Source21B ping 模板按本次 UIN low32BE 与显式 uint32 index 关联，允许合格长回复／非05 byte16，保留分片与 coalesced bytes。完整 SSO frame 保留 BE32 prefix，hardmax0x500000，处理 partial write／recv chunks。没有额外 MSF application envelope、第二 SIGN 或 legacy SsoTransport dispatch。实际 received routing 选择唯一 current peer（previous=None），未知 routing 拒绝；既有 create→encode/一次 SIGN→receive 原 pending 的 wire32／SDK64／完整 command 关联与完成语义复用。
 
-检查限定为注入 fake socket/API、controlled Python thread 和真实纯 request/codec/pending 的 MODEL／自然入口；合成 SDKERROR 只证明原结算及失败传播，未伪造正材料。close 按停止新请求→carrier→尚存原 pending→owned encoder inputs→owned owner，成功 close 释放 component／original／encoded／binding／已关闭 carrier 的引用，保留在 owner 上的 closed sender 先按生命周期状态拒绝调用；失败保留必要 backing 与真实 cleanup debt，不能重复取消已 take 的请求或以 close 清空未知 pending。当前 a3 指纹、命令和结果见 `A/overall-signing-service/sdk-own-bootstrap/implementation-a3/`；a1/a2 冻结与全部失败日志原样保存在 `implementation/`、`implementation-a2/`。
+实现阶段检查限定为注入 fake socket/API、controlled Python thread 和真实纯 request/codec/pending 的 MODEL／自然入口；合成 SDKERROR 只证明原结算及失败传播，未伪造正材料。close 按停止新请求→carrier→尚存原 pending→owned encoder inputs→owned owner，成功 close 释放 component／original／encoded／binding／已关闭 carrier 的引用，保留在 owner 上的 closed sender 先按生命周期状态拒绝调用；失败保留必要 backing 与真实 cleanup debt，不能重复取消已 take 的请求或以 close 清空未知 pending。当前 a3 指纹、命令和结果见 `A/overall-signing-service/sdk-own-bootstrap/implementation-a3/`；a1/a2 冻结与全部失败日志原样保存在 `implementation/`、`implementation-a2/`。
 
 a2 独立审查 REQUEST_CHANGES 的 receiver→send 同 original 重入 P1 已由单场景独立复现：第二次 SIGN／wire 消耗并覆盖 encoded，首回复随后关联失败。count4 STOP／Opus重规划后，a3 仅在 encode/SIGN 前占用既有 sending phase，拒绝嵌套进入，保留首 encoded／sequence／原 pending 的单次结算；新增精确 socket.on_send→published receiver 回归保留确定性 SDK 错误。同一独立审查者已对 a3 实际复审 APPROVE，范围仅为 experimental Own bootstrap SDK 增量，见 `A/overall-signing-service/sdk-own-bootstrap/REVIEW-A3.md`。不将受控修复／单测／审查通过作为真实 SDK 材料闭环；a2 原拒绝候选、P1 与复现证据保留。四项旧 pipeline 基线失败仍未通过，不包含在本增量通过范围内。
 
-**Auth 协议51728、Source算法／ABI52230、server validity 是三轴；server validity、Native执行、真实登录／发包、SDK正材料、安装／下一 SIGN 消费均 NOT_RUN。** 无 TTL、刷新、撤销、rotation/reconnect 接口；本地 deadline 不是票据期限。a3 的上述有界增量审查已通过；Native GO 仍撤销，历史 count4 不清零；若后续实质 REQUEST_CHANGES 达 count5 则本实现路线整体 STOP。Qimei全a2／两P1与整体 Goal OPEN 保持。
+**Auth51728 已有真实 ONLINE／注册 SSO0；独立SDK consumer 已实现并经独立 APPROVE，随后一次实际交易完成新SDK owner／matching ping／原SIGN封帧与回复关联，远端SSO status=-10003、stage=sso。SDK正材料／安装未达，后续SIGN跳过；server validity、拒绝原因及跨build适用性仍 UNKNOWN。** Source算法／ABI52230 资格与Auth51728／当前服务器接受性分开。 无 TTL、刷新、撤销、rotation/reconnect 接口；本地 deadline 不是票据期限。SDK源码的 experimental 增量 APPROVE 仍仅限上述范围，旧四项 pipeline 基线失败与 Qimei全a2／两P1保持；完整 Goal OPEN。实际 cleanup 故障计入 direction fault5（此前4次composition＋本次实际cleanup），同进程集成路线 STOP，计数不清零，当前无新的 Native／网络／登录执行 GO。
+
+### 三次实际登录与保存的Auth候选
+
+三次实际运行均绑定 Source `a39b1127957b7682aabfef77735625716fed0491`、manifest `451d1c5a062235b4191940997a4d1c3afa67f50b2aee9a8768295ee23a2ce9e6`，不把后续文档提交当作实际执行版本。
+
+- actual a1：实际 poll 已走 PHONE_CONFIRMED，随后 Root 依据用户当时的停止要求发出窗口关闭，触发 AUTH_CANCELLED；不是协议自然过期，未到 ONLINE／callback。用户最初手机过期显示的原因仍 UNKNOWN。
+- actual a2：实际 poll 状态48／48／48／17，协议结果 EXPIRED；未确认、未到 ONLINE／callback，无 SDK 交易。
+- actual a3：真实 getface／ticket／registration accepted、注册 SSO0、ONLINE；现有正常路径／guard 证明唯一 RAM callback1（非新增身份遥测）。旧登录 product-overlay signer.close 随后报 `SDK native worker termination is unproved: 258`，异常清空捕获列表，_login_phase 未返回，handoff0。之后进程退出 `0xC0000005`；AV原因及其与close故障的关系 UNKNOWN。正常close仍为失败，进程已退出不能记为cleanup PASS。
+
+上述三次同进程登录尝试的 Own SDK factory／request／ping／原SDK SIGN 均0，无 SDK远端拒绝或业务错误码；登录 SIGN 不计为 SDK SIGN。当前无存活的本次 owned进程／后台或 SDK pending，历史cleanup失败及证据保留。结果见 `A/overall-signing-service/sdk-own-bootstrap/{actual-run,actual-run-a2,actual-run-a3}/RESULT.md`；direction fault5 与登录依赖交接见同目录 `FIFTH-FAULT-REPLAN.md`、`LOGIN-CLEANUP-HANDOFF.md`。
+
+fresh a3 的 Auth material／profile／device provenance 已完整保存在可信本地capture，并获只读审计 `COMPLETE_LOCAL_CANDIDATE`（同目录 `CAPTURE-AUDIT.md`）。独立runtime架构设计随后形成 `FEASIBLE_FOR_BOUNDED_IMPLEMENTATION`（`INDEPENDENT-DESIGN.md`），私有consumer已实现并获独立 `APPROVE / READY_FOR_SEPARATE_ROOT_DECISION`（`INDEPENDENT-REVIEW.md`）；下述另行授权实际运行已完成真实保存值的typed重建／admission与一次消费，不冒充新的ONLINE／callback。保存的Auth仍不是SDK材料、当前server validity证明或Native52230 issuer。
+
+### 独立SDK consumer：一次实际远端SSO拒绝
+
+另行授权的一次实际运行同样绑定上述 Source `a39b1127957b7682aabfef77735625716fed0491` 与manifest451d，不把后续文档提交当作执行版本。全新独立SDK owner及genuine137 records／providers门已通过；21B无签名matching ping收到合格25B响应。冻结single-encode路径记录1份原SDK signature／nonce artifact，发送唯一8628B SDK frame（与encoded frame相同）；184B回复通过实际routing／完整command／wire关联后，远端有符号SSO status `-10003` 在 `stage=sso` 原样传播。它发生在SDK payload completion之前，**不是SDK2000归一化或payload parser失败**；没有额外逐call Native计数遥测。详见 `A/overall-signing-service/sdk-own-bootstrap/independent-sdk-actual/RESULT.md`。
+
+本次cache_updated=false／publication_present=false，安装未达，success-only后续SIGN明确跳过。仅一次unsigned ping与一次SDK frame发送，无retry、fallback、新登录／QR／刷新或Source改动；SSO拒绝原因、当前票据有效性与51728认证材料／52230 header跨build适用性均 UNKNOWN。保存Auth距本次运行约41分钟仅为时间跨度，不能据此判定过期或解释拒绝。
+
+该次新owner的 `independent.normal_close` 事件completed=true，phase／owner／resources／activation／core正常关闭；执行会话已结束，已跟踪shell／子进程及匹配consumer均无存活，当前已知cleanup debt0（Python PID未采样的跟踪缺口保留在原报告）。这不修复、不抹除旧登录owner258／后续AV的独立失败历史，也不证明所有新owner关闭均合格。direction fault5保持，同进程集成仍STOP；此次远端SSO错误不新增实现fault，SDK正材料与完整Goal仍OPEN。
+
+最后两项只读审计已结束：`SSO-AUDIT.md` 的结论为 `NO_LOCAL_DEVIATION_FOUND_WITHIN_SCOPE`，本次outgoing符合已覆盖的fixed52230 Source与显式Own policy，未发现编码／routing／sequence／材料混用偏差，不外推为全域无bug。184B实际回复为version12／encryption2，经Source的ZERO16Bkey路径解密，47B UTF8文本含失败／重新登录提示与数字21；21的服务端含义未证，不能当TTL／过期根因。该回复不使用保存的D2key，故不证明服务器接受或使用了D2key；仍是直接SSO -10003，不是SDK2000或SDK payload parser失败。
+
+`APPID-PROVENANCE.md` 的结论为 `CALLER_OR_UNBOUND_AT_COVERED_BOUNDARY`：已覆盖的public `NodeIKernelLoginService.initConfig.appid` → config+2A8 → MSF+2C8 → header DWORD，非零取caller值、零取537295977。该字段链与Auth peer输入分开，未证明此处必须等于profile.sub_app_id，不能据此改数字；这不证明其他上层／warm／type1路径没有约束。调查停在public caller的上层选择边界；剩余缺口是目标issuer／header／Auth appid-account-build组合的权威caller契约，或保留该关系的受控同build成功reference，单一成功也只限定其实际条件。当前票据有效性、TTL、跨build适用性与拒绝根因继续UNKNOWN；不再扩Source函数树、猜字段、追加Native额度或重试。已实现／审查的consumer、原capture与本次交易证据保持可复用，无新增执行GO；完整Goal仍OPEN。
 
 ## 当前结论（实际探针分别绑定版本，2026-11-27）
 
