@@ -649,3 +649,93 @@ def test_failed_module_join_keeps_real_schedule_backing_for_accepted_task(monkey
         for launch in launches:
             launch.thread.join(2)
             assert launch.joined and launch.handle_closed and launch.retired and not launch.thread.is_alive()
+
+
+def test_direct_selector_then_adapter_refresh_keeps_same_selected_adapter_fields():
+    from qq_nt_replica.primary_qimei_context import ContextObservations, QimeiContextProducer
+    from qq_nt_replica.primary_qimei_adapter_sources import QimeiAdapterState, QimeiAdapterSources
+    from qq_nt_replica.primary_qimei_observations import NETWORK_KEY, QimeiApiReply, QimeiAdapterReply, QimeiSelectorObservations
+    from qq_nt_replica.primary_qimei_storage import StorageBuffer
+
+    mac, ip, index, kind = bytes.fromhex('020304050607'), b'198.51.100.7', 17, 6
+    raw = bytearray(11264)
+    raw[12:28] = b'controlled-eth0\0'
+    raw[404:408] = (6).to_bytes(4, 'little')
+    raw[408:414] = mac
+    raw[416:420] = index.to_bytes(4, 'little')
+    raw[420:424] = kind.to_bytes(4, 'little')
+    raw[448:448 + len(ip) + 1] = ip + b'\0'
+    directory = 'X:\\OS\0'.encode('utf-16le')
+    library = 'X:\\OS\\iphlpapi.dll\0'.encode('utf-16le')
+    directory_buffer = StorageBuffer(directory + bytes(520 - len(directory)))
+    module, target, base = 0x1000, 0x2000, 0x3000
+    api = ContextObservations({
+        ('qimei-api', 'GetSystemDirectoryW', StorageBuffer(bytes(520)), 260):
+            QimeiApiReply(5, (('data', 0, directory),)),
+        ('qimei-api', 'PathAppendW', directory_buffer, 'iphlpapi.dll\0'.encode('utf-16le')):
+            QimeiApiReply(1, (('data', 0, library),)),
+        ('qimei-api', 'LoadLibraryW', library): QimeiApiReply(module),
+        ('qimei-api', 'GetProcAddress', module, b'GetAdaptersInfo'): QimeiApiReply(target),
+        ('qimei-api', 'GetAdaptersInfo', target, StorageBuffer.unknown(11264), StorageBuffer((11264).to_bytes(4, 'little'))):
+            QimeiAdapterReply(0, base, StorageBuffer(bytes(raw)), StorageBuffer((704).to_bytes(4, 'little'))),
+        ('qimei-api', 'RegOpenKeyExA', 0xFFFFFFFF80000002, NETWORK_KEY, 0, 0x20019, StorageBuffer(bytes(8))):
+            QimeiApiReply(2),
+        ('qimei-api', 'FreeLibrary', module): QimeiApiReply(1),
+    })
+    selector = QimeiSelectorState()
+    context = QimeiContextProducer(selector=selector)
+    state = QimeiAdapterState(selector=selector)
+    adapter = QimeiAdapterSources(api, state=state)
+    probe = QimeiSelectorObservations(api)
+    assert context.selector is selector is adapter.state.selector
+    assert (selector.selected6, state.ip, state.index, state.adapter_type) == (bytes(6), b'', 0, 0)
+    assert selector.select(probe) == mac
+    assert probe.selected_effects == {'ip': ip, 'index': index, 'type': kind}
+    assert probe.module is None and probe.adapter_phase == 'complete'
+    refreshed = adapter.refresh()
+    assert refreshed is state
+    assert sum(key[:2] == ('qimei-api', 'GetAdaptersInfo') for key in api.consumed) == 1
+    assert (selector.selected6, state.ip, state.index, state.adapter_type) == (mac, ip, index, kind)
+
+
+def test_selector_ranking_retains_chosen_compound_fields_and_cache():
+    from qq_nt_replica.primary_qimei_context import ContextObservations
+    from qq_nt_replica.primary_qimei_adapter_sources import QimeiAdapterState, QimeiAdapterSources
+    values = {('adapters', 'status', 11264): 0, ('adapters', 'head'): 1}
+    for node, address, subtype, ip in ((1, b'111111', 2, b'192.0.2.1'),
+                                       (2, b'222222', 1, b'192.0.2.2'),
+                                       (3, b'333333', 2, b'192.0.2.3')):
+        values.update({('adapter', node, 'registry-status'): 0,
+                       ('adapter', node, 'subtype'): subtype,
+                       ('adapter', node, 'pnp-instance'): b'PCI',
+                       ('adapter', node, 'type'): 6,
+                       ('adapter', node, 'address'): address,
+                       ('adapter', node, 'selected-effects'): {'ip': ip, 'index': node, 'type': 6},
+                       ('adapter', node, 'next'): node + 1 if node < 3 else 0})
+    state = QimeiAdapterState()
+    observations = ContextObservations(values)
+    assert state.selector.select(observations) == b'222222'
+    assert ('adapter', 3, 'address') not in observations.consumed
+    unused = ContextObservations({})
+    assert state.selector.select(unused) == b'222222'
+    adapter = QimeiAdapterSources(unused, state=state)
+    assert adapter.refresh() is state and adapter.refresh() is state
+    assert (state.ip, state.index, state.adapter_type) == (b'192.0.2.2', 2, 6)
+    assert not unused.consumed
+
+
+@pytest.mark.parametrize('netbios_address', [b'123456', bytes(6)])
+def test_selector_netbios_or_compiled_fallback_keeps_legal_empty_ip(netbios_address):
+    from qq_nt_replica.primary_qimei_context import ContextObservations, COMPILED_SELECTED6
+    from qq_nt_replica.primary_qimei_adapter_sources import QimeiAdapterState, QimeiAdapterSources
+    values = {('adapters', 'status', 11264): 1,
+              ('netbios', 'enum-status'): 0, ('netbios', 'lanas'): b'\x01',
+              ('netbios', 1, 'reset-status'): 0, ('netbios', 1, 'astat-status'): 0,
+              ('netbios', 1, 'address'): netbios_address}
+    state = QimeiAdapterState()
+    assert state.selector.select(ContextObservations(values)) == (netbios_address if any(netbios_address) else COMPILED_SELECTED6)
+    assert state.selector.selected_effects is None
+    unused = ContextObservations({})
+    assert QimeiAdapterSources(unused, state=state).refresh() is state
+    assert (state.ip, state.index, state.adapter_type) == (b'', 0, 0)
+    assert not unused.consumed

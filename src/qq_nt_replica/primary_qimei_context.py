@@ -96,6 +96,7 @@ def storage_gate(observations):
 @dataclass
 class QimeiSelectorState:
     selected6: bytes | None = field(default=bytes(6), repr=False)
+    selected_effects: dict | None = field(default=None, init=False, repr=False)
     _lock: object = field(default_factory=RLock, repr=False, compare=False)
 
     def select(self, observations):
@@ -129,7 +130,10 @@ class QimeiSelectorState:
                         adapter_type = _integer(observations.read('adapter', node, 'type'))
                         choose = adapter_type in (6, 23) and rank > candidate
                     if choose:
-                        self.selected6 = _six(observations.read('adapter', node, 'address'))
+                        address = _six(observations.read('adapter', node, 'address'))
+                        effects = observations.read('adapter', node, 'selected-effects')
+                        # Keep the same selection's compound result beyond this IO observation.
+                        self.selected6, self.selected_effects = address, effects
                         rank = candidate
                     node = observations.read('adapter', node, 'next')
             if any(self.selected6):

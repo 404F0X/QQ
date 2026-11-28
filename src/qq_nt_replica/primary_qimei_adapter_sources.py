@@ -76,17 +76,19 @@ class QimeiAdapterSources:
 
     def refresh(self):
         state = self.state
-        with state._lock:
+        with state._lock, state.selector._lock:
             selected = state.selector.selected6
             if selected is None or not isinstance(selected, bytes) or len(selected) != 6:
                 raise QimeiRequestBoundary('source adapter selected address is unknown or malformed')
-            if any(selected):
-                return state
-            observations = QimeiSelectorObservations(self.observations)
-            state.selector.select(observations)
-            if observations.selected_effects is not None:
-                effects = observations.selected_effects
+            cached = any(selected)
+            if not cached:
+                observations = QimeiSelectorObservations(self.observations)
+                state.selector.select(observations)
+            effects = state.selector.selected_effects
+            if effects is not None:
                 state.ip, state.index, state.adapter_type = effects['ip'], effects['index'], effects['type']
+            if cached:
+                return state
             if state.ip == b'0.0.0.0':
                 found = self.lookup_index(state.index)
                 if found.accepted:
@@ -98,6 +100,8 @@ class QimeiAdapterSources:
                     value = _cstring(output)
                     if value:
                         state.ip = value
+            if effects is not None:
+                effects['ip'] = state.ip
             return state
 
     def primary_adapter(self):

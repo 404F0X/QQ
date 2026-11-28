@@ -188,7 +188,6 @@ class QimeiSelectorObservations:
         self.adapters = None
         self.registry = {}
         self.registry_handles = []
-        self.pending_selected_node = None
         self.selected_effects = None
         self.enum_output = None
         self.astat_outputs = {}
@@ -359,16 +358,17 @@ class QimeiSelectorObservations:
                 return value.read(0, 3) if name == 'pnp-instance' else value
             if name == 'address':
                 value = self._node(node, 408, 6)
-                self.pending_selected_node = node
+                raw = self.adapters.output
+                ip = _cstring(raw, node - self.adapters.base + 448)
+                index = int.from_bytes(self._node(node, 416, 4), 'little')
+                kind = int.from_bytes(self._node(node, 420, 4), 'little')
+                self.selected_effects = {'ip': ip, 'index': index, 'type': kind}
                 return value
+            if name == 'selected-effects':
+                if self.selected_effects is None:
+                    raise ContextObservationError('selected adapter fields have not been produced')
+                return self.selected_effects
             if name == 'next':
-                if self.pending_selected_node == node:
-                    raw = self.adapters.output
-                    ip = _cstring(raw, node - self.adapters.base + 448)
-                    index = int.from_bytes(self._node(node, 416, 4), 'little')
-                    kind = int.from_bytes(self._node(node, 420, 4), 'little')
-                    self.selected_effects = {'ip': ip, 'index': index, 'type': kind}
-                    self.pending_selected_node = None
                 pointer = int.from_bytes(self._node(node, 0, 8), 'little')
                 if pointer == 0:
                     self._release_module()
