@@ -1,8 +1,7 @@
-"""Injection-only OneBot/Own SDK MODEL candidate, never a live driver.
+"""Finite OneBot/Own SDK caller; offline recorded metadata inspection by default.
 
-The CLI inspects a recorded get_login_info reply only. Matching identity does
-not authorize execution or establish online status, Native behavior or SDK
-acceptance. There are no default SDK, resource, observer or action bindings.
+Explicit --run uses deferred public bindings and requires separate execution GO.
+Matching identity does not establish Native behavior or SDK acceptance.
 """
 import argparse
 from dataclasses import dataclass
@@ -104,6 +103,7 @@ class ModelResult:
     sign_result: object
     observation: object
     scope: str = 'MODEL_ONLY_NOT_BUSINESS_CLOSURE'
+    persistence: object = None
 
 
 def _close(owner, resources, operation_error):
@@ -122,12 +122,12 @@ def _close(owner, resources, operation_error):
 
 
 def run_model(config, *, action, open_windows_signer, collect_resources, observe_sign):
-    """Finite MODEL orchestration using explicitly injected ports only.
+    """Shared finite orchestration (historical model entry name retained).
 
     action accepts a standard action/params/echo object and returns its single
     correlated reply on the same injected connection. It owns timeouts/closure;
-    this caller neither opens nor retries a connection. All ports are model
-    bindings under this contract; passing live bindings is not authorized.
+    this function neither opens nor retries a connection. Deferred live bindings
+    may be supplied only through the separately authorized execution entry.
 
     observe_sign(owner, original, completion) is an existing-style observation
     context around ONE owner.sign_result call. Its evidence must distinguish
@@ -180,6 +180,8 @@ def run_model(config, *, action, open_windows_signer, collect_resources, observe
                 followup = owner.sign_result(original.command, original.body)
         return ModelResult(completion, followup, observation)
     except BaseException as error:
+        if resources is None:
+            resources = getattr(error, 'sdk_resources', None)
         operation_error = error
         raise
     finally:
@@ -199,20 +201,37 @@ def inspect_recorded_metadata(response, *, expected_uin):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--metadata-json', type=Path, required=True,
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--metadata-json', type=Path,
         help='recorded get_login_info action reply; offline inspection only')
-    parser.add_argument('--expected-uin', type=int, required=True)
+    mode.add_argument('--run', action='store_true', help='actual deferred execution; separate GO required')
+    parser.add_argument('--expected-uin', type=int)
+    parser.add_argument('--live-config', type=Path, help='explicit private owned-namespace execution configuration')
     options = parser.parse_args(argv)
+    if options.run and (options.live_config is None or options.expected_uin is not None):
+        parser.error('--run requires --live-config with its explicit identity')
+    if not options.run and (options.expected_uin is None or options.live_config is not None):
+        parser.error('offline inspection requires --expected-uin and no --live-config')
     try:
-        result = inspect_recorded_metadata(json.loads(options.metadata_json.read_bytes()),
-            expected_uin=options.expected_uin)
-    except (ValueError, OSError, OneBotAPIError) as error:
+        if options.run:
+            from own_sdk_onebot_bindings import read_live_config, run_live
+            actual = run_live(read_live_config(options.live_config))
+            result = {'status': 'COMPLETION_RETURNED', 'scope': actual.scope,
+                'outcome': actual.completion.outcome, 'stage': actual.completion.stage,
+                'code': actual.completion.code, 'cache_updated': actual.completion.cache_updated,
+                'consumption': None if actual.observation is None else actual.observation['consumption'],
+                'persistence': actual.persistence}
+        else:
+            result = inspect_recorded_metadata(json.loads(options.metadata_json.read_bytes()),
+                expected_uin=options.expected_uin)
+    except Exception as error:
         # Never print the raw reply, nickname, body, or API error message.
-        print(json.dumps({'status': 'BLOCKED', 'execution': 'NOT_EXECUTED',
+        print(json.dumps({'status': 'FAILED' if options.run else 'BLOCKED',
+            'execution': 'ATTEMPTED' if options.run else 'NOT_EXECUTED',
             'error_type': type(error).__name__}))
         return 1
     print(json.dumps(result))
-    return 0
+    return 1 if result.get('outcome') == 'failed' else 0
 
 
 if __name__ == '__main__':

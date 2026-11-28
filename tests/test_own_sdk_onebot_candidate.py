@@ -433,7 +433,8 @@ class OneBotCandidateModelTests(unittest.TestCase):
         imports = {n.module if isinstance(n, ast.ImportFrom) else alias.name
             for n in ast.walk(tree) if isinstance(n, (ast.Import, ast.ImportFrom))
             for alias in (n.names if isinstance(n, ast.Import) else [None])}
-        self.assertEqual(imports, {'argparse', 'dataclasses', 'json', 'pathlib', 'typing', 'uuid'})
+        self.assertEqual(imports, {'argparse', 'dataclasses', 'json', 'pathlib', 'typing', 'uuid',
+            'own_sdk_onebot_bindings'})
         # Top-level expressions are only docstring, definitions, a literal and
         # the standard __main__ guard; importing cannot enter the model path.
         self.assertFalse(any(isinstance(n, ast.Expr) and isinstance(n.value, ast.Call) for n in tree.body))
