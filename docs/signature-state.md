@@ -7,6 +7,20 @@
 COORDINATION 只记录调度和操作，不另立业务状态机。
 原长篇过程记录已由 Git 历史及既有 before/input-versions 快照保留，不再复制归档。
 
+## CURRENT profile-bound SDK caller（SDK-CURRENT-PROFILE-CALLER/a1，代码候选独立审查 APPROVE）
+
+仓库根 `run_own_profile_sdk_candidate.py` 现在是本方 CURRENT channel/phase 的唯一维护实现。`CurrentProfilePhase` 从本方历史 driver 提升，保留原 Native producers、137 records、单次原始 SDK transaction、正 publication/cache 后才进行的同 runtime 后续 SIGN、完整字节选择/digest 观测和失败 close 停止/保留 backing 顺序；正常 `OwnBootstrapSdkSession` 构造显式传 `appid_override=None, bind_profile_appid=True`。Source API 的默认 False 未变。历史 `A/overall-signing-service/sdk-own-bootstrap/actual-preparation/driver.py` 仅为不可变档案，旧 consumer/main、69 pins、captures 没有修改或重新绑定。
+
+入口复用历史 consumer 公开 `reconstruct(..., reader=...)` / DTO helpers 与 `run_sdk(..., phase_factory=CurrentProfilePhase)`，不调用旧 validate_inputs/events/main/canonical_apis/packet_admission，也不重绑 HERE/T/L。reader 从本次显式 capture_root 读取并检查 resolved scope，旧 blob helper 继续检查 basename/length/SHA；其 T 在 reader 模式中只参与旧 lexical scope 检查，不从旧 T 隐式读取字节。canonical Q/T/G 由显式 login_entry 的正常 load_api 提供；当前 C 的 signature_core/manifest 负责 SDK activation，真实 packet_inputs 在 activation 内、任何 Native owner 前执行。历史 DTO/schema 证据与64项 API 检查在相关输入未变时复用；新 caller 受控检查不构成 Native 运行证明。
+
+只读帮助：`python -B run_own_profile_sdk_candidate.py --help`。本地 typed admission：`python -B run_own_profile_sdk_candidate.py --inputs <private-current-inputs.json> --admit`。只有另获明确执行授权后才可改用 `--run`；程序化接口 `run_candidate(inputs, execute=False)` 默认仅 admission。已另行授权并完成一次原始历史 capture 的结构 admission（限定见下段）；任何 Native/network/SDK/QR 执行仍未获 GO。没有随代码提供材料或可冒充当前输入的样例。
+
+输入 JSON 的每一项由调用方显式提供：`source_manifest_sha256` 是当前 C/source-manifest.json 的 SHA256；`current_files` 是四项相对文件名到 SHA256 的 map（本 caller、signature_core.py、run_authenticated_sdk_session.py、trusted_login_capture.py）；`dto_helper` / `login_entry` 各为 `{path, sha256}`，分别指向经审阅的公开 consumer helper 与 canonical G/entry.py。G loader 沿用自己的 Q/T/G dependency binding，不注入旧 overlay。`capture_root` / `events_sha256` 指向同一真实来源的 events.jsonl；`blobs` 为该来源使用的 basename → `{length, sha256}` map。复用 schema 明确要求 E3 session.inputs、E71 registration.accepted、E72 session.final，保存的历史事件相关性不能成为当前 ONLINE/callback 或 freshness 证明；其他 capture schema 不自动适配。实际 caller 不读取旧 INPUTS.json 或旧69清单。
+
+其余显式配置为 `policy: {session_id, state_id, ping_index}`（均为本次本方策略，state_id 使用现有 own store 合法命名）；`bridge_path`、`worker_bridge_path`、`loader_profile`；`sdk_timeout`（有限正值，至多120秒）；`storage_root`（不存在的全新自有目录）；`output_capture_root`（现有 trusted_login_capture 接受的私有根）。仅执行分支才创建 storage/capture/network domain。输入及新 capture 都包含敏感材料，只能保留在可信私有位置；仓库与公共报告不存原始凭据。输入绑定是本地来源核对，不是新的资格凭证。
+
+代码候选已获独立审查 APPROVE（仅代码候选，`A/overall-signing-service/sdk-current-profile-caller/REVIEW.md`）。另行独立执行的一次 CURRENT CLI `--admit` 已获 `PASS_STRUCTURAL_HISTORICAL_ADMISSION`，exit0，返回 `CURRENT_TYPED_ADMISSION_ONLY` / `actual_sdk=NOT_RUN` / `current_validity=UNKNOWN`；见同目录 `historical-admission/RESULT.md`。原始真实历史 E3/E71/E72 及 blobs 经显式 reader → 七种 canonical DTO → require_session → CURRENT core activation/真实 packet_inputs → core close，通过过程中没有 source_ref/origin 改写、缺字段补值或旧全局重绑；13项针对性输入绑定前后相同。该结果仅证明保存的历史结构可以通过当前本地准入，不证明当前 Auth 有效性、freshness、跨 build、issuer、Native peer 或 SDK 资格。真实 current 输入仍由登录负责人另行提供；`--admit` 不能证明当前服务器资格，输出保持 `current_validity=UNKNOWN`。本轮 Native owner、transport、SDK transaction、安装、后续 SIGN 和正常 close 均未运行；Auth 有效性、跨 build、Native peer、selection/close 风险仍 UNKNOWN，不能宣称 Auth 是唯一 gate。full Goal OPEN，fault5、旧 full-a2/login STOP、Original VT80 硬停及所有实际调用 CLOSED 保留；无登录恢复/注册/刷新服务。
+
 ## Own profile appid 配置投影（SDK-PROFILE-CONFIG-IMPL/a1，独立审查 APPROVE）
 
 `OwnBootstrapSdkSession(..., bind_profile_appid=False)` 新增显式 opt-in。默认 False 保留既有 `appid_override`／Source fallback 路径；True 在既有 `packet_inputs(material, profile)`／`require_experimental51728()` 准入后，取同一 canonical profile 的 `sub_app_id` 字段并转换为 ASCII 十进制 String。True 与任何非 None `appid_override`（包括0）冲突并报 `OWN_BOOTSTRAP_APPID_CONFLICT`；非 bool flag 报 `OWN_BOOTSTRAP_EXPLICIT_INPUTS`。profile 偏离直接保留原准入错误，均先于 SIGN、connector 或 encoder entropy。
@@ -15,7 +29,7 @@ COORDINATION 只记录调度和操作，不另立业务状态机。
 
 该有限配置 API 接受 dict，appid absent／None／present empty 分别保留 optional 输入语义；record 初始空、service DWORD 初始0，均经正常 Options 得到原 Source fallback。present `'0'` 写 DWORD0；`'1'` 至 `'4294967295'` 的无前导零 ASCII 十进制 String 写相应 DWORD。只支持这一已证 canonical 域；符号、空白、前缀、前导零、Unicode 数字、NUL、overflow 或非 String 显式 `InputError`。这不声称 Native 完整词法拒绝所有这些输入。String 类型失败前无 copy；支持 String copy 后的域／解析失败保留已复制 config，DWORD不写、encoder／Options不产生；失败构造按既有 inputs 清理规则处理。String 使用 Python immutable 值保存，未声称重现 Native String 分配器／OOM 前缀。无 warm update API。Own profile opt-in 仍要求 canonical51728准入，不能用底层配置支持域放宽 profile 资格。
 
-未来接线 recipe（只准备 API 调用，须在另行授权的新 factory／candidate 中采用）：
+底层 API 调用示意（CURRENT 正常接线见上节；本片段不创建 owner 或执行）：
 
 ```python
 future_inputs = dict(existing_explicit_own_bootstrap_inputs)
