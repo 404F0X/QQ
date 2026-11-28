@@ -1,0 +1,282 @@
+"""Declared MODEL owners/ports only. Never a Windows close/factory or native proof."""
+import os
+import threading
+import unittest
+from dataclasses import replace
+from types import SimpleNamespace as NS
+from unittest.mock import patch
+from qq_nt_replica.primary_source_cold12_binding import DisabledEnvironment, EnabledEnvironment, fresh_options
+from qq_nt_replica.primary_windows_signer import WindowsSigner
+from qq_nt_replica.primary_windows_signer_setup import IndependentWindowsSetup
+from qq_nt_replica.primary_provider_init import ProviderInitializationMetadata
+from qq_nt_replica.primary_own_sdk_request import OwnColdSdkRequestOwner
+from qq_nt_replica.primary_sdk_request import SdkRecordRequest
+from qq_nt_replica.primary_request_material import RequestMaterial
+from qq_nt_replica.primary_signature_result import PrimarySignatureResult
+from qq_nt_replica.errors import InputError
+from qq_nt_replica.primary_source_cold12_binding import _OwnAppidService
+
+
+class Inputs:
+    def __init__(self,fail_close=False):self.seeds=0;self.closes=0;self.fail_close=fail_close
+    def entropy4(self):self.seeds+=1;return bytes(4)
+    def host_marker(self):return 1
+    def padding_bytes(self,n):return bytes(range(n))
+    def close(self):
+        self.closes+=1
+        if self.fail_close:raise OSError('MODEL close failure')
+
+
+class ModelOwner:
+    bind_own_cold12=WindowsSigner.bind_own_cold12
+    encode_own_cold12=WindowsSigner.encode_own_cold12
+    def __init__(self,machine=b'MODEL-machine'):
+        self._own_business_initialized=True;self._own_business_machine_id=machine
+        self._state='open';self._busy=False;self._own_cold12=None;self.signs=[];self.fail_sign=False
+        component=object.__new__(OwnColdSdkRequestOwner)
+        component.runtime=NS();component.closed=False;component.creator=(os.getpid(),threading.get_native_id());component._pending=[]
+        self._signer=NS(failed=False,_own_sdk_request=component,runtime=component.runtime)
+    def _check_owner(self):pass  # Explicit MODEL creator port; no fake native frame/close context.
+    def request(self,seq=1):
+        value=SdkRecordRequest(b'trpc.o3.ecdh_access.EcdhAccess.SsoEstablishShareKey',b'MODEL-body',seq,None,RequestMaterial(bytes(168)),b'MODEL')
+        self._signer._own_sdk_request._pending.append((value,b'MODEL-bound'))
+        return value
+    def sign_result(self,command,body):
+        assert not self._busy
+        self.signs.append((command,body))
+        if self.fail_sign:
+            self._state='failed';self._signer.failed=True
+            raise RuntimeError('MODEL normal SIGN failed')
+        return PrimarySignatureResult(b'S',b'E',b'T')
+
+
+class Binding(unittest.TestCase):
+    def bind(self,owner,inputs,owned=False):
+        owner.bind_own_cold12(inputs,own_inputs=owned,appid_override=None,env_setting=DisabledEnvironment())
+        return owner._own_cold12
+
+    def test_projection_appid_env_truth_table_and_fresh_constants(self):
+        for appid,want in ((None,0x20067C69),(0,0x20067C69),(123,123)):
+            cases=[(DisabledEnvironment(),None,b''),(EnabledEnvironment('',0,'id',''),None,b''),
+                (EnabledEnvironment('host',0,'id',''),None,b''),(EnabledEnvironment('',1,'id',''),None,b''),
+                (EnabledEnvironment('host',1,'id',''),b'id',b''),(EnabledEnvironment('',0,'id','canary'),b'id',b'canary'),
+                (EnabledEnvironment('host',1,'',''),None,b'')]
+            for env,field13,canary in cases:
+                value=fresh_options(b'MODEL-machine',appid_override=appid,env_setting=env)
+                self.assertEqual((value.dword0,value.string8,value.string20),(want,b'',b'MODEL-machine'))
+                self.assertEqual((value.reserve.context13,value.reserve.field32),(field13,canary))
+                self.assertEqual((value.reserve.field16,value.reserve.field21,value.reserve.records23,value.reserve.field26),(None,False,(),101))
+        for env in (None,EnabledEnvironment('h',-1,'id',''),EnabledEnvironment('h','1','id',''),EnabledEnvironment('h',1,'\ud800','')):
+            with self.assertRaises(InputError):fresh_options(b'm',appid_override=None,env_setting=env)
+        with self.assertRaises(InputError):fresh_options(b'm',appid_override=True,env_setting=DisabledEnvironment())
+        self.assertEqual(fresh_options('\u00e9'.encode('utf-8'),appid_override=None,env_setting=DisabledEnvironment()).string20,'\u00e9'.encode('utf-8'))
+
+    def test_config_copy_parse_service_read_and_fresh_fallback(self):
+        for config in ({}, {'appid': None}, {'appid': ''}, {'appid': '0'},
+                       {'appid': '19'}, {'appid': '4294967295'}):
+            owner, inputs = ModelOwner(), Inputs()
+            reads = []
+            current = _OwnAppidService.current_appid
+            def read(service):
+                reads.append((service, service.dword_2c8))
+                return current(service)
+            with patch.object(_OwnAppidService, 'current_appid', read):
+                owner.bind_own_cold12(inputs, own_inputs=True, appid_override=None,
+                    env_setting=DisabledEnvironment(), init_config=config)
+            binding = owner._own_cold12
+            service = binding.appid_service
+            supplied = config.get('appid')
+            self.assertIs(service.binding, binding)
+            self.assertEqual(service.appid_string, supplied)
+            self.assertEqual(service.config_2a8, supplied if supplied is not None else '')
+            expected = int(supplied) if supplied else 0
+            self.assertEqual(reads, [(service, expected)])
+            self.assertEqual(binding.options.dword0, expected or 0x20067C69)
+            config['appid'] = '47'
+            self.assertEqual(service.current_appid(), expected)
+            self.assertEqual(fresh_options(b'MODEL-machine', appid_override=None,
+                env_setting=DisabledEnvironment(), appid_service=service).dword0, binding.options.dword0)
+            with self.assertRaisesRegex(InputError, 'conflicts'):
+                fresh_options(b'm', appid_override=0, env_setting=DisabledEnvironment(), appid_service=service)
+            runtime = owner._signer.runtime
+            owner._signer.runtime = object()
+            with self.assertRaises(InputError): service.current_appid()
+            owner._signer.runtime = runtime
+            binding.close()
+            self.assertEqual(inputs.closes, 1)
+            with self.assertRaises(InputError): service.current_appid()
+
+    def test_unsupported_config_retains_real_prefix_before_encoder_or_sign(self):
+        for value in ('+1', '-1', ' 1', '1 ', '0x10', '01', '\u0661', '1\0',
+                      '4294967296', '999999999999999999999', 17, True, b'17'):
+            owner, inputs, captured = ModelOwner(), Inputs(), []
+            setter = _OwnAppidService.initConfig
+            def observed(service, config):
+                captured.append(service)
+                return setter(service, config)
+            with patch.object(_OwnAppidService, 'initConfig', observed):
+                with self.assertRaisesRegex(InputError, 'Own appid config'):
+                    owner.bind_own_cold12(inputs, own_inputs=True, appid_override=None,
+                        env_setting=DisabledEnvironment(), init_config={'appid': value})
+            service = captured[0]
+            self.assertEqual(service.config_2a8, value if type(value) is str else '')
+            self.assertEqual(service.dword_2c8, 0)
+            self.assertIsNone(service.binding.encoder)
+            self.assertFalse(hasattr(service.binding, 'options'))
+            self.assertEqual((inputs.seeds, inputs.closes, owner.signs), (0, 1, []))
+            self.assertIsNone(owner._own_cold12)
+
+    def test_config_failure_retains_backing_on_owned_close_debt(self):
+        owner, inputs = ModelOwner(), Inputs(True)
+        with self.assertRaises(BaseExceptionGroup) as failure:
+            owner.bind_own_cold12(inputs, own_inputs=True, appid_override=None,
+                env_setting=DisabledEnvironment(), init_config={'appid': '4294967296'})
+        self.assertIsInstance(failure.exception.exceptions[0], InputError)
+        self.assertIsInstance(failure.exception.exceptions[1], OSError)
+        binding = owner._own_cold12
+        self.assertIs(binding.inputs, inputs)
+        self.assertEqual(binding.appid_service.config_2a8, '4294967296')
+        self.assertEqual(binding.appid_service.dword_2c8, 0)
+        self.assertEqual(owner._state, 'failed')
+        with self.assertRaises(OSError): binding.close()
+        self.assertEqual(inputs.closes, 1)
+
+    def test_config_copy_failure_and_conflict_use_existing_construction_cleanup(self):
+        for config, override in (([], None), ({'appid': '19'}, 0)):
+            owner, inputs = ModelOwner(), Inputs()
+            with self.assertRaises(InputError):
+                owner.bind_own_cold12(inputs, own_inputs=True, appid_override=override,
+                    env_setting=DisabledEnvironment(), init_config=config)
+            self.assertEqual((inputs.seeds, inputs.closes, owner.signs), (0, 1, []))
+
+    def test_setup_captures_only_successful_installed_identity(self):
+        owner=ModelOwner();owner._own_business_machine_id=None;setup=IndependentWindowsSetup(owner)
+        config={'uin':0,'machine_id':b'MODEL-original'}
+        metadata=ProviderInitializationMetadata(None,b'MODEL-qua',b'0',config['machine_id'])
+        installed=[]
+        def prepare(value):
+            self.assertIsNone(owner._own_business_machine_id);installed.append(value)
+        with patch('qq_nt_replica.primary_windows_signer_setup.business_metadata',return_value=metadata),patch.object(setup,'_prepare_provider',side_effect=prepare):
+            setup.prepare_business(**config)
+        config['machine_id']=b'changed'
+        self.assertEqual(owner._own_business_machine_id,installed[0].field_20)
+        failed=ModelOwner();failed._own_business_machine_id=None;setup=IndependentWindowsSetup(failed)
+        with patch('qq_nt_replica.primary_windows_signer_setup.business_metadata',return_value=metadata),patch.object(setup,'_prepare_provider',side_effect=RuntimeError('setup')):
+            with self.assertRaises(RuntimeError):setup.prepare_business(**config)
+        self.assertIsNone(failed._own_business_machine_id)
+
+    def test_real_pending_preflight_and_prepare_sign_encode_order(self):
+        owner=ModelOwner();inputs=Inputs();binder=self.bind(owner,inputs)
+        first=owner.request();second=owner.request(2);order=[]
+        prepare,encode=binder.encoder.prepare,binder.encoder.encode_signed
+        def prepared(command,body,**kw):order.append('prepare');return prepare(command,body,**kw)
+        def signed(command,body):order.append('sign');return ModelOwner.sign_result(owner,command,body)
+        def encoded(request,**kw):
+            order.append('encode');self.assertTrue(owner._busy)
+            self.assertEqual((request.command,request.body),(first.command,first.body))
+            return encode(request,**kw)
+        owner.sign_result=signed
+        with patch.object(binder.encoder,'prepare',side_effect=prepared),patch.object(binder.encoder,'encode_signed',side_effect=encoded):
+            result=owner.encode_own_cold12(first)
+        self.assertEqual(order,['prepare','sign','encode']);self.assertEqual(owner.signs,[(first.command,first.body)])
+        self.assertEqual(result.sdk_sequence,first.sdk_sequence);self.assertIs(result._request,first);self.assertTrue(result.frame)
+        self.assertEqual(len(owner._signer._own_sdk_request._pending),2)
+        before=binder.encoder.counter._value
+        for invalid in (replace(first),ModelOwner().request()):
+            with self.assertRaises(InputError):owner.encode_own_cold12(invalid)
+        owner._signer._own_sdk_request.cancel_device_request(first)
+        with self.assertRaises(InputError):owner.encode_own_cold12(first)
+        self.assertEqual(binder.encoder.counter._value,before);self.assertEqual(len(owner.signs),1)
+        owner.encode_own_cold12(second);self.assertEqual(len(owner.signs),2)
+        binder.close();self.assertEqual(inputs.closes,0)
+
+    def test_unsupported_identity_config_and_owner_fail_before_counter(self):
+        for machine in (b'',b'bad\0value',b'\xff'):
+            owner=ModelOwner(machine);inputs=Inputs();request=owner.request()
+            with self.assertRaises(InputError):self.bind(owner,inputs,True)
+            self.assertEqual(inputs.seeds,0);self.assertEqual(inputs.closes,1)
+            self.assertEqual(owner.signs,[]);self.assertEqual(len(owner._signer._own_sdk_request._pending),1)
+            self.assertEqual(owner._own_business_machine_id,machine)
+        owner=ModelOwner();inputs=Inputs();request=owner.request()
+        with self.assertRaises(InputError):owner.bind_own_cold12(inputs,own_inputs=False,appid_override=None,env_setting=None)
+        self.assertEqual(inputs.seeds,0);self.assertEqual(inputs.closes,0);self.assertEqual(owner._state,'open')
+        self.assertEqual(len(owner._signer._own_sdk_request._pending),1)
+        owner=ModelOwner();owner._own_business_initialized=False;inputs=Inputs()
+        with self.assertRaises(InputError):self.bind(owner,inputs)
+        self.assertEqual(inputs.seeds,0)
+
+    def test_sign_encode_failures_do_not_retry_or_rollback(self):
+        for stage in ('sign','encode'):
+            owner=ModelOwner();binder=self.bind(owner,Inputs());request=owner.request();before=binder.encoder.counter._value
+            if stage=='sign':owner.fail_sign=True
+            with patch.object(binder.encoder,'encode_signed',side_effect=RuntimeError('MODEL encode failed')) as encode:
+                with self.assertRaises(RuntimeError):owner.encode_own_cold12(request)
+            self.assertEqual(binder.encoder.counter._value,(before+1)&0xFFFFFFFF)
+            self.assertEqual(len(owner.signs),1);self.assertEqual(encode.call_count,int(stage=='encode'))
+            self.assertEqual(len(owner._signer._own_sdk_request._pending),1);self.assertEqual(owner._state,'failed')
+            binder.close()
+
+    def test_owned_close_and_creation_cleanup_failure_retains_debt(self):
+        owner=ModelOwner();inputs=Inputs();binder=self.bind(owner,inputs,True);binder.close();binder.close();self.assertEqual(inputs.closes,1)
+        owner=ModelOwner();inputs=Inputs(True);binder=self.bind(owner,inputs,True)
+        with self.assertRaises(OSError):binder.close()
+        with self.assertRaises(OSError):binder.close()
+        self.assertEqual(inputs.closes,1)
+        owner=ModelOwner();inputs=Inputs()
+        def seed_failure():raise OSError('MODEL entropy failure')
+        inputs.entropy4=seed_failure
+        with self.assertRaises(OSError):self.bind(owner,inputs,True)
+        self.assertEqual(inputs.closes,1)
+        owner=ModelOwner(b'\xff');inputs=Inputs(True)
+        with self.assertRaises(BaseExceptionGroup) as error:self.bind(owner,inputs,True)
+        self.assertEqual(len(error.exception.exceptions),2);self.assertEqual(owner._state,'failed');self.assertEqual(inputs.closes,1)
+        with self.assertRaises(OSError):owner._own_cold12.close()
+        self.assertEqual(inputs.closes,1)
+
+if __name__=='__main__':unittest.main()
+
+
+class Type1BindingModel(Binding):
+    def test_type1_same_original_pending_and_one_sign(self):
+        from qq_nt_replica.primary_source_cold12 import SourceType1RequestInputs, SourceType1StoredPeer
+        owner=ModelOwner();inputs=Inputs();binder=self.bind(owner,inputs)
+        old=owner.request();request=replace(old,command=b'trpc.o3.ecdh_access.EcdhAccess.SsoSecureA2Access')
+        component=owner._signer._own_sdk_request;component._pending=[(request,b'MODEL')]
+        before=binder.encoder.counter._value
+        with self.assertRaises(InputError):owner.encode_own_cold12(request)
+        self.assertEqual(binder.encoder.counter._value,before);self.assertEqual(owner.signs,[])
+        dto=SourceType1RequestInputs(b'lookup',SourceType1StoredPeer(b'inner',b'outer',bytes(16)))
+        encoded=owner.encode_own_cold12(request,type1=dto)
+        self.assertIs(encoded._request,request);self.assertEqual(encoded._prepared.command,request.command)
+        self.assertEqual(owner.signs,[(request.command,request.body)])
+        component.check_device_request(request)
+        binder.close();self.assertEqual(inputs.closes,0)
+
+    def test_external_selection_rejected_before_body_observation(self):
+        component=ModelOwner()._signer._own_sdk_request
+        component.runtime.request_transport=object()
+        for selection in (True,False,1,b'x'):
+            with patch('qq_nt_replica.primary_own_sdk_request._String.read') as read:
+                with self.assertRaises(InputError):component.create_device_request([],external_a2_selection=selection)
+                read.assert_not_called()
+
+
+    def test_external_selection_is_passed_before_finish_command(self):
+        from contextlib import ExitStack
+        for selected in (None,False,True):
+            component=ModelOwner()._signer._own_sdk_request
+            component.runtime=NS(request_transport=None,image_base=0)
+            component._encoded=False;component._tag=b'MODEL';component.flags=0
+            component.material=object();component.sequence=1;component.clocks={}
+            component.environment=NS();component.capi=object()
+            result=NS(command=b'MODEL final command')
+            prefix='qq_nt_replica.primary_own_sdk_request.'
+            with ExitStack() as stack:
+                stack.enter_context(patch(prefix+'_String.read',return_value=NS(value=lambda:b'')))
+                stack.enter_context(patch(prefix+'_logger',return_value=None))
+                stack.enter_context(patch(prefix+'feature',return_value=0))
+                encode=stack.enter_context(patch(prefix+'encode_record_request',return_value=object()))
+                finish=stack.enter_context(patch(prefix+'finish_record_request',return_value=result))
+                self.assertIs(component.create_device_request([],external_a2_selection=selected),result)
+                self.assertEqual(finish.call_args.kwargs['a2'],bool(selected))
+                self.assertEqual(component.sequence,2);self.assertIs(component._pending[0][0],result)

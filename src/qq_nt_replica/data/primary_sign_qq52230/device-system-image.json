@@ -1,0 +1,48 @@
+{
+  "source_sha256": "63112ab9161e127f5f7e17998a7196e143808923fb54cbbf7b4e21426187a5f0",
+  "imports": {
+    "GetCurrentProcess": 76611040,
+    "GetModuleHandleW": 76611344,
+    "GetProcAddress": 76611392,
+    "GetVersionExW": 76611624,
+    "GetComputerNameA": 76610992,
+    "GetUserNameA": 76614064,
+    "GetCurrentHwProfileA": 76614056
+  },
+  "modules": {
+    "kernel32.dll": 76564162,
+    "ntdll.dll": 76563984
+  },
+  "procedures": {
+    "IsWow64Process": 74517274,
+    "GetProductInfo": 74885931,
+    "RtlGetNtVersionNumbers": 74528346
+  },
+  "segments": [
+    {
+      "rva": 74517274,
+      "hex": "4973576f77363450726f6365737300"
+    },
+    {
+      "rva": 74528346,
+      "hex": "52746c4765744e7456657273696f6e4e756d6265727300"
+    },
+    {
+      "rva": 74885931,
+      "hex": "47657450726f64756374496e666f00"
+    },
+    {
+      "rva": 76563984,
+      "hex": "6e00740064006c006c002e0064006c006c000000"
+    },
+    {
+      "rva": 76564162,
+      "hex": "6b00650072006e0065006c00330032002e0064006c006c000000"
+    }
+  ],
+  "version_format": {
+    "seed": 40,
+    "length": 8,
+    "encrypted_hex": "04460d014108024c"
+  }
+}

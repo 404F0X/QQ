@@ -1,0 +1,693 @@
+{
+  "source_sha256": "63112ab9161e127f5f7e17998a7196e143808923fb54cbbf7b4e21426187a5f0",
+  "function_rva": "1D332F0",
+  "original_function_sha256": "1fd2c06299e1685d52674c943c6131630b26637af5e123ec3bba240c28120304",
+  "static_source_sha256": "4a4e5594e11903bb5f74daa41006b60588259b29c91375ef513b9f3835fd0a02",
+  "snapshot_bytes": 17064,
+  "fields": [
+    {
+      "key": 0,
+      "kind": "version"
+    },
+    {
+      "key": 1,
+      "kind": "u32",
+      "offset": 0
+    },
+    {
+      "key": 2,
+      "kind": "u32",
+      "offset": 4
+    },
+    {
+      "key": 3,
+      "kind": "u32",
+      "offset": 8
+    },
+    {
+      "key": 4,
+      "kind": "u64",
+      "offset": 16
+    },
+    {
+      "key": 5,
+      "kind": "u64",
+      "offset": 24
+    },
+    {
+      "key": 6,
+      "kind": "u64",
+      "offset": 32
+    },
+    {
+      "key": 7,
+      "kind": "u64",
+      "offset": 40
+    },
+    {
+      "key": 8,
+      "kind": "u64",
+      "offset": 48
+    },
+    {
+      "key": 9,
+      "kind": "u64",
+      "offset": 56
+    },
+    {
+      "key": 10,
+      "kind": "u32",
+      "offset": 64
+    },
+    {
+      "key": 11,
+      "kind": "u32",
+      "offset": 76
+    },
+    {
+      "key": 12,
+      "kind": "u32",
+      "offset": 80
+    },
+    {
+      "key": 13,
+      "kind": "u32",
+      "offset": 84
+    },
+    {
+      "key": 14,
+      "kind": "u32",
+      "offset": 88
+    },
+    {
+      "key": 15,
+      "kind": "u32",
+      "offset": 104
+    },
+    {
+      "key": 16,
+      "kind": "u32",
+      "offset": 108
+    },
+    {
+      "key": 17,
+      "kind": "string",
+      "offset": 152
+    },
+    {
+      "key": 18,
+      "kind": "ansi_string",
+      "offset": 176
+    },
+    {
+      "key": 19,
+      "kind": "ansi_string",
+      "offset": 200
+    },
+    {
+      "key": 20,
+      "kind": "ansi_string",
+      "offset": 224
+    },
+    {
+      "key": 21,
+      "kind": "ansi_string",
+      "offset": 248
+    },
+    {
+      "key": 22,
+      "kind": "ansi_string",
+      "offset": 272
+    },
+    {
+      "key": 23,
+      "kind": "string",
+      "offset": 296
+    },
+    {
+      "key": 24,
+      "kind": "string",
+      "offset": 344
+    },
+    {
+      "key": 25,
+      "kind": "device_value"
+    },
+    {
+      "key": 27,
+      "kind": "sdk48"
+    },
+    {
+      "key": 28,
+      "kind": "sdk30"
+    },
+    {
+      "key": 29,
+      "kind": "cstring",
+      "offset": 3836
+    },
+    {
+      "key": 30,
+      "kind": "ansi_string",
+      "offset": 920
+    },
+    {
+      "key": 31,
+      "kind": "ansi_cstring",
+      "offset": 3128
+    },
+    {
+      "key": 32,
+      "kind": "ansi_string",
+      "offset": 1192
+    },
+    {
+      "key": 33,
+      "kind": "ansi_string",
+      "offset": 320
+    },
+    {
+      "key": 34,
+      "kind": "ansi_string",
+      "offset": 368
+    },
+    {
+      "key": 35,
+      "kind": "ansi_string",
+      "offset": 392
+    },
+    {
+      "key": 36,
+      "kind": "ansi_string",
+      "offset": 416
+    },
+    {
+      "key": 37,
+      "kind": "ansi_string",
+      "offset": 440
+    },
+    {
+      "key": 38,
+      "kind": "ansi_string",
+      "offset": 464
+    },
+    {
+      "key": 39,
+      "kind": "string",
+      "offset": 488
+    },
+    {
+      "key": 40,
+      "kind": "string",
+      "offset": 536
+    },
+    {
+      "key": 41,
+      "kind": "ansi_string",
+      "offset": 584
+    },
+    {
+      "key": 42,
+      "kind": "ansi_string",
+      "offset": 608
+    },
+    {
+      "key": 43,
+      "kind": "string",
+      "offset": 632
+    },
+    {
+      "key": 44,
+      "kind": "string",
+      "offset": 656
+    },
+    {
+      "key": 45,
+      "kind": "string",
+      "offset": 680
+    },
+    {
+      "key": 46,
+      "kind": "string",
+      "offset": 704
+    },
+    {
+      "key": 47,
+      "kind": "ansi_string",
+      "offset": 728
+    },
+    {
+      "key": 48,
+      "kind": "ansi_string",
+      "offset": 752
+    },
+    {
+      "key": 49,
+      "kind": "ansi_string",
+      "offset": 776
+    },
+    {
+      "key": 50,
+      "kind": "string",
+      "offset": 800
+    },
+    {
+      "key": 51,
+      "kind": "string",
+      "offset": 824
+    },
+    {
+      "key": 52,
+      "kind": "string",
+      "offset": 848
+    },
+    {
+      "key": 53,
+      "kind": "ansi_string",
+      "offset": 872
+    },
+    {
+      "key": 54,
+      "kind": "ansi_string",
+      "offset": 896
+    },
+    {
+      "key": 55,
+      "kind": "string",
+      "offset": 944
+    },
+    {
+      "key": 56,
+      "kind": "string",
+      "offset": 968
+    },
+    {
+      "key": 57,
+      "kind": "ansi_string",
+      "offset": 1040
+    },
+    {
+      "key": 58,
+      "kind": "ansi_string",
+      "offset": 1064
+    },
+    {
+      "key": 59,
+      "kind": "ansi_string",
+      "offset": 1088
+    },
+    {
+      "key": 60,
+      "kind": "join_u32",
+      "offsets": [
+        1112,
+        1116
+      ],
+      "separator_hex": "2a"
+    },
+    {
+      "key": 62,
+      "kind": "ansi_string",
+      "offset": 1144
+    },
+    {
+      "key": 63,
+      "kind": "ansi_string",
+      "offset": 1168
+    },
+    {
+      "key": 64,
+      "kind": "ansi_string",
+      "offset": 1216
+    },
+    {
+      "key": 65,
+      "kind": "ansi_string",
+      "offset": 1240
+    },
+    {
+      "key": 66,
+      "kind": "string",
+      "offset": 1264
+    },
+    {
+      "key": 67,
+      "kind": "ansi_string",
+      "offset": 1288
+    },
+    {
+      "key": 68,
+      "kind": "ansi_string",
+      "offset": 1312
+    },
+    {
+      "key": 69,
+      "kind": "ansi_string",
+      "offset": 1336
+    },
+    {
+      "key": 70,
+      "kind": "cstring",
+      "offset": 3000
+    },
+    {
+      "key": 72,
+      "kind": "string",
+      "offset": 1384
+    },
+    {
+      "key": 73,
+      "kind": "string",
+      "offset": 1408
+    },
+    {
+      "key": 74,
+      "kind": "string",
+      "offset": 1456
+    },
+    {
+      "key": 75,
+      "kind": "string",
+      "offset": 1480
+    },
+    {
+      "key": 76,
+      "kind": "string",
+      "offset": 1504
+    },
+    {
+      "key": 77,
+      "kind": "string",
+      "offset": 1528
+    },
+    {
+      "key": 78,
+      "kind": "string",
+      "offset": 1552
+    },
+    {
+      "key": 79,
+      "kind": "string",
+      "offset": 1576
+    },
+    {
+      "key": 80,
+      "kind": "u8",
+      "offset": 1672
+    },
+    {
+      "key": 81,
+      "kind": "string",
+      "offset": 1680
+    },
+    {
+      "key": 82,
+      "kind": "string",
+      "offset": 1704
+    },
+    {
+      "key": 83,
+      "kind": "string",
+      "offset": 1728
+    },
+    {
+      "key": 84,
+      "kind": "u8",
+      "offset": 1800
+    },
+    {
+      "key": 85,
+      "kind": "u8",
+      "offset": 1801
+    },
+    {
+      "key": 86,
+      "kind": "string",
+      "offset": 1752
+    },
+    {
+      "key": 87,
+      "kind": "string",
+      "offset": 1776
+    },
+    {
+      "key": 88,
+      "kind": "string",
+      "offset": 1808
+    },
+    {
+      "key": 89,
+      "kind": "sdk78"
+    },
+    {
+      "key": 90,
+      "kind": "ansi_cstring",
+      "offset": 1832
+    },
+    {
+      "key": 91,
+      "kind": "ansi_cstring",
+      "offset": 1960
+    },
+    {
+      "key": 92,
+      "kind": "ansi_cstring",
+      "offset": 2024
+    },
+    {
+      "key": 93,
+      "kind": "ansi_cstring",
+      "offset": 2056
+    },
+    {
+      "key": 94,
+      "kind": "ansi_cstring",
+      "offset": 2072
+    },
+    {
+      "key": 95,
+      "kind": "u8",
+      "offset": 2104
+    },
+    {
+      "key": 96,
+      "kind": "ansi_cstring",
+      "offset": 2105
+    },
+    {
+      "key": 97,
+      "kind": "u8",
+      "offset": 2144
+    },
+    {
+      "key": 98,
+      "kind": "u64",
+      "offset": 2152
+    },
+    {
+      "key": 99,
+      "kind": "u64",
+      "offset": 2160
+    },
+    {
+      "key": 100,
+      "kind": "u32",
+      "offset": 2168
+    },
+    {
+      "key": 101,
+      "kind": "ansi_cstring",
+      "offset": 2172
+    },
+    {
+      "key": 102,
+      "kind": "ansi_cstring",
+      "offset": 2204
+    },
+    {
+      "key": 103,
+      "kind": "cstring",
+      "offset": 2236
+    },
+    {
+      "key": 104,
+      "kind": "cstring",
+      "offset": 2268
+    },
+    {
+      "key": 105,
+      "kind": "cstring",
+      "offset": 2332
+    },
+    {
+      "key": 106,
+      "kind": "cstring",
+      "offset": 2396
+    },
+    {
+      "key": 107,
+      "kind": "u8",
+      "offset": 2460
+    },
+    {
+      "key": 108,
+      "kind": "u32",
+      "offset": 2464
+    },
+    {
+      "key": 109,
+      "kind": "u64",
+      "offset": 2472
+    },
+    {
+      "key": 110,
+      "kind": "u64",
+      "offset": 2480
+    },
+    {
+      "key": 111,
+      "kind": "ansi_cstring",
+      "offset": 2488
+    },
+    {
+      "key": 112,
+      "kind": "ansi_cstring",
+      "offset": 3064
+    },
+    {
+      "key": 113,
+      "kind": "ansi_cstring",
+      "offset": 3704
+    },
+    {
+      "key": 114,
+      "kind": "u32",
+      "offset": 3768
+    },
+    {
+      "key": 115,
+      "kind": "ansi_cstring",
+      "offset": 3772
+    },
+    {
+      "key": 116,
+      "kind": "ansi_cstring",
+      "offset": 3964
+    },
+    {
+      "key": 117,
+      "kind": "u32",
+      "offset": 6552
+    },
+    {
+      "key": 118,
+      "kind": "u32",
+      "offset": 6556
+    },
+    {
+      "key": 119,
+      "kind": "cstring",
+      "offset": 6560
+    },
+    {
+      "key": 120,
+      "kind": "cstring",
+      "offset": 7584
+    },
+    {
+      "key": 121,
+      "kind": "u64",
+      "offset": 8096
+    },
+    {
+      "key": 122,
+      "kind": "u64",
+      "offset": 8104
+    },
+    {
+      "key": 123,
+      "kind": "u64",
+      "offset": 8112
+    },
+    {
+      "key": 124,
+      "kind": "ansi_cstring",
+      "offset": 8120
+    },
+    {
+      "key": 125,
+      "kind": "cstring",
+      "offset": 8376
+    },
+    {
+      "key": 126,
+      "kind": "cstring",
+      "offset": 8888
+    },
+    {
+      "key": 127,
+      "kind": "cstring",
+      "offset": 9400
+    },
+    {
+      "key": 128,
+      "kind": "cstring",
+      "offset": 9464
+    },
+    {
+      "key": 129,
+      "kind": "cstring",
+      "offset": 10488
+    },
+    {
+      "key": 130,
+      "kind": "cstring",
+      "offset": 11512
+    },
+    {
+      "key": 131,
+      "kind": "cstring",
+      "offset": 11576
+    },
+    {
+      "key": 132,
+      "kind": "cstring",
+      "offset": 12600
+    },
+    {
+      "key": 133,
+      "kind": "u64",
+      "offset": 13112
+    },
+    {
+      "key": 134,
+      "kind": "u64",
+      "offset": 13120
+    },
+    {
+      "key": 135,
+      "kind": "u64",
+      "offset": 13128
+    },
+    {
+      "key": 136,
+      "kind": "ansi_cstring",
+      "offset": 13136
+    },
+    {
+      "key": 137,
+      "kind": "cstring",
+      "offset": 13392
+    },
+    {
+      "key": 138,
+      "kind": "cstring",
+      "offset": 13904
+    },
+    {
+      "key": 139,
+      "kind": "cstring",
+      "offset": 14416
+    }
+  ]
+}

@@ -1,0 +1,1177 @@
+{
+  "identity": {
+    "run_id": "pmhq-analysis-20261010-r1",
+    "task_id": "primary-main-entry-native-20261019",
+    "attempt": 1,
+    "requirements_rev": "R15-full-protocol-primary-sign-20261019",
+    "inputs_rev": "accepted-R13-main-bridge-and-A64-owner-locator-a1",
+    "candidate_ref": "fixed-wrapper-63112ab9-primary-main-entry-a1"
+  },
+  "header_D0": 53,
+  "callback_entry": "2DE5328",
+  "copy_bytes": 424,
+  "copy_bytecount_source": "MOVSXD R8,EDX at2DE55FB; EDX supplied by genericreader as D0<<3",
+  "hosts": [
+    {
+      "ordinal": 0,
+      "cell": "8F",
+      "header": {
+        "bit_begin": 4134,
+        "bit_end": 4146,
+        "value": 143,
+        "groups": [
+          47,
+          4
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "2DE6AD3",
+        "instruction": "2DE5341"
+      },
+      "store": "2DE534D"
+    },
+    {
+      "ordinal": 1,
+      "cell": "93",
+      "header": {
+        "bit_begin": 4146,
+        "bit_end": 4158,
+        "value": 147,
+        "groups": [
+          51,
+          4
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "3592167",
+        "instruction": "2DE5350"
+      },
+      "store": "2DE5357"
+    },
+    {
+      "ordinal": 2,
+      "cell": "97",
+      "header": {
+        "bit_begin": 4158,
+        "bit_end": 4170,
+        "value": 151,
+        "groups": [
+          55,
+          4
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "2DE50A9",
+        "instruction": "2DE535B"
+      },
+      "store": "2DE5362"
+    },
+    {
+      "ordinal": 3,
+      "cell": "9D",
+      "header": {
+        "bit_begin": 4170,
+        "bit_end": 4182,
+        "value": 157,
+        "groups": [
+          61,
+          4
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "2DE8580",
+        "instruction": "2DE5366"
+      },
+      "store": "2DE536D"
+    },
+    {
+      "ordinal": 4,
+      "cell": "D7",
+      "header": {
+        "bit_begin": 4182,
+        "bit_end": 4194,
+        "value": 215,
+        "groups": [
+          55,
+          6
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "3592178",
+        "instruction": "2DE5371"
+      },
+      "store": "2DE5378"
+    },
+    {
+      "ordinal": 5,
+      "cell": "120",
+      "header": {
+        "bit_begin": 4194,
+        "bit_end": 4206,
+        "value": 288,
+        "groups": [
+          32,
+          9
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "2DE561F",
+        "instruction": "2DE537C"
+      },
+      "store": "2DE5383"
+    },
+    {
+      "ordinal": 6,
+      "cell": "12D",
+      "header": {
+        "bit_begin": 4206,
+        "bit_end": 4218,
+        "value": 301,
+        "groups": [
+          45,
+          9
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "2DE5687",
+        "instruction": "2DE5387"
+      },
+      "store": "2DE538E"
+    },
+    {
+      "ordinal": 7,
+      "cell": "1C6",
+      "header": {
+        "bit_begin": 4218,
+        "bit_end": 4230,
+        "value": 454,
+        "groups": [
+          38,
+          14
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "2DE577E",
+        "instruction": "2DE5392"
+      },
+      "store": "2DE5399"
+    },
+    {
+      "ordinal": 8,
+      "cell": "270",
+      "header": {
+        "bit_begin": 4230,
+        "bit_end": 4242,
+        "value": 624,
+        "groups": [
+          48,
+          19
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "2DE4CAD",
+        "instruction": "2DE539D"
+      },
+      "store": "2DE53A4"
+    },
+    {
+      "ordinal": 9,
+      "cell": "293",
+      "header": {
+        "bit_begin": 4242,
+        "bit_end": 4254,
+        "value": 659,
+        "groups": [
+          51,
+          20
+        ]
+      },
+      "source": {
+        "kind": "LOAD64_CURRENT_MEMORY",
+        "rva": "490FEF8",
+        "instruction": "2DE53A8"
+      },
+      "store": "2DE53AF",
+      "compiled_slot": {
+        "source": {
+          "rva": "490FEF8",
+          "bytes": 8,
+          "name": "compiled_import_slot_host9",
+          "basis": "Actualcallback2DE53AF stores LOAD64 fromRIP-relative slot490FEF8; exactcompiled8B only, loadedpointer/currentimport unknown",
+          "sha256": "1de56ba2aa63d7a8445c71b7c6131deeaa13e2dfa124af8659926ccfa6cd3b38",
+          "raw_file": "read-045-data-490FEF8.bin",
+          "read": 45
+        },
+        "LE64": "0000000004913958",
+        "meaning": "Fixed original importslot encoding only; runtime loader-resolved functionpointer unknown, not followed as code"
+      }
+    },
+    {
+      "ordinal": 10,
+      "cell": "297",
+      "header": {
+        "bit_begin": 4254,
+        "bit_end": 4266,
+        "value": 663,
+        "groups": [
+          55,
+          20
+        ]
+      },
+      "source": {
+        "kind": "LOAD64_CURRENT_MEMORY",
+        "rva": "490FF40",
+        "instruction": "2DE53B3"
+      },
+      "store": "2DE53BA",
+      "compiled_slot": {
+        "source": {
+          "rva": "490FF40",
+          "bytes": 8,
+          "name": "compiled_import_slot_host10",
+          "basis": "Actualcallback2DE53BA stores LOAD64 fromRIP-relative slot490FF40; exactcompiled8B only, loadedpointer/currentimport unknown",
+          "sha256": "6dd9ee79319c32474ec76cf8ee7bc50c7391d94c40aca4ac3cbe5b5168e2bc88",
+          "raw_file": "read-046-data-490FF40.bin",
+          "read": 46
+        },
+        "LE64": "0000000004913A1E",
+        "meaning": "Fixed original importslot encoding only; runtime loader-resolved functionpointer unknown, not followed as code"
+      }
+    },
+    {
+      "ordinal": 11,
+      "cell": "2A9",
+      "header": {
+        "bit_begin": 4266,
+        "bit_end": 4278,
+        "value": 681,
+        "groups": [
+          41,
+          21
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "489912A",
+        "instruction": "2DE53BE"
+      },
+      "store": "2DE53C5"
+    },
+    {
+      "ordinal": 12,
+      "cell": "2AB",
+      "header": {
+        "bit_begin": 4278,
+        "bit_end": 4290,
+        "value": 683,
+        "groups": [
+          43,
+          21
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "51C872",
+        "instruction": "2DE53C9"
+      },
+      "store": "2DE53D0"
+    },
+    {
+      "ordinal": 13,
+      "cell": "2BA",
+      "header": {
+        "bit_begin": 4290,
+        "bit_end": 4302,
+        "value": 698,
+        "groups": [
+          58,
+          21
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "2DE4CBD",
+        "instruction": "2DE53D4"
+      },
+      "store": "2DE53DB"
+    },
+    {
+      "ordinal": 14,
+      "cell": "2CB",
+      "header": {
+        "bit_begin": 4302,
+        "bit_end": 4314,
+        "value": 715,
+        "groups": [
+          43,
+          22
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "6D86008",
+        "instruction": "2DE53DF"
+      },
+      "store": "2DE53E6"
+    },
+    {
+      "ordinal": 15,
+      "cell": "361",
+      "header": {
+        "bit_begin": 4314,
+        "bit_end": 4326,
+        "value": 865,
+        "groups": [
+          33,
+          27
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "6D86010",
+        "instruction": "2DE53EA"
+      },
+      "store": "2DE53F1"
+    },
+    {
+      "ordinal": 16,
+      "cell": "3C5",
+      "header": {
+        "bit_begin": 4326,
+        "bit_end": 4338,
+        "value": 965,
+        "groups": [
+          37,
+          30
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "3E98FD8",
+        "instruction": "2DE53F5"
+      },
+      "store": "2DE53FC"
+    },
+    {
+      "ordinal": 17,
+      "cell": "3D8",
+      "header": {
+        "bit_begin": 4338,
+        "bit_end": 4350,
+        "value": 984,
+        "groups": [
+          56,
+          30
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "3E98FF0",
+        "instruction": "2DE5403"
+      },
+      "store": "2DE540A"
+    },
+    {
+      "ordinal": 18,
+      "cell": "454",
+      "header": {
+        "bit_begin": 4350,
+        "bit_end": 4368,
+        "value": 1108,
+        "groups": [
+          52,
+          34,
+          1
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "433CCC0",
+        "instruction": "2DE5411"
+      },
+      "store": "2DE5418"
+    },
+    {
+      "ordinal": 19,
+      "cell": "6B7",
+      "header": {
+        "bit_begin": 4368,
+        "bit_end": 4386,
+        "value": 1719,
+        "groups": [
+          55,
+          53,
+          1
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "3E97020",
+        "instruction": "2DE541F"
+      },
+      "store": "2DE5426"
+    },
+    {
+      "ordinal": 20,
+      "cell": "6E4",
+      "header": {
+        "bit_begin": 4386,
+        "bit_end": 4404,
+        "value": 1764,
+        "groups": [
+          36,
+          55,
+          1
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "2DE4BF6",
+        "instruction": "2DE542D"
+      },
+      "store": "2DE5434"
+    },
+    {
+      "ordinal": 21,
+      "cell": "6E5",
+      "header": {
+        "bit_begin": 4404,
+        "bit_end": 4422,
+        "value": 1765,
+        "groups": [
+          37,
+          55,
+          1
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "3E94F90",
+        "instruction": "2DE543B"
+      },
+      "store": "2DE5442"
+    },
+    {
+      "ordinal": 22,
+      "cell": "880",
+      "header": {
+        "bit_begin": 4422,
+        "bit_end": 4440,
+        "value": 2176,
+        "groups": [
+          32,
+          36,
+          2
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "2DE4C3B",
+        "instruction": "2DE5449"
+      },
+      "store": "2DE5450"
+    },
+    {
+      "ordinal": 23,
+      "cell": "C22",
+      "header": {
+        "bit_begin": 4440,
+        "bit_end": 4458,
+        "value": 3106,
+        "groups": [
+          34,
+          33,
+          3
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "2DE57A1",
+        "instruction": "2DE5457"
+      },
+      "store": "2DE545E"
+    },
+    {
+      "ordinal": 24,
+      "cell": "C26",
+      "header": {
+        "bit_begin": 4458,
+        "bit_end": 4476,
+        "value": 3110,
+        "groups": [
+          38,
+          33,
+          3
+        ]
+      },
+      "source": {
+        "kind": "LOAD64_CURRENT_MEMORY",
+        "rva": "490FDE8",
+        "instruction": "2DE5465"
+      },
+      "store": "2DE546C",
+      "compiled_slot": {
+        "source": {
+          "rva": "490FDE8",
+          "bytes": 8,
+          "name": "compiled_import_slot_host24",
+          "basis": "Actualcallback2DE546C stores LOAD64 fromRIP-relative slot490FDE8; exactcompiled8B only, loadedpointer/currentimport unknown",
+          "sha256": "297f839955200210a0cd2080f1f02c342e588141a3eae9bd4e382b141167f4d9",
+          "raw_file": "read-047-data-490FDE8.bin",
+          "read": 47
+        },
+        "LE64": "0000000004913680",
+        "meaning": "Fixed original importslot encoding only; runtime loader-resolved functionpointer unknown, not followed as code"
+      }
+    },
+    {
+      "ordinal": 25,
+      "cell": "C29",
+      "header": {
+        "bit_begin": 4476,
+        "bit_end": 4494,
+        "value": 3113,
+        "groups": [
+          41,
+          33,
+          3
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "4852891",
+        "instruction": "2DE5473"
+      },
+      "store": "2DE547A"
+    },
+    {
+      "ordinal": 26,
+      "cell": "C2B",
+      "header": {
+        "bit_begin": 4494,
+        "bit_end": 4512,
+        "value": 3115,
+        "groups": [
+          43,
+          33,
+          3
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "701774",
+        "instruction": "2DE5481"
+      },
+      "store": "2DE5488"
+    },
+    {
+      "ordinal": 27,
+      "cell": "C2E",
+      "header": {
+        "bit_begin": 4512,
+        "bit_end": 4530,
+        "value": 3118,
+        "groups": [
+          46,
+          33,
+          3
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "3EB2C10",
+        "instruction": "2DE548F"
+      },
+      "store": "2DE5496"
+    },
+    {
+      "ordinal": 28,
+      "cell": "E2D",
+      "header": {
+        "bit_begin": 4530,
+        "bit_end": 4548,
+        "value": 3629,
+        "groups": [
+          45,
+          49,
+          3
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "6D86014",
+        "instruction": "2DE549D"
+      },
+      "store": "2DE54A4"
+    },
+    {
+      "ordinal": 29,
+      "cell": "E32",
+      "header": {
+        "bit_begin": 4548,
+        "bit_end": 4566,
+        "value": 3634,
+        "groups": [
+          50,
+          49,
+          3
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "6D86020",
+        "instruction": "2DE54AB"
+      },
+      "store": "2DE54B2"
+    },
+    {
+      "ordinal": 30,
+      "cell": "E7C",
+      "header": {
+        "bit_begin": 4566,
+        "bit_end": 4584,
+        "value": 3708,
+        "groups": [
+          60,
+          51,
+          3
+        ]
+      },
+      "source": {
+        "kind": "LOAD64_CURRENT_MEMORY",
+        "rva": "490FF00",
+        "instruction": "2DE54B9"
+      },
+      "store": "2DE54C0",
+      "compiled_slot": {
+        "source": {
+          "rva": "490FF00",
+          "bytes": 8,
+          "name": "compiled_import_slot_host30",
+          "basis": "Actualcallback2DE54C0 stores LOAD64 fromRIP-relative slot490FF00; exactcompiled8B only, loadedpointer/currentimport unknown",
+          "sha256": "c00b96c44b18c2bd4d56b6e22952ca2fd6ea51b5255f738627defbb75c4461b2",
+          "raw_file": "read-048-data-490FF00.bin",
+          "read": 48
+        },
+        "LE64": "000000000491396C",
+        "meaning": "Fixed original importslot encoding only; runtime loader-resolved functionpointer unknown, not followed as code"
+      }
+    },
+    {
+      "ordinal": 31,
+      "cell": "E83",
+      "header": {
+        "bit_begin": 4584,
+        "bit_end": 4602,
+        "value": 3715,
+        "groups": [
+          35,
+          52,
+          3
+        ]
+      },
+      "source": {
+        "kind": "LOAD64_CURRENT_MEMORY",
+        "rva": "490FEE8",
+        "instruction": "2DE54C7"
+      },
+      "store": "2DE54CE",
+      "compiled_slot": {
+        "source": {
+          "rva": "490FEE8",
+          "bytes": 8,
+          "name": "compiled_import_slot_host31",
+          "basis": "Actualcallback2DE54CE stores LOAD64 fromRIP-relative slot490FEE8; exactcompiled8B only, loadedpointer/currentimport unknown",
+          "sha256": "113a30cc05d88b66931c9b3dad18a225300254a85f468632a044c36126d3d19e",
+          "raw_file": "read-049-data-490FEE8.bin",
+          "read": 49
+        },
+        "LE64": "000000000491392C",
+        "meaning": "Fixed original importslot encoding only; runtime loader-resolved functionpointer unknown, not followed as code"
+      }
+    },
+    {
+      "ordinal": 32,
+      "cell": "E87",
+      "header": {
+        "bit_begin": 4602,
+        "bit_end": 4620,
+        "value": 3719,
+        "groups": [
+          39,
+          52,
+          3
+        ]
+      },
+      "source": {
+        "kind": "LOAD64_CURRENT_MEMORY",
+        "rva": "4910AB0",
+        "instruction": "2DE54D5"
+      },
+      "store": "2DE54DC",
+      "compiled_slot": {
+        "source": {
+          "rva": "4910AB0",
+          "bytes": 8,
+          "name": "compiled_import_slot_host32",
+          "basis": "Actualcallback2DE54DC stores LOAD64 fromRIP-relative slot4910AB0; exactcompiled8B only, loadedpointer/currentimport unknown",
+          "sha256": "efb7527ade007c95869e6ce56a58c0f317440c6b30ca22504b302944791cdbc3",
+          "raw_file": "read-050-data-4910AB0.bin",
+          "read": 50
+        },
+        "LE64": "00000000049153D0",
+        "meaning": "Fixed original importslot encoding only; runtime loader-resolved functionpointer unknown, not followed as code"
+      }
+    },
+    {
+      "ordinal": 33,
+      "cell": "E89",
+      "header": {
+        "bit_begin": 4620,
+        "bit_end": 4638,
+        "value": 3721,
+        "groups": [
+          41,
+          52,
+          3
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "3E8C550",
+        "instruction": "2DE54E3"
+      },
+      "store": "2DE54EA"
+    },
+    {
+      "ordinal": 34,
+      "cell": "EC8",
+      "header": {
+        "bit_begin": 4638,
+        "bit_end": 4656,
+        "value": 3784,
+        "groups": [
+          40,
+          54,
+          3
+        ]
+      },
+      "source": {
+        "kind": "LOAD64_CURRENT_MEMORY",
+        "rva": "4910AF0",
+        "instruction": "2DE54F1"
+      },
+      "store": "2DE54F8",
+      "compiled_slot": {
+        "source": {
+          "rva": "4910AF0",
+          "bytes": 8,
+          "name": "compiled_import_slot_host34",
+          "basis": "Actualcallback2DE54F8 stores LOAD64 fromRIP-relative slot4910AF0; exactcompiled8B only, loadedpointer/currentimport unknown",
+          "sha256": "fac9e02382d2732deafa66506b00f5de019dd10832e4ebe9004926e165d490e0",
+          "raw_file": "read-051-data-4910AF0.bin",
+          "read": 51
+        },
+        "LE64": "0000000004915478",
+        "meaning": "Fixed original importslot encoding only; runtime loader-resolved functionpointer unknown, not followed as code"
+      }
+    },
+    {
+      "ordinal": 35,
+      "cell": "F09",
+      "header": {
+        "bit_begin": 4656,
+        "bit_end": 4674,
+        "value": 3849,
+        "groups": [
+          41,
+          56,
+          3
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "3EB5340",
+        "instruction": "2DE54FF"
+      },
+      "store": "2DE5506"
+    },
+    {
+      "ordinal": 36,
+      "cell": "F10",
+      "header": {
+        "bit_begin": 4674,
+        "bit_end": 4692,
+        "value": 3856,
+        "groups": [
+          48,
+          56,
+          3
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "3EB57E0",
+        "instruction": "2DE550D"
+      },
+      "store": "2DE5514"
+    },
+    {
+      "ordinal": 37,
+      "cell": "F13",
+      "header": {
+        "bit_begin": 4692,
+        "bit_end": 4710,
+        "value": 3859,
+        "groups": [
+          51,
+          56,
+          3
+        ]
+      },
+      "source": {
+        "kind": "LOAD64_CURRENT_MEMORY",
+        "rva": "490FBD8",
+        "instruction": "2DE551B"
+      },
+      "store": "2DE5522",
+      "compiled_slot": {
+        "source": {
+          "rva": "490FBD8",
+          "bytes": 8,
+          "name": "compiled_import_slot_host37",
+          "basis": "Actualcallback2DE5522 stores LOAD64 fromRIP-relative slot490FBD8; exactcompiled8B only, loadedpointer/currentimport unknown",
+          "sha256": "53a8bc6b67954184df12b5f4f16766cab1ad35624f29b235d04d426e14e31f7f",
+          "raw_file": "read-052-data-490FBD8.bin",
+          "read": 52
+        },
+        "LE64": "00000000049131E0",
+        "meaning": "Fixed original importslot encoding only; runtime loader-resolved functionpointer unknown, not followed as code"
+      }
+    },
+    {
+      "ordinal": 38,
+      "cell": "F25",
+      "header": {
+        "bit_begin": 4710,
+        "bit_end": 4728,
+        "value": 3877,
+        "groups": [
+          37,
+          57,
+          3
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "3E9C1D0",
+        "instruction": "2DE5529"
+      },
+      "store": "2DE5530"
+    },
+    {
+      "ordinal": 39,
+      "cell": "F29",
+      "header": {
+        "bit_begin": 4728,
+        "bit_end": 4746,
+        "value": 3881,
+        "groups": [
+          41,
+          57,
+          3
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "3EB57F0",
+        "instruction": "2DE5537"
+      },
+      "store": "2DE553E"
+    },
+    {
+      "ordinal": 40,
+      "cell": "F73",
+      "header": {
+        "bit_begin": 4746,
+        "bit_end": 4764,
+        "value": 3955,
+        "groups": [
+          51,
+          59,
+          3
+        ]
+      },
+      "source": {
+        "kind": "LOAD64_CURRENT_MEMORY",
+        "rva": "4910628",
+        "instruction": "2DE5545"
+      },
+      "store": "2DE554C",
+      "compiled_slot": {
+        "source": {
+          "rva": "4910628",
+          "bytes": 8,
+          "name": "compiled_import_slot_host40",
+          "basis": "Actualcallback2DE554C stores LOAD64 fromRIP-relative slot4910628; exactcompiled8B only, loadedpointer/currentimport unknown",
+          "sha256": "424b8df629d2fb9e2adff5acdd00c1afd2664f745348a3e2b47e0085d489a743",
+          "raw_file": "read-053-data-4910628.bin",
+          "read": 53
+        },
+        "LE64": "0000000004914A9E",
+        "meaning": "Fixed original importslot encoding only; runtime loader-resolved functionpointer unknown, not followed as code"
+      }
+    },
+    {
+      "ordinal": 41,
+      "cell": "FEE",
+      "header": {
+        "bit_begin": 4764,
+        "bit_end": 4782,
+        "value": 4078,
+        "groups": [
+          46,
+          63,
+          3
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "0",
+        "instruction": "2DE5553"
+      },
+      "store": "2DE555A"
+    },
+    {
+      "ordinal": 42,
+      "cell": "FF3",
+      "header": {
+        "bit_begin": 4782,
+        "bit_end": 4800,
+        "value": 4083,
+        "groups": [
+          51,
+          63,
+          3
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "4789E0B",
+        "instruction": "2DE5561"
+      },
+      "store": "2DE5568"
+    },
+    {
+      "ordinal": 43,
+      "cell": "FF7",
+      "header": {
+        "bit_begin": 4800,
+        "bit_end": 4818,
+        "value": 4087,
+        "groups": [
+          55,
+          63,
+          3
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "4789DE3",
+        "instruction": "2DE556F"
+      },
+      "store": "2DE5576"
+    },
+    {
+      "ordinal": 44,
+      "cell": "FFB",
+      "header": {
+        "bit_begin": 4818,
+        "bit_end": 4836,
+        "value": 4091,
+        "groups": [
+          59,
+          63,
+          3
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "47C8F29",
+        "instruction": "2DE557D"
+      },
+      "store": "2DE5584"
+    },
+    {
+      "ordinal": 45,
+      "cell": "1127",
+      "header": {
+        "bit_begin": 4836,
+        "bit_end": 4854,
+        "value": 4391,
+        "groups": [
+          39,
+          41,
+          4
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "433CDC0",
+        "instruction": "2DE558B"
+      },
+      "store": "2DE5592"
+    },
+    {
+      "ordinal": 46,
+      "cell": "12B4",
+      "header": {
+        "bit_begin": 4854,
+        "bit_end": 4872,
+        "value": 4788,
+        "groups": [
+          52,
+          53,
+          4
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "4789DC1",
+        "instruction": "2DE5599"
+      },
+      "store": "2DE55A0"
+    },
+    {
+      "ordinal": 47,
+      "cell": "1342",
+      "header": {
+        "bit_begin": 4872,
+        "bit_end": 4890,
+        "value": 4930,
+        "groups": [
+          34,
+          58,
+          4
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "6D86000",
+        "instruction": "2DE55A7"
+      },
+      "store": "2DE55AE"
+    },
+    {
+      "ordinal": 48,
+      "cell": "1367",
+      "header": {
+        "bit_begin": 4890,
+        "bit_end": 4908,
+        "value": 4967,
+        "groups": [
+          39,
+          59,
+          4
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "2DE52D5",
+        "instruction": "2DE55B5"
+      },
+      "store": "2DE55BC"
+    },
+    {
+      "ordinal": 49,
+      "cell": "21BF",
+      "header": {
+        "bit_begin": 4908,
+        "bit_end": 4926,
+        "value": 8639,
+        "groups": [
+          63,
+          45,
+          8
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "2DE4C36",
+        "instruction": "2DE55C3"
+      },
+      "store": "2DE55CA"
+    },
+    {
+      "ordinal": 50,
+      "cell": "21C9",
+      "header": {
+        "bit_begin": 4926,
+        "bit_end": 4944,
+        "value": 8649,
+        "groups": [
+          41,
+          46,
+          8
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "3592430",
+        "instruction": "2DE55D1"
+      },
+      "store": "2DE55D8"
+    },
+    {
+      "ordinal": 51,
+      "cell": "2252",
+      "header": {
+        "bit_begin": 4944,
+        "bit_end": 4962,
+        "value": 8786,
+        "groups": [
+          50,
+          50,
+          8
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "359253D",
+        "instruction": "2DE55DF"
+      },
+      "store": "2DE55E6"
+    },
+    {
+      "ordinal": 52,
+      "cell": "229C",
+      "header": {
+        "bit_begin": 4962,
+        "bit_end": 4980,
+        "value": 8860,
+        "groups": [
+          60,
+          52,
+          8
+        ]
+      },
+      "source": {
+        "kind": "address",
+        "rva": "2DE57A6",
+        "instruction": "2DE55ED"
+      },
+      "store": "2DE55F4"
+    }
+  ],
+  "order": "Every listedLEA/LOAD64 and local STORE64 occurs ascendingordinal before copy. Imports read currentruntimeIAT; compiledsource capture cannot resolve loadedfunctionpointer. Callback stack source424B atentryRSP-1B8h, destination incomingRCX.",
+  "unknown": "Hostmap registration is not proof of any actual host invocation, condition, purpose or producer. No53host body reacquisition."
+}

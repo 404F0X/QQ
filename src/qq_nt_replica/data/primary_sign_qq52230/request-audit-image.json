@@ -1,0 +1,85 @@
+{
+  "source_sha256": "63112ab9161e127f5f7e17998a7196e143808923fb54cbbf7b4e21426187a5f0",
+  "image_base": 6442450944,
+  "segments": [
+    {
+      "rva": 68455640,
+      "hex": "504cbf8101000000704cbf8101000000c03e068001000000",
+      "relocations": [
+        0,
+        8,
+        16
+      ],
+      "pe_zero_fill_bytes": 0
+    },
+    {
+      "rva": 66939816,
+      "hex": "80d8bc8001000000a0d8bc800100000070745c8001000000",
+      "relocations": [
+        0,
+        8,
+        16
+      ],
+      "pe_zero_fill_bytes": 0
+    },
+    {
+      "rva": 66940024,
+      "hex": "b0d9bc8001000000606877800100000070745c8001000000",
+      "relocations": [
+        0,
+        8,
+        16
+      ],
+      "pe_zero_fill_bytes": 0
+    },
+    {
+      "rva": 108337976,
+      "hex": "0000000000000000",
+      "relocations": [],
+      "pe_zero_fill_bytes": 8
+    },
+    {
+      "rva": 108511408,
+      "hex": "0000000000000000",
+      "relocations": [],
+      "pe_zero_fill_bytes": 8
+    }
+  ],
+  "labels": [
+    {
+      "rva": 74525389,
+      "hex": "736563757265416363657373"
+    },
+    {
+      "rva": 74071841,
+      "hex": "65737461626c69736853686172654b6579"
+    },
+    {
+      "rva": 74525449,
+      "hex": "7365637572654132416363657373"
+    },
+    {
+      "rva": 74071927,
+      "hex": "65737461626c697368413253686172654b6579"
+    }
+  ],
+  "topic_hex": "3032383030303735353632",
+  "event_name_hex": "6368616e6e656c5f7265706f7274",
+  "topic_leaf_rva": 29314128,
+  "topic_leaf_hex": "4889d0c6021648b9303238303030373548894a01c7420835353632c6420c00c3",
+  "topic_leaf_scope": "Explicit32-byte straight-line leaf ending at RET, not pdata-owned function coverage",
+  "sources": {
+    "00BD3EF0.bin": "5b80581b80a7e93c92051cac5dfd77f4bfff4319190c4b3c79ca1a632543cebd",
+    "01BE26C0.bin": "0345d9a93d758cc796a8daa4463e5f7d54f8a1b6b4fa887ad8deafa2e42c1675",
+    "01BEEC40.bin": "2136fa2ae4c1be1c69b9e40650a5e20f314d3e59125c2d26e36d1085393f2eeb",
+    "01BEF7E0.bin": "b4d6b7889e17e852f3d2b0a4b8b75ec8e3b9a39a8e26a6b951e356f9644d3992",
+    "01BEFC10.bin": "4424b0a74f80910bf78c88773f38afc0938c88a7cf779632f31f478f4e8870b2",
+    "01BF2220.bin": "2913e1c9a581efc35739a387f7703cf086e885d29b5a5c55d37191325e66201e",
+    "01BF3960.bin": "5ed59be4b2d5a617fa5f5e4a8d8e2eb1bfa7236d01fdfdd41184e8a3278c3331",
+    "01BF4B40.bin": "d5f469a3ffc9d90ad2735ff347b6871c44d484525f6568dd4d7ec10a025dbc22",
+    "01BF4C60.bin": "ceef01372a48d62ada1f8572449ed06c436c983f0d4a07149fc672f6817505a6",
+    "01BF4C70.bin": "3a617a48a589380b25e4de0fd3eba0e626f467157834fafb0c0490620b07b2e3",
+    "01BF75A0.bin": "37472d476d3c8fdaef92207205cc31bf2f84d745f59a267316022a2335702c1c",
+    "01BF8090.bin": "30dbf79797680ef72baf61a3bcf817d76073e75c2d6568927a9302d6f8cc6ef8"
+  }
+}

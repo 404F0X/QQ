@@ -1,0 +1,20 @@
+{
+  "source_sha256": "6502c1e2f663e6f5c4721511f8464e994c3041bfbf81765bfdd775d0b081bbc7",
+  "literals": [
+    "trpc.login.ecdh.EcdhService.SsoNTLoginPasswordLoginUnusualDevice",
+    "trpc.login.ecdh.EcdhService.SsoNTLoginPasswordLogin",
+    "trpc.login.ecdh.EcdhService.SsoNTLoginTGTExchangeFastLogin",
+    "trpc.login.ecdh.EcdhService.SsoNTLoginEasyLoginUnusualDevice",
+    "trpc.login.ecdh.EcdhService.SsoNTLoginAuthLogin",
+    "trpc.login.ecdh.EcdhService.SsoNTLoginOptimusLogin",
+    "trpc.login.ecdh.EcdhService.SsoNTLoginPasswordLoginNewDevice",
+    "trpc.login.ecdh.EcdhService.SsoNTLoginEasyLogin",
+    "trpc.login.ecdh.EcdhService.SsoQRLoginScanQr",
+    "wtlogin.exchange_emp",
+    "wtlogin.qrlogin",
+    "wtlogin.login",
+    "810_9",
+    "2088",
+    "2102"
+  ]
+}
