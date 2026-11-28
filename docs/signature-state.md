@@ -7,6 +7,16 @@
 COORDINATION 只记录调度和操作，不另立业务状态机。
 原长篇过程记录已由 Git 历史及既有 before/input-versions 快照保留，不再复制归档。
 
+## Qimei 通知回调注册整组（QIMEI-CALLBACK-REGISTRATION-IMPLEMENT/a1，CODE／MODEL 域独立审查 APPROVE）
+
+`OwnQimeiModuleBackend.register_notification(appid, callback)` 对应固定 qimei.dll export c=7B602 → CString strlen／owning String → 6BB06 canonical app lookup/create → 6B9C0。appid 使用 bytes 并取首个 NUL 前缀；注册与正常 initialize 共享同一 canonical app，允许 a2 前注册，不标记 initialized／getter-ready，不配置 SDK、不创建材料或排队、调用回调、检查 IsBadCodePtr、重放通知。Python 的 None／整数0表示 NULL；整数 callback 按地址值比较，显式 Own MODEL callback 对象按身份比较，不执行用户相等操作。生产 Windows IO 仍要求实际整数地址；Python callable 仅是注入 MODEL IO 的自有测试对象，不是实际 Native callback 来源证明。
+
+注册在与 notify 相同的应用 RLock 下从 slot0..7 扫描：遇相同 pointer／identity 立即停止，否则遇首个 NULL 就写入并停止，八槽满不改；不越过首个空槽全局去重。NULL 不取消、不清旧槽，API 不返回注册成功／已满布尔结果。沿用 live epoch／seal 准入，不增加 creator-only 限制；取得 canonical app 后先取 app lock，再重检 epoch／seal，阻止等待锁期间已关闭的注册写入。notify 的同锁 IsBadCodePtr／invoke／仅正常返回才清槽行为保留，异常保留该槽。callback 由既有 Python slot 强持有；正常 close 仍 seal → timer quiescence → worker drain/join → 最后 clear applications，cleanup debt 保留原 owner／backing，不新增 unsubscribe／free 框架，Source 全局 app pool 最终销毁仍 UNKNOWN。
+
+本候选35项 focused backend MODEL 检查通过，含公开注册→preinit→正常 initialize 同对象／槽保留、八槽／首空槽／NULL／无重放、worker notify 重入并发注册、等待应用锁时 close 拒绝迟到写入、Python backing 强持有与失败 join debt。只使用既有 fake APIs／carrier／Python worker bridge；Native／网络／进程启动由测试 guard 禁止。实际命令、当前输入指纹与 frozen diff 见 `A/overall-signing-service/qimei-callback-registration-impl/`。独立 Source／lifetime 审查 [QIMEI-CALLBACK-REGISTRATION-REVIEW/a1](../../../.codex-workflow/reports/pmhq-analysis-20261010/signature-audit-20261119/overall-signing-service/QIMEI-CALLBACK-REGISTRATION-REVIEW.md) 已 APPROVE，严格限 CODE／MODEL 域，不构成 Native 等价、真实材料安装、合法通知或下一 SIGN 消费证据。
+
+已查 wrapper5974F8 只证 a2；597798 是 log callback，不能替代本通知 callback。实际官方 wrapper call c 的 caller／callback provenance／卸载时机仍 UNKNOWN，合法 main／AUX／OwnerEpoch 正输入和完整 acquisition／publication／notification 仍无新增实际正例。此前 nonA2 实测仍只绑定历史 HEAD5732／manifesta6ed，daemon API `-2 build scratch failed` 负证据与 CLOSED 实际额度保持，不重标为本候选运行。prefix STOP7／未合并 WIP565d、fault8／9、Token／SDK 与原 Goal 全部分支继续 ACTIVE／NOT_COMPLETE；本次不是第三次 prefix patch，无任何 Native／API／SDK／QR／registry 实际执行授权扩张。
+
 ## Qimei kind13 固定 QQ 报告整组（QIMEI-KIND13-QQ-IMPL/a1，固定 QQ 正常 CODE／MODEL 域独立审查 APPROVE）
 
 `OwnQimeiModuleBackend.request_report(appid)` 通过同一已准入 canonical app／epoch／provider／executor 提交 Source6BBCE。每次真实 FIRST settings.flag14 refresh 后按 signed32 判断：<=0 在采集前跳过，>0 采集且仅值2令 force 为真。当前 Source APPLICATION_OWNER=`0WIN053OA34CY6NK` 唯一匹配 case6；其余七个互斥产品与未知 owner 明确 unsupported，不默认 QQ 或空结果。此适用面由固定 Source owner 分派确定，不是按测试便利缩减 Goal。

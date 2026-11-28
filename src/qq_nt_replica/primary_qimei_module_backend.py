@@ -126,6 +126,43 @@ class OwnQimeiModuleBackend:
                 old[1].release()
             self.provider_once = True
 
+    def _get_or_create_application(self, appid):
+        with self.lock:
+            self._check()
+            if self.sealed:
+                raise QimeiRequestBoundary('module admission sealed')
+            app = self.applications.get(appid)
+            if app is None:
+                app = CanonicalQimeiApplication(appid, self.settings, self.sdk.get(appid), self.startup)
+                self.applications[appid] = app
+            return app
+
+    def register_notification(self, appid, callback):
+        """Source c/6B9C0: retain a callback in the first available prefix slot.
+
+        Integer callbacks are addresses; Python callback objects use identity
+        through injected MODEL IO. Neither representation is invoked here.
+        NULL (None or integer zero) does not cancel an existing registration.
+        """
+        if type(appid) is not bytes:
+            raise QimeiRequestBoundary('application CString bytes required')
+        app = self._get_or_create_application(appid.split(b'\0', 1)[0])
+        if type(callback) is int and callback == 0:
+            callback = None
+        # Never wait for the application lock while holding the module lock:
+        # notify holds this same reentrant lock while invoking the callback.
+        with app.lock, self.lock:
+            self._check()
+            if self.sealed:
+                raise QimeiRequestBoundary('module admission sealed')
+            for index, pointer in enumerate(app.callbacks):
+                if (pointer is callback or type(pointer) is int and
+                        type(callback) is int and pointer == callback):
+                    return
+                if pointer is None:
+                    app.callbacks[index] = callback
+                    return
+
     def initialize(self, inputs):
         self._check(creator=True)
         if (not isinstance(inputs, QimeiApplicationInputs) or type(inputs.appid) is not bytes
@@ -138,12 +175,8 @@ class OwnQimeiModuleBackend:
         with self.lock:
             if self.sealed:
                 raise QimeiRequestBoundary('module admission sealed')
-            context = self.sdk.get(inputs.appid)
-            app = self.applications.get(inputs.appid)
-            if app is None:
-                app = CanonicalQimeiApplication(inputs.appid, self.settings, context, self.startup)
-                self.applications[inputs.appid] = app
-            elif app.initialized:
+            app = self._get_or_create_application(inputs.appid)
+            if app.initialized:
                 return 0
             if not self.settings.initialized:
                 raise QimeiRequestBoundary('Own settings location must be bound before a2')
@@ -151,7 +184,7 @@ class OwnQimeiModuleBackend:
                 self.ipc.initialize(inputs.appid)
             if self.ipc._counter_owner is None:
                 self.ipc._initialize_counter(self.default_counter_owner)
-            context.configure(inputs.first, inputs.second, inputs.third, inputs.option)
+            app.context.configure(inputs.first, inputs.second, inputs.third, inputs.option)
             # Own location observations are supplied explicitly. Never invoke
             # Registry20 binding or Original Shell data paths in this host.
             self.startup.start(inputs.startup_observations, selector=self.creator_io.selector,

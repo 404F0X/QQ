@@ -3272,7 +3272,7 @@
     {
       "path": "src/qq_nt_replica/primary_qimei_module_backend.py",
       "source_sha256": "2e1bb4acc927175480a5583fda0e6a3ebc3aa2c60114d23cf6da0006afe9bf71",
-      "sha256": "0cb5bff91e47b5ce5fcd23d3245c6b21f042d09c23931bc11b901a078354b983",
+      "sha256": "f6ab531fed33e1cbd7b62bf391d71622953d682c19107b13ed172742f4b20c8f",
       "classification": "project_source",
       "origin": "QIMEI-A2-GETTER-VERTICAL-IMPL/a1 Source-derived authored snapshot: qimei-a2-vertical/first-authored-source/primary_qimei_module_backend.py"
     },

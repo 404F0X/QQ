@@ -5,6 +5,7 @@ import hashlib
 import json
 import sys
 import threading
+import weakref
 from types import SimpleNamespace as NS
 
 import pytest
@@ -250,6 +251,226 @@ def test_a2_no_material_barrier_same_store_getter_first_metadata():
     finally:
         leave.set(); m.close()
     assert m.closed and m.bridge.closed
+
+
+class OwnModelNotification:
+    """Owned Python fixture, never an observed Native callback pointer."""
+    def __init__(self, body=lambda buffer: None):
+        self.body = body
+        self.truth_checks = 0
+
+    def __call__(self, buffer):
+        return self.body(buffer)
+
+    def __eq__(self, other):
+        raise AssertionError('callback equality must not execute')
+
+    def __bool__(self):
+        self.truth_checks += 1
+        return True
+
+
+def test_registration_before_a2_reuses_app_without_initialization_or_effects():
+    m, inputs, api, ios, entered, leave = module_fixture(opens=(44,))
+    callback = OwnModelNotification()
+    settings_initialized = m.settings.initialized
+    stores = [(store, [(r.id, r.capacity, r.value) for r in store.records], store.path) for store in
+              (m.startup.main, m.startup.identity1)]
+    before = (m.startup.once, bytes(m.settings.record), tuple(api.calls), tuple(m.ipc.backend.calls))
+    try:
+        m.settings.initialized = False
+        assert m.register_notification(inputs.appid + b'\0ignored', callback) is None
+        app = m.applications[inputs.appid]
+        assert not app.initialized and app.callbacks[0] is callback
+        assert app.settings is m.settings and app.startup is m.startup
+        assert app.context is m.sdk.get(inputs.appid)
+        assert (app.timestamp, app.d8, bytes(app.buffer)) == (0, 0, bytes(70))
+        assert m.executor is None and m.provider is None and not m.provider_once
+        assert not m.tasks and not m.schedule.timers and not m.ipc.states and len(ios) == 1
+        assert before == (m.startup.once, bytes(m.settings.record), tuple(api.calls), tuple(m.ipc.backend.calls))
+        for store, records, path in stores:
+            assert [(r.id, r.capacity, r.value) for r in store.records] == records and store.path == path
+        with pytest.raises(QimeiRequestBoundary, match='normally initialized'):
+            m.query(inputs.appid, bytearray(70))
+        m.settings.initialized = settings_initialized
+        assert m.initialize(inputs) == 0 and m.tasks[-1].done.wait(2)
+        assert not any(task.errors for task in m.tasks)
+        assert m.applications[inputs.appid] is app and app.initialized
+        assert app.callbacks[0] is callback  # a2 neither replaces slots nor replays them.
+        assert m.register_notification(inputs.appid, callback) is None
+        assert app.callbacks[0] is callback and app.callbacks[1:] == [None] * 7
+        assert callback.truth_checks == 0
+    finally:
+        m.settings.initialized = settings_initialized
+        m.close()
+
+
+def test_registration_eight_slots_address_identity_full_and_null_not_cancel():
+    m, inputs, api, ios, entered, leave = module_fixture()
+    callbacks = [OwnModelNotification() for _ in range(6)]
+    try:
+        assert m.register_notification(inputs.appid, None) is None
+        app = m.applications[inputs.appid]
+        assert app.callbacks == [None] * 8
+        address = int('1048576')
+        same_address = int('1048576')
+        assert address is not same_address
+        assert m.register_notification(inputs.appid, address) is None
+        assert m.register_notification(inputs.appid, same_address) is None
+        assert app.callbacks[0] == address and app.callbacks[1:] == [None] * 7
+        for callback in callbacks:
+            assert m.register_notification(inputs.appid, callback) is None
+        assert m.register_notification(inputs.appid, None) is None
+        assert m.register_notification(inputs.appid, 0) is None
+        assert app.callbacks[0] == address and app.callbacks[7] is None
+        assert all(app.callbacks[i + 1] is cb for i, cb in enumerate(callbacks))
+        last = OwnModelNotification()
+        assert m.register_notification(inputs.appid, last) is None
+        full = tuple(app.callbacks)
+        for callback in (callbacks[2], OwnModelNotification(), None, 0):
+            assert m.register_notification(inputs.appid, callback) is None
+            assert all(a is b for a, b in zip(app.callbacks, full))
+        assert not m.tasks and m.executor is None and not entered.is_set()
+        assert all(callback.truth_checks == 0 for callback in callbacks + [last])
+    finally:
+        m.close()
+
+
+def test_registration_owns_python_callback_until_normal_epoch_close():
+    m, inputs, api, ios, entered, leave = module_fixture()
+    callback = OwnModelNotification()
+    retained = weakref.ref(callback)
+    try:
+        m.register_notification(inputs.appid, callback)
+        del callback
+        assert retained() is not None
+        assert m.applications[inputs.appid].callbacks[0] is retained()
+        m.close()
+        assert not m.applications and retained() is None
+    finally:
+        if not m.closed:
+            m.close()
+
+
+def test_registration_stops_at_notify_hole_before_equal_tail_and_keeps_exception():
+    m, inputs, api, ios, entered, leave = module_fixture()
+    calls = []
+    first = OwnModelNotification(lambda b: calls.append('first'))
+    def fail(buffer):
+        calls.append('second')
+        raise RuntimeError('controlled MODEL callback')
+    second = OwnModelNotification(fail)
+    try:
+        m.initialize(inputs); assert m.tasks[-1].done.wait(2)
+        assert not any(task.errors for task in m.tasks)
+        app = m.applications[inputs.appid]
+        io = ios[0]
+        io.bad_code_pointer = lambda pointer: False
+        io.invoke_notification = lambda pointer, buffer: pointer(buffer)
+        m.register_notification(inputs.appid, first)
+        m.register_notification(inputs.appid, second)
+        with pytest.raises(RuntimeError, match='controlled MODEL'):
+            m._notify(app, io)
+        assert calls == ['first', 'second']
+        assert app.callbacks[0] is None and app.callbacks[1] is second
+        m.register_notification(inputs.appid, second)
+        assert app.callbacks[0] is second and app.callbacks[1] is second
+        m.register_notification(inputs.appid, second)  # Equal prefix stops before the next hole.
+        assert app.callbacks[2:] == [None] * 6
+        assert calls == ['first', 'second']  # Registration never replays existing material.
+        second.body = lambda buffer: calls.append('returned')
+        m._notify(app, io)
+        assert calls == ['first', 'second', 'returned', 'returned']
+        assert app.callbacks == [None] * 8
+    finally:
+        m.close()
+
+
+def test_registration_reenters_worker_notify_while_another_registration_waits(monkeypatch):
+    m, inputs, api, ios, entered, leave = module_fixture()
+    waiting = threading.Event()
+    errors, calls, threads = [], [], []
+    contender_callback = OwnModelNotification()
+    reentrant_callback = OwnModelNotification(lambda b: calls.append('reentrant'))
+    original = m._get_or_create_application
+    def lookup(appid):
+        app = original(appid)
+        if threading.current_thread().name == 'MODEL-registration-contender':
+            waiting.set()
+        return app
+    def contender():
+        try:
+            m.register_notification(inputs.appid, contender_callback)
+        except BaseException as error:
+            errors.append(error)
+    def notification(buffer):
+        calls.append('first')
+        thread = threading.Thread(target=contender, name='MODEL-registration-contender')
+        threads.append(thread); thread.start()
+        assert waiting.wait(2)
+        m.register_notification(inputs.appid, reentrant_callback)
+    try:
+        m.initialize(inputs); assert m.tasks[-1].done.wait(2)
+        app = m.applications[inputs.appid]
+        m.register_notification(inputs.appid, OwnModelNotification(notification))
+        monkeypatch.setattr(m, '_get_or_create_application', lookup)
+        def notify(owner):
+            io = m.worker_io_factory(app)
+            try:
+                io.bad_code_pointer = lambda pointer: False
+                io.invoke_notification = lambda pointer, buffer: pointer(buffer)
+                m._notify(app, io)
+            finally:
+                io.close()
+        task = m.executor.submit(inputs.appid, notify, lambda t: None, lambda t: None)
+        assert task.done.wait(3) and not task.errors
+        for thread in threads:
+            thread.join(2)
+            assert not thread.is_alive()
+        assert not errors and calls == ['first', 'reentrant']
+        assert app.callbacks[0] is contender_callback and app.callbacks[1:] == [None] * 7
+    finally:
+        m.close()
+        for thread in threads:
+            thread.join(2)
+            assert not thread.is_alive()
+
+
+def test_registration_waiting_for_app_lock_cannot_write_after_close(monkeypatch):
+    m, inputs, api, ios, entered, leave = module_fixture()
+    waiting = threading.Event()
+    errors = []
+    original_callback, late_callback = OwnModelNotification(), OwnModelNotification()
+    m.register_notification(inputs.appid, original_callback)
+    app = m.applications[inputs.appid]
+    original = m._get_or_create_application
+    def lookup(appid):
+        result = original(appid)
+        waiting.set()  # The normal live-epoch/seal check already passed.
+        return result
+    monkeypatch.setattr(m, '_get_or_create_application', lookup)
+    def register():
+        try:
+            m.register_notification(inputs.appid, late_callback)
+        except BaseException as error:
+            errors.append(error)
+    thread = threading.Thread(target=register)
+    try:
+        with app.lock:
+            thread.start()
+            assert waiting.wait(2) and thread.is_alive()
+            m.close()
+            assert m.closed and not m.applications
+            assert app.callbacks[0] is original_callback
+        thread.join(2)
+        assert not thread.is_alive() and len(errors) == 1
+        assert isinstance(errors[0], QimeiRequestBoundary)
+        assert app.callbacks[0] is original_callback and app.callbacks[1:] == [None] * 7
+    finally:
+        if not m.closed:
+            m.close()
+        thread.join(2)
+        assert not thread.is_alive()
 
 
 def test_false_branch_qualified_consume_and_callback_enqueue():
@@ -607,7 +828,9 @@ def test_failed_module_join_keeps_real_schedule_backing_for_accepted_task(monkey
     m, inputs, api, ios, http_entered, unused_leave = module_fixture(opens=(44,))
     entered, release = threading.Event(), threading.Event()
     launches, tail = [], []
+    callback = OwnModelNotification()
     try:
+        m.register_notification(inputs.appid, callback)
         m.initialize(inputs)
         assert m.tasks[0].done.wait(3) and not m.tasks[0].errors
         launches = [slot['launch'] for slot in m.executor._slots]
@@ -628,6 +851,9 @@ def test_failed_module_join_keeps_real_schedule_backing_for_accepted_task(monkey
             with pytest.raises(ExceptionGroup, match='shutdown debt retained'):
                 m.close()
         assert not m.closed and not m.executor._shutdown and m.applications and m.provider_pair
+        assert m.applications[inputs.appid].callbacks[0] is callback
+        with pytest.raises(QimeiRequestBoundary, match='admission sealed'):
+            m.register_notification(inputs.appid, OwnModelNotification())
         assert m.schedule.quiescent and not m.schedule.retired and not getattr(api, 'closed', False)
         assert tuple(m.schedule.mutexes) == handles and m.schedule.timers == [timer]
         assert timer['thunk'] is api.callbacks[0]
