@@ -521,7 +521,7 @@ class WindowsSigner:
             raise InputError('own request requires own business initialization')
         return self._operation('initialize_own_sdk_request', **inputs)
 
-    def bind_own_cold12(self, inputs, *, own_inputs, appid_override, env_setting):
+    def bind_own_cold12(self, inputs, *, own_inputs, appid_override, env_setting, init_config=None):
         self._check_owner()
         if self._state != 'open' or self._busy or self._signer.failed:
             raise InputError('own cold12 binding requires an idle open signer')
@@ -529,7 +529,7 @@ class WindowsSigner:
             raise InputError('own cold12 binding already exists')
         from .primary_source_cold12_binding import FreshCold12Binding
         self._own_cold12 = FreshCold12Binding(self, inputs, own_inputs=own_inputs,
-            appid_override=appid_override, env_setting=env_setting)
+            appid_override=appid_override, env_setting=env_setting, init_config=init_config)
 
     def encode_own_cold12(self, request, *, type1=None):
         self._check_owner()

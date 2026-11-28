@@ -343,9 +343,13 @@ class OwnBootstrapSdkSession:
     def __init__(self, material, profile, *, owner, records, session_id,
                  request_capi, clock_inputs, random_environment, state17_owner,
                  cold12_inputs, own_cold12_inputs, appid_override, env_setting,
-                 connector, ping_index, deadline, own_owner, clock=time.monotonic):
+                 connector, ping_index, deadline, own_owner, clock=time.monotonic, bind_profile_appid=False):
         self._context, self._wire_profile = packet_inputs(material, profile)
         context = self._context
+        if type(bind_profile_appid) is not bool:
+            raise AuthenticatedSessionError('OWN_BOOTSTRAP_EXPLICIT_INPUTS')
+        if bind_profile_appid and appid_override is not None:
+            raise AuthenticatedSessionError('OWN_BOOTSTRAP_APPID_CONFLICT')
         if (not callable(connector) or not callable(clock) or
                 type(deadline) not in (int, float) or not math.isfinite(deadline) or deadline <= clock() or
                 type(ping_index) is not int or not 0 <= ping_index < 1 << 32 or
@@ -376,6 +380,8 @@ class OwnBootstrapSdkSession:
             random_environment=random_environment, state17_owner=state17_owner)
         self._cold_config = dict(inputs=cold12_inputs, own_inputs=own_cold12_inputs,
             appid_override=appid_override, env_setting=env_setting)
+        if bind_profile_appid:
+            self._cold_config['init_config'] = {'appid': str(profile.sub_app_id)}
         self._carrier = _OwnBootstrapCarrier(connector, uin=uin, ping_index=ping_index,
             deadline=deadline, clock=clock)
         self._state = 'new'

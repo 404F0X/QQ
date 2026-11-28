@@ -561,6 +561,26 @@ class RealInputShape(unittest.TestCase):
         with self.assertRaises(Exception):
             subject.packet_inputs(material, replace(profile, head_version='9.9.33-52230'))
 
+    def test_profile_appid_admission_precedes_own_owner_and_side_effects(self):
+        for value in (None, '', True, 0, -1, 1 << 32, '17'):
+            profile = self.Q.DesktopQrProfile.experimental51728()
+            # Model corrupted saved input without invoking a different profile's
+            # constructor checks; production must still run canonical admission.
+            object.__setattr__(profile, 'sub_app_id', value)
+            owner, connector = Mock(), Mock()
+            entropy = Mock(side_effect=AssertionError('entropy before admission'))
+            with patch.object(subject.os, 'urandom', entropy):
+                with self.assertRaisesRegex(Exception, 'QR_EXPERIMENT_PROFILE_SOURCE'):
+                    subject.OwnBootstrapSdkSession(self.material(), profile, owner=owner,
+                        records=(), session_id='MODEL', request_capi=Mock(), clock_inputs={},
+                        random_environment=Mock(), state17_owner=None, cold12_inputs=Mock(),
+                        own_cold12_inputs=True, appid_override=None, env_setting=Mock(),
+                        connector=connector, ping_index=1, deadline=10, own_owner=False,
+                        clock=lambda: 1, bind_profile_appid=True)
+            self.assertEqual(owner.mock_calls, [])
+            connector.assert_not_called()
+            entropy.assert_not_called()
+
 
 if __name__ == '__main__':
     unittest.main()

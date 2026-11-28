@@ -25,7 +25,53 @@ def _text(value):
     except UnicodeError:raise InputError('cold12 environment requires strict UTF8 text') from None
 
 
-def fresh_options(machine_id, *, appid_override, env_setting):
+class _OwnAppidService:
+    """Independent Own projection of config+2A8 -> service+2C8 only.
+
+    Original initConfig's VT80 remains unsupported. Only canonical ASCII
+    decimal uint32 is proved here; this is not the full Native lexical parser.
+    """
+    def __init__(self, binding):
+        self.binding = binding
+        self.appid_string = None
+        self.config_2a8 = ''
+        self.dword_2c8 = 0
+
+    def initConfig(self, config):
+        self.binding._check()
+        if type(config) is not dict:
+            raise InputError('Own appid config requires a dict')
+        appid = config.get('appid')
+        if appid is not None and type(appid) is not str:
+            raise InputError('Own appid config requires an optional String')
+        self.appid_string = appid
+        # Source record starts empty; absent/null leave it empty, present copies
+        # even an empty String. A later parse failure retains this copied prefix.
+        if appid is not None:
+            self.config_2a8 = appid
+        self._parse_config()
+
+    def _parse_config(self):
+        value = self.config_2a8
+        if not value:
+            return
+        if len(value) > 10 or (len(value) > 1 and value[0] == '0'):
+            raise InputError('Own appid config outside supported canonical ASCII uint32 domain')
+        parsed = 0
+        for char in value:
+            if not '0' <= char <= '9':
+                raise InputError('Own appid config outside supported canonical ASCII uint32 domain')
+            parsed = parsed * 10 + ord(char) - ord('0')
+            if parsed >= 1 << 32:
+                raise InputError('Own appid config outside supported canonical ASCII uint32 domain')
+        self.dword_2c8 = parsed
+
+    def current_appid(self):
+        self.binding._check()
+        return self.dword_2c8
+
+
+def fresh_options(machine_id, *, appid_override, env_setting, appid_service=None):
     if type(machine_id) is not bytes or not machine_id or b'\0' in machine_id:
         raise InputError('cold12 binding requires installed nonempty NUL-free machine identity')
     try:
@@ -35,6 +81,12 @@ def fresh_options(machine_id, *, appid_override, env_setting):
         raise InputError('installed machine identity has no supported strict Node UTF8 projection') from None
     if appid_override is not None and (type(appid_override) is not int or not 0 <= appid_override < 1 << 32):
         raise InputError('cold12 appid override requires uint32 or None')
+    if appid_service is not None:
+        if appid_override is not None:
+            raise InputError('Own appid config conflicts with appid override')
+        appid = appid_service.current_appid()
+    else:
+        appid = appid_override
     context13, canary = None, b''
     if type(env_setting) is EnabledEnvironment:
         host, env_id, value = (_text(v) for v in (env_setting.host, env_setting.sso_env_id, env_setting.canary))
@@ -44,7 +96,7 @@ def fresh_options(machine_id, *, appid_override, env_setting):
             context13, canary = env_id or None, value
     elif type(env_setting) is not DisabledEnvironment:
         raise InputError('cold12 environment must be explicitly enabled or disabled')
-    return SourceCold12Options(appid_override or 0x20067C69, b'', machine_id,
+    return SourceCold12Options(appid or 0x20067C69, b'', machine_id,
         SourceCold12Reserve(context13, None, False, (), 101, canary))
 
 
@@ -59,19 +111,25 @@ class EncodedOwnCold12:
 
 
 class FreshCold12Binding:
-    def __init__(self, owner, inputs, *, own_inputs, appid_override, env_setting):
+    def __init__(self, owner, inputs, *, own_inputs, appid_override, env_setting, init_config=None):
         if type(own_inputs) is not bool:
             raise InputError('cold12 input ownership requires bool')
         self.owner, self.inputs, self.own_inputs = owner, inputs, own_inputs
         self.encoder = None
+        self.appid_service = None
         self.closed, self._active, self._close_failure = False, False, None
         self.signer = owner._signer
         self.component = getattr(self.signer, '_own_sdk_request', None)
         self.runtime = self.signer.runtime
         try:
             self._check()
+            if init_config is not None:
+                if appid_override is not None:
+                    raise InputError('Own appid config conflicts with appid override')
+                self.appid_service = _OwnAppidService(self)
+                self.appid_service.initConfig(init_config)
             self.options = fresh_options(getattr(owner, '_own_business_machine_id', None),
-                appid_override=appid_override, env_setting=env_setting)
+                appid_override=appid_override, env_setting=env_setting, appid_service=self.appid_service)
             owner._busy = True
             try:
                 # Binding owns the input lifetime; encoder always borrows it to avoid duplicate cleanup.
@@ -153,3 +211,4 @@ class FreshCold12Binding:
             self._close_failure = error
             raise
         self.closed = True
+        self.appid_service = None

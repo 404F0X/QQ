@@ -8,7 +8,7 @@ import runpy
 import sys
 import threading
 from types import SimpleNamespace as NS, ModuleType
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from test_primary_request_fingerprint import model_signer
@@ -216,6 +216,45 @@ def test_real_original_chain_one_sign_sdk_error(auth):
     assert component._session_id == 'Own local label' and component.flags & 255 == 1
     phase.close()
     assert channel.closed == 1
+
+
+def test_explicit_profile_config_reaches_same_service_options_and_real_frame(auth):
+    phase, owner, channel, inputs = session(auth, bind_profile_appid=True)
+    profile = auth[1]
+    assert profile.sub_app_id != profile.app_id
+    assert phase._cold_config['init_config'] == {'appid': str(profile.sub_app_id)}
+    with patch('qq_nt_replica.primary_login_msf_record.prepare') as original_vt80:
+        phase.run()
+        original_vt80.assert_not_called()
+    binding = owner._own_cold12
+    service = binding.appid_service
+    assert service.binding is binding and service.binding.runtime is owner._signer.runtime
+    assert service.appid_string == service.config_2a8 == str(profile.sub_app_id)
+    assert binding.options.dword0 == service.current_appid() == profile.sub_app_id
+    assert channel.outbound_plain[8:12] == word(binding.options.dword0)
+    assert len(owner.signs) == 1 and inputs.seeds == 1
+    phase.close()
+    assert binding.closed and binding.appid_service is None
+    with pytest.raises(InputError, match='idle initialized'):
+        service.current_appid()
+
+
+def test_profile_config_optin_conflict_precedes_connector_sign_and_entropy(auth):
+    owner, connector, inputs = ModelOwner(), Mock(), Inputs()
+    with pytest.raises(subject.AuthenticatedSessionError, match='APPID_CONFLICT'):
+        session(auth, owner=owner, connector=connector, cold12_inputs=inputs,
+            bind_profile_appid=True, appid_override=0)
+    assert owner.calls == owner.signs == [] and inputs.seeds == 0
+    connector.assert_not_called()
+    for flag in (None, 0, 1):
+        with pytest.raises(subject.AuthenticatedSessionError, match='EXPLICIT_INPUTS'):
+            session(auth, bind_profile_appid=flag)
+    # Explicit legacy override and default False keep their existing path.
+    phase, owner, channel, inputs = session(auth, appid_override=23)
+    phase.run()
+    assert owner._own_cold12.appid_service is None
+    assert channel.outbound_plain[8:12] == word(23)
+    phase.close()
 
 
 @pytest.mark.parametrize('attribute,value,match', [

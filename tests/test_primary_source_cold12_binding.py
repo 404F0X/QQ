@@ -14,6 +14,7 @@ from qq_nt_replica.primary_sdk_request import SdkRecordRequest
 from qq_nt_replica.primary_request_material import RequestMaterial
 from qq_nt_replica.primary_signature_result import PrimarySignatureResult
 from qq_nt_replica.errors import InputError
+from qq_nt_replica.primary_source_cold12_binding import _OwnAppidService
 
 
 class Inputs:
@@ -69,6 +70,84 @@ class Binding(unittest.TestCase):
             with self.assertRaises(InputError):fresh_options(b'm',appid_override=None,env_setting=env)
         with self.assertRaises(InputError):fresh_options(b'm',appid_override=True,env_setting=DisabledEnvironment())
         self.assertEqual(fresh_options('\u00e9'.encode('utf-8'),appid_override=None,env_setting=DisabledEnvironment()).string20,'\u00e9'.encode('utf-8'))
+
+    def test_config_copy_parse_service_read_and_fresh_fallback(self):
+        for config in ({}, {'appid': None}, {'appid': ''}, {'appid': '0'},
+                       {'appid': '19'}, {'appid': '4294967295'}):
+            owner, inputs = ModelOwner(), Inputs()
+            reads = []
+            current = _OwnAppidService.current_appid
+            def read(service):
+                reads.append((service, service.dword_2c8))
+                return current(service)
+            with patch.object(_OwnAppidService, 'current_appid', read):
+                owner.bind_own_cold12(inputs, own_inputs=True, appid_override=None,
+                    env_setting=DisabledEnvironment(), init_config=config)
+            binding = owner._own_cold12
+            service = binding.appid_service
+            supplied = config.get('appid')
+            self.assertIs(service.binding, binding)
+            self.assertEqual(service.appid_string, supplied)
+            self.assertEqual(service.config_2a8, supplied if supplied is not None else '')
+            expected = int(supplied) if supplied else 0
+            self.assertEqual(reads, [(service, expected)])
+            self.assertEqual(binding.options.dword0, expected or 0x20067C69)
+            config['appid'] = '47'
+            self.assertEqual(service.current_appid(), expected)
+            self.assertEqual(fresh_options(b'MODEL-machine', appid_override=None,
+                env_setting=DisabledEnvironment(), appid_service=service).dword0, binding.options.dword0)
+            with self.assertRaisesRegex(InputError, 'conflicts'):
+                fresh_options(b'm', appid_override=0, env_setting=DisabledEnvironment(), appid_service=service)
+            runtime = owner._signer.runtime
+            owner._signer.runtime = object()
+            with self.assertRaises(InputError): service.current_appid()
+            owner._signer.runtime = runtime
+            binding.close()
+            self.assertEqual(inputs.closes, 1)
+            with self.assertRaises(InputError): service.current_appid()
+
+    def test_unsupported_config_retains_real_prefix_before_encoder_or_sign(self):
+        for value in ('+1', '-1', ' 1', '1 ', '0x10', '01', '\u0661', '1\0',
+                      '4294967296', '999999999999999999999', 17, True, b'17'):
+            owner, inputs, captured = ModelOwner(), Inputs(), []
+            setter = _OwnAppidService.initConfig
+            def observed(service, config):
+                captured.append(service)
+                return setter(service, config)
+            with patch.object(_OwnAppidService, 'initConfig', observed):
+                with self.assertRaisesRegex(InputError, 'Own appid config'):
+                    owner.bind_own_cold12(inputs, own_inputs=True, appid_override=None,
+                        env_setting=DisabledEnvironment(), init_config={'appid': value})
+            service = captured[0]
+            self.assertEqual(service.config_2a8, value if type(value) is str else '')
+            self.assertEqual(service.dword_2c8, 0)
+            self.assertIsNone(service.binding.encoder)
+            self.assertFalse(hasattr(service.binding, 'options'))
+            self.assertEqual((inputs.seeds, inputs.closes, owner.signs), (0, 1, []))
+            self.assertIsNone(owner._own_cold12)
+
+    def test_config_failure_retains_backing_on_owned_close_debt(self):
+        owner, inputs = ModelOwner(), Inputs(True)
+        with self.assertRaises(BaseExceptionGroup) as failure:
+            owner.bind_own_cold12(inputs, own_inputs=True, appid_override=None,
+                env_setting=DisabledEnvironment(), init_config={'appid': '4294967296'})
+        self.assertIsInstance(failure.exception.exceptions[0], InputError)
+        self.assertIsInstance(failure.exception.exceptions[1], OSError)
+        binding = owner._own_cold12
+        self.assertIs(binding.inputs, inputs)
+        self.assertEqual(binding.appid_service.config_2a8, '4294967296')
+        self.assertEqual(binding.appid_service.dword_2c8, 0)
+        self.assertEqual(owner._state, 'failed')
+        with self.assertRaises(OSError): binding.close()
+        self.assertEqual(inputs.closes, 1)
+
+    def test_config_copy_failure_and_conflict_use_existing_construction_cleanup(self):
+        for config, override in (([], None), ({'appid': '19'}, 0)):
+            owner, inputs = ModelOwner(), Inputs()
+            with self.assertRaises(InputError):
+                owner.bind_own_cold12(inputs, own_inputs=True, appid_override=override,
+                    env_setting=DisabledEnvironment(), init_config=config)
+            self.assertEqual((inputs.seeds, inputs.closes, owner.signs), (0, 1, []))
 
     def test_setup_captures_only_successful_installed_identity(self):
         owner=ModelOwner();owner._own_business_machine_id=None;setup=IndependentWindowsSetup(owner)

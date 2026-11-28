@@ -7,11 +7,32 @@
 COORDINATION 只记录调度和操作，不另立业务状态机。
 原长篇过程记录已由 Git 历史及既有 before/input-versions 快照保留，不再复制归档。
 
+## Own profile appid 配置投影（SDK-PROFILE-CONFIG-IMPL/a1，独立审查 APPROVE）
+
+`OwnBootstrapSdkSession(..., bind_profile_appid=False)` 新增显式 opt-in。默认 False 保留既有 `appid_override`／Source fallback 路径；True 在既有 `packet_inputs(material, profile)`／`require_experimental51728()` 准入后，取同一 canonical profile 的 `sub_app_id` 字段并转换为 ASCII 十进制 String。True 与任何非 None `appid_override`（包括0）冲突并报 `OWN_BOOTSTRAP_APPID_CONFLICT`；非 bool flag 报 `OWN_BOOTSTRAP_EXPLICIT_INPUTS`。profile 偏离直接保留原准入错误，均先于 SIGN、connector 或 encoder entropy。
+
+独立 Own host 只建模 Source 已证 appid 配置切片：`init_config['appid']` → 自有 optional String／config+2A8 copy → canonical uint32 parse → 同 binding 持有的 service+2C8 DWORD（初值0）→ `fresh_options(..., appid_service=...)` 的正常72F286非零选择 → Options → 原 encoder。`WindowsSigner.bind_own_cold12(..., init_config=None)` 转交该配置；不是将已解析数值交回 legacy override，也不改最终 header。绑定的 owner／runtime 检查沿用现有生命周期；成功 close 释放配置引用，owned inputs close 失败保留真实 backing／cleanup debt，不能将失败包装为成功或重试端口关闭。
+
+该有限配置 API 接受 dict，appid absent／None／present empty 分别保留 optional 输入语义；record 初始空、service DWORD 初始0，均经正常 Options 得到原 Source fallback。present `'0'` 写 DWORD0；`'1'` 至 `'4294967295'` 的无前导零 ASCII 十进制 String 写相应 DWORD。只支持这一已证 canonical 域；符号、空白、前缀、前导零、Unicode 数字、NUL、overflow 或非 String 显式 `InputError`。这不声称 Native 完整词法拒绝所有这些输入。String 类型失败前无 copy；支持 String copy 后的域／解析失败保留已复制 config，DWORD不写、encoder／Options不产生；失败构造按既有 inputs 清理规则处理。String 使用 Python immutable 值保存，未声称重现 Native String 分配器／OOM 前缀。无 warm update API。Own profile opt-in 仍要求 canonical51728准入，不能用底层配置支持域放宽 profile 资格。
+
+未来接线 recipe（只准备 API 调用，须在另行授权的新 factory／candidate 中采用）：
+
+```python
+future_inputs = dict(existing_explicit_own_bootstrap_inputs)
+future_inputs['appid_override'] = None
+phase = OwnBootstrapSdkSession(
+    material, profile, **future_inputs, bind_profile_appid=True)
+```
+
+`existing_explicit_own_bootstrap_inputs` 是现有工厂提供的全部其余必需 owner／records／provider／cold12 inputs／connector／deadline／ownership 参数；此处不创建 owner、不调用 run 或连接。低层已初始化 Own owner 可用 `owner.bind_own_cold12(inputs, own_inputs=True, appid_override=None, env_setting=DisabledEnvironment(), init_config={'appid': '19'})` 配置有限域。现有 `A/overall-signing-service/sdk-own-bootstrap/actual-preparation/driver.py` 和依赖它的旧独立 consumer 保持冻结／未改动／未启用；API 候选 ready 不表示 actual 入口 ready，不重标旧69输入、旧manifest或旧交易。
+
+Original public `initConfig` 的 VT80／72EC24 硬停原样保留，未调用、解除或宣称完成。选择 profile.sub_app_id 是显式 Own policy 候选，不是已证明服务器要求该相等关系。当前 Auth 有效性、51728→52230 跨build适用性、Native peer、旧SSO拒绝根因继续 UNKNOWN；Qimei 必要／充分性未证。本增量不创建登录注册／restore bridge。fault5／STOP保留，所有实际 QQ／Native／SDK／HTTP／QR 调用关闭，无新实际执行 GO。完整 Goal OPEN，同 runtime 新材料安装及后续 SIGN 消费未证。受控检查与限定输入指纹见 `A/overall-signing-service/sdk-profile-config-impl/`。该精确 Source API 候选已获独立审查 APPROVE（`SDK-PROFILE-CONFIG-REVIEW/a1`），实际审查记录见同目录 `REVIEW.md`；审查复用64项有效受控检查，不代表 actual 入口 ready、执行 GO 或完整 Goal 完成。最终文档状态同步与九文件交付绑定见同目录 `DELIVERY-PINS.json`、`DELIVERY-HANDOFF.md`。
+
 ## Experimental Own bootstrap session 增量（SDK-OWN-BOOTSTRAP-IMPL/a3，独立审查 APPROVE）
 
 现有 authenticated entry 的 `run(..., own_bootstrap_factory=None)` 增加显式工厂接点。省略时沿用原流程，CLI 没有新增发包选项。工厂接收实际 ONLINE、恰好一次 `on_authenticated` 留下的同一份 material/profile，以及现有 paths、restricted connector 和有限 deadline；登录连接仍先清理，再创建独立连接。显式工厂须返回具体 session，并负责把已有 `open_windows_signer(own_business_config=...)` 初始化的同进程 business owner 及下列必需输入传给 `OwnBootstrapSdkSession`。
 
-`OwnBootstrapSdkSession(material, profile, *, owner, records, session_id, request_capi, clock_inputs, random_environment, state17_owner, cold12_inputs, own_cold12_inputs, appid_override, env_setting, connector, ping_index, deadline, own_owner, clock=...)` 是一次有限 Own 实验。`state17_owner`、`appid_override`、`env_setting`、`ping_index` 都须显式提供；None appid 使用既有 Source fallback，feature46 仍由实际状态决定，不补 state17。owner 核对实际成功 business setup 后保存的 UIN/machine identity；GUID 来自本次 material.device，machine policy 为 GUID lowercase hex，routing/lookup policy 为 positive UIN decimal ASCII。SID 是独立本地 label，不是 UIN/UID、header 或协议 identity。
+`OwnBootstrapSdkSession(material, profile, *, owner, records, session_id, request_capi, clock_inputs, random_environment, state17_owner, cold12_inputs, own_cold12_inputs, appid_override, env_setting, connector, ping_index, deadline, own_owner, clock=..., bind_profile_appid=False)` 是一次有限 Own 实验。`state17_owner`、`appid_override`、`env_setting`、`ping_index` 都须显式提供；默认未 opt-in 时 None appid 使用既有 Source fallback；显式配置投影见上节。feature46 仍由实际状态决定，不补 state17。owner 核对实际成功 business setup 后保存的 UIN/machine identity；GUID 来自本次 material.device，machine policy 为 GUID lowercase hex，routing/lookup policy 为 positive UIN decimal ASCII。SID 是独立本地 label，不是 UIN/UID、header 或协议 identity。
 
 `set_own_session_id(session_id, *, sender)` 经现有串行 wrapper 保存 SID、发布持有实际 sender 的 receiver（type 返回0），再以 `(flags & ~255) | 1` 复现 Source gate 低字节交换，之后才连接并做 matching ping。混合 configured transport、重绑、已有 pending、foreign sender/thread 均拒绝；绑定后任何非 None external_a2_selection（包括 False）都拒绝。原 external bool 仅保留未绑定 controlled 域。setter 部分失败保留真实 String/receiver/gate 前缀，停止新请求，不伪造回滚。
 
@@ -47,7 +68,7 @@ fresh a3 的 Auth material／profile／device provenance 已完整保存在可�
 
 最后两项只读审计已结束：`SSO-AUDIT.md` 的结论为 `NO_LOCAL_DEVIATION_FOUND_WITHIN_SCOPE`，本次outgoing符合已覆盖的fixed52230 Source与显式Own policy，未发现编码／routing／sequence／材料混用偏差，不外推为全域无bug。184B实际回复为version12／encryption2，经Source的ZERO16Bkey路径解密，47B UTF8文本含失败／重新登录提示与数字21；21的服务端含义未证，不能当TTL／过期根因。该回复不使用保存的D2key，故不证明服务器接受或使用了D2key；仍是直接SSO -10003，不是SDK2000或SDK payload parser失败。
 
-`APPID-PROVENANCE.md` 的结论为 `CALLER_OR_UNBOUND_AT_COVERED_BOUNDARY`：已覆盖的public `NodeIKernelLoginService.initConfig.appid` → config+2A8 → MSF+2C8 → header DWORD，非零取caller值、零取537295977。该字段链与Auth peer输入分开，未证明此处必须等于profile.sub_app_id，不能据此改数字；这不证明其他上层／warm／type1路径没有约束。调查停在public caller的上层选择边界；剩余缺口是目标issuer／header／Auth appid-account-build组合的权威caller契约，或保留该关系的受控同build成功reference，单一成功也只限定其实际条件。当前票据有效性、TTL、跨build适用性与拒绝根因继续UNKNOWN；不再扩Source函数树、猜字段、追加Native额度或重试。已实现／审查的consumer、原capture与本次交易证据保持可复用，无新增执行GO；完整Goal仍OPEN。
+`APPID-PROVENANCE.md` 的结论为 `CALLER_OR_UNBOUND_AT_COVERED_BOUNDARY`：已覆盖的public `NodeIKernelLoginService.initConfig.appid` → config+2A8 → MSF+2C8 → header DWORD，非零取caller值、零取537295977。该字段链与Auth peer输入分开，未证明此处必须等于profile.sub_app_id；上节显式Own配置policy不将该相等关系声称为Source或服务器要求。这不证明其他上层／warm／type1路径没有约束。调查停在public caller的上层选择边界；剩余缺口是目标issuer／header／Auth appid-account-build组合的权威caller契约，或保留该关系的受控同build成功reference，单一成功也只限定其实际条件。当前票据有效性、TTL、跨build适用性与拒绝根因继续UNKNOWN；不再扩Source函数树、猜字段、追加Native额度或重试。已实现／审查的consumer、原capture与本次交易证据保持可复用，无新增执行GO；完整Goal仍OPEN。
 
 ## 当前结论（实际探针分别绑定版本，2026-11-27）
 
@@ -618,9 +639,9 @@ Windows 输入 producer 复用既有模块／熵后端：两次独立 version �
 fixed reply 的源 frame 规则已有静态恢复：实际 decoder 输入包含总长前缀，先按接收 version 选类，本方有限目标仅 version12；response command 是第二个 header String，不是第一个。fresh class 仅对 `GrayUinPro.Check` 且 head 后 remaining>=5 时跳过4字节，其他分支不跳；TEA 解密／尾校验已有源依据与修复。参考 parser 的去前缀输入、head形状及宽松切片不能冒充该 fixed 合同。压缩虽已识别 zlib 路径及10／20／40／80倍尝试，精确失败status映射的等价接入以及通用／其他非空extension结构的ReadTag／group／typed getter接受条件仍未完成，保持Boundary；实际20B对应的有限正向结构已支持，不能由此外推整个decoder。有限fixed reply纯decoder已实现并对保存143B完成16项逐值PASS；C正式owner receiver编排已实现MODEL10，本轮真实同owner接收／public completion已到SDK1003，认证安装未达[RF]，不把一例command匹配外推为服务器所有回复命名契约。
 证据：`A/cold12-signed-exchange-a1/command/`、`response/{RESULT.md,frame,tea,extension}`；命令修复及 TEA 尾校验实际 MODEL 证据分别在 `command/fix/` 与 `response/tea/fix/`。
 
-fresh options 已找到真实 producer，旧 config-source 终点③及 input-audit unknown 被 `A/cold12-signed-exchange-a1/fresh-options-producer/RESULT.md` 在该 fresh 分支上明确 supersede。Node `initConfig` 的 machineId 非空时直接 copy；空值走未实施的 Composite MachineGuid 分支，不生成替代 UUID。appid typed None／0 取源 fallback `0x20067C69`，uint32非零取自身；不实现未证 JS 字符串词法。String8 空、field16 absent、field26 present101、fresh route0 均有源生产依据。两条实际注册 listener 的 VT8 都为28F0 RET，NativeOptions records absent，所以 field21=False／records=() 可在该 fresh itinerary 内部推导；不延伸到 warm／其他 manager。
+fresh options 已找到真实 producer，旧 config-source 终点③及 input-audit unknown 被 `A/cold12-signed-exchange-a1/fresh-options-producer/RESULT.md` 在该 fresh 分支上明确 supersede。Node `initConfig` 的 machineId 非空时直接 copy；空值走未实施的 Composite MachineGuid 分支，不生成替代 UUID。appid typed None／0 取源 fallback `0x20067C69`，uint32非零取自身；legacy typed override不实现 JS 字符串词法；上节独立Own配置仅支持已证canonical ASCII uint32域，完整词法仍未知。String8 空、field16 absent、field26 present101、fresh route0 均有源生产依据。两条实际注册 listener 的 VT8 都为28F0 RET，NativeOptions records absent，所以 field21=False／records=() 可在该 fresh itinerary 内部推导；不延伸到 warm／其他 manager。
 
-本方 `bind_own_cold12(inputs, own_inputs=..., appid_override=..., env_setting=...)` 仅接受成功 own-business setup 后捕获的 immutable metadata.field20；不重读 caller dict 或直接读取 profile。machine bytes 必须非空、无NUL且可严格 UTF8 roundtrip，不支持即显式拒绝，不.hex／容错 decode。env 必须显式 DisabledEnvironment 或 EnabledEnvironment(host,port,sso_env_id,canary)，port 是 typed uint32；自算 active=(host非空且port!=0)或canary非空。inactive／disabled 输出 field13=None、field32空；active id非空才使13 present，canary保留空值。没有 readsuccess/active receipt、config.env.json IO 或全默认 Own profile。
+本方 `bind_own_cold12(inputs, own_inputs=..., appid_override=..., env_setting=..., init_config=None)` 对machine identity仅接受成功 own-business setup 后捕获的 immutable metadata.field20；不重读 caller dict 或直接读取 profile。machine bytes 必须非空、无NUL且可严格 UTF8 roundtrip，不支持即显式拒绝，不.hex／容错 decode。env 必须显式 DisabledEnvironment 或 EnabledEnvironment(host,port,sso_env_id,canary)，port 是 typed uint32；自算 active=(host非空且port!=0)或canary非空。inactive／disabled 输出 field13=None、field32空；active id非空才使13 present，canary保留空值。没有 readsuccess/active receipt、config.env.json IO 或全默认 Own profile。
 
 `encode_own_cold12(originalrequest)` 先用真实 pending 资格检查及绑定配置，再 prepare 消费 wire32，调用一次原正常 owner.sign_result（同 command/body），再 encode，返回 RAM-only frame／wire32／SDK64／原签名 DTO。SIGN 不处于嵌套 `_busy/_operation`；输入端口阶段 busy fence 防止重入，counter 不回滚、不重试，不更改 SDK pending／假称发送。binder 仅管理自己的 encoder 与显式 owned inputs；关闭早于后端卸载，失败保留真实 cleanup debt，borrowed signer／SDK component 不关闭。MODEL 证明支持域的投影、身份、次序和资源行为；随后一次 staged actual 已证明 binder frame 正常 SIGN 字节被实际消费并发送 [BR1]。这不证明服务器材料接受，亦不将本次已安装 identity 的匹配倒推为历史 a7 profile exact binding 相符。证据 `A/cold12-signed-exchange-a1/{listener-effects,fresh-binder-contract,binder-implementation}/`。
 
