@@ -14,6 +14,7 @@ from .primary_qimei_reply import QimeiReplyState
 from .primary_qimei_request import QimeiRequestBoundary
 from .primary_qimei_request_state import QimeiModuleRequestState
 from .primary_qimei_status_business import conditional_kind7, status_value
+from .primary_qimei_report_business import conditional_kind13
 from .primary_qimei_sdk import QimeiSdkContexts
 from .primary_windows_qimei_executor import create_own_qimei_executor
 
@@ -211,6 +212,14 @@ class OwnQimeiModuleBackend:
             raise QimeiRequestBoundary('status request requires an admitted canonical application')
         return self._submit(app, ('54211', '542E3', '54411')[subtype - 1], status)
 
+    def request_report(self, appid):
+        """Queue Source6BBCE on the admitted owner, without acquisition publication."""
+        self._check(creator=True)
+        app = self.applications.get(appid)
+        if app is None or not app.initialized or self.sealed:
+            raise QimeiRequestBoundary('report requires an admitted canonical application')
+        return self._submit(app, '6BBCE')
+
     def _submit(self, app, business, status=None):
         task = self.executor._submit_module(self, app, business,
                                            lambda owner: self._run(app, business, status))
@@ -226,6 +235,10 @@ class OwnQimeiModuleBackend:
                     or io.settings_dependencies.get('codec') is not self.creator_io.settings_dependencies.get('codec')
                     or io.settings_dependencies.get('context_producer') is not self.creator_io.settings_dependencies.get('context_producer')):
                 raise QimeiRequestBoundary('worker IO cannot replace canonical stores/settings')
+            if business == '6BBCE':
+                return conditional_kind13(app.appid, app.settings,
+                    settings_dependencies=io.settings_dependencies, sources=io.report_sources,
+                    dispatch=self.provider, io=io)
             if business in ('54211', '542E3', '54411'):
                 if (io.adapter.state is not self.creator_io.adapter.state or
                         io.adapter.state.selector is not io.selector):

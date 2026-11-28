@@ -13,6 +13,7 @@ from .primary_qimei_main_writer import QimeiMainWriter
 from .primary_qimei_observations import QimeiClassifierObservations
 from .primary_qimei_records import persist_store
 from .primary_qimei_request import QimeiRequestBoundary
+from .primary_qimei_report_sources import QimeiReportSources
 from .primary_qimei_request_sources import QimeiRequestSources
 from .primary_qimei_storage import StorageBuffer
 from .primary_qimei_system_sources import QimeiSystemSources
@@ -25,6 +26,7 @@ from .primary_windows_qimei_extensions import WindowsQimeiExtensionObservations
 from .primary_windows_qimei_owned_storage import (OwnQimeiBeaconBackend,
     OwnQimeiMainWriterObservations, bind_owned_qimei_settings)
 from .primary_windows_qimei_request_sources import WindowsQimeiRequestObservations
+from .primary_windows_qimei_report import WindowsQimeiReportObservations
 from .primary_windows_qimei_settings_writer import create_windows_qimei_settings_writer
 from .primary_windows_qimei_storage import WindowsStorageObservations
 from .primary_windows_qimei_transport_material import WindowsQimeiTransportObservations
@@ -81,6 +83,7 @@ class WindowsQimeiModuleIO:
         self.check()
         f = self.factory
         self.startup, self.settings, self.convert_ansi = f.startup, f.settings, f.convert_ansi
+        self.report_sources = QimeiReportSources(self._own(WindowsQimeiReportObservations()))
         if app.settings is not self.settings or app.startup is not self.startup:
             raise QimeiRequestBoundary('IO application differs from canonical state')
         context = self._own(WindowsQimeiContextObservations(backend=WindowsQimeiAdapterAPIBackend()))

@@ -7,6 +7,20 @@
 COORDINATION 只记录调度和操作，不另立业务状态机。
 原长篇过程记录已由 Git 历史及既有 before/input-versions 快照保留，不再复制归档。
 
+## Qimei kind13 固定 QQ 报告整组（QIMEI-KIND13-QQ-IMPL/a1，固定 QQ 正常 CODE／MODEL 域独立审查 APPROVE）
+
+`OwnQimeiModuleBackend.request_report(appid)` 通过同一已准入 canonical app／epoch／provider／executor 提交 Source6BBCE。每次真实 FIRST settings.flag14 refresh 后按 signed32 判断：<=0 在采集前跳过，>0 采集且仅值2令 force 为真。当前 Source APPLICATION_OWNER=`0WIN053OA34CY6NK` 唯一匹配 case6；其余七个互斥产品与未知 owner 明确 unsupported，不默认 QQ 或空结果。此适用面由固定 Source owner 分派确定，不是按测试便利缩减 Goal。
+
+新增 lazy ANSI Windows metadata 端口保留共同 CSIDL0x1A/createTRUE，再取 CSIDL5/createTRUE；后者失败仍使用根相对 `\Tencent Files`。按 FindFirst/NextFileA 顺序过滤数字目录，优先 nt_qq/nt_db，缺失才尝试 QQGuild/nt_db；选中路径 stat 失败不回退，Source 时间0保留。uint64 时间为 map key，重复首插保留，unsigned 降序取10后才截 uint32 交 Source80588 本地时间格式化。只采目录名和 mtime 元数据，不读聊天数据库内容或其他产品 token。FindClose 与 worker IO close／失败债务保留；本次检查仅注入 fake API，未读取实际用户目录，未触发上述真实 folder-create 副作用。Source formatter 异常未定义域显式 unsupported，不填空或默认成功。
+
+DIL 是 map 非空，serialize 保留全部六个 byte String keys1..6（QQ 只填 key3），复用 Source JSON 的字节／NUL／排序语义；DIL false 的 {} 经 len<=9 清空。空 S／force false 跳过，空 S／force true 发 `0A03312E3012001A0132`；非空 S 经 PKCS7、AES128CBC（ASCII key `18845cac36195f4a`、IV `2a77ed84a51b0b2e`）、标准 Base64，组成原始三字段 ver/E/mode，非 request-cell-array。内层 AES 与共同外层材料分开。同一 provider 直接 kind13/context0 复用 sequence、mode2、nonce／time／缓存、matching pending 与共同响应解码／正常清理；context0 只跳过派生 request handler，不跳过共同解码。正常错误可观察、无 retry/barrier；异常沿用既有 dispatcher pending 保留边界。不发布 kind13 success bit、不写 Store 或安装 settings／材料。
+
+新增整组和受影响回归共50项受控检查通过，fake OS／carrier／Python worker bridge 配合真实 Python collector/composer/AES/common codec；不构成 Source Native、真实服务器接受或实际采集证明。证据及最终检查输入／指纹见 `A/overall-signing-service/qimei-kind13-qq/`。静态 Source 为独立 qimei.dll SHA a6100bce…26ebcc6，wrapper.node 是另一文件 SHA63112ab9…6187a5f0；不宣称 wrapper→DLL 完整加载绑定。本次新模块隔离 loader 检查结果另见同目录 manifest-load.json，旧 CURRENT admission 的历史 manifest／34/64/46 检查绑定不重标为当前实际资格。
+
+独立审查 `QIMEI-KIND13-QQ-REVIEW/a1` 已实际 APPROVE，严格限固定 QQ 正常 CODE／MODEL 域，记录为 `A/overall-signing-service/qimei-kind13-qq/REVIEW.md`。审查核定34个当前输入指纹、50项检查的有效复用与三个新模块的既有隔离 loader gate；未重跑测试、未新增实质 Source fault。真实 Windows API 端口执行、实际用户目录采集、Native／服务器行为及完整 wrapper→qimei.dll 关联均未验证。此批准不升级 Source 成功／材料资格，不构成实际操作或交付执行 GO，旧 CURRENT admission34 与64／46等历史证据绑定保持原样。
+
+这是非整链材料进度：固定 QQ kind13 业务组件闭合仍不等于 Qimei acquisition 成功；未自动接入 full-a2 自然续段或冒充 getter-ready。commit 后 publication／notification／timer／6A840／6AD70、kind2/config publication、P1#1、SDK／Token 新 token→新 d、当前 Auth 有效性／跨 build／Native peer 和完整 Goal 保持 OPEN／UNKNOWN。fault5 与旧 STOP 保留，所有真实 QQNative／HTTP／SDK／QR／Auth／实际 OS 采集配额关闭；无实际执行授权扩张。
+
 ## Qimei kind7 状态请求整组（QIMEI-KIND7-GROUP-IMPL/a1，受控 MODEL 范围独立审查 APPROVE）
 
 现有 OwnQimeiModuleBackend.request_status(appid, subtype, status=None) 可在同一已初始化 canonical app／epoch／provider 上提交完整 kind7 subtype1/2/3 业务组。FIRST settings.flag13 每次真实 refresh 后分别检查 bit1／2／4，关闭 gate 不读时间／adapter、不发送、不推进 sequence。subtype1／3 的 status 必须由真实 Source caller 提供 signed32 状态（54211：最终 main 非空0／空1；54411：kind2 success XOR1，或 gate skip2）；subtype2 入口542E3固定 b'0'，拒绝外传 status。四个 payload cell 为 subtype DWORD、同 schedule 的 Source local-calendar／_mktime64 毫秒时间、canonical compound adapter 的 IP String、status String；合法空 IP 沿用 Source 空 String 省略编码，不补默认地址或 MAC。
