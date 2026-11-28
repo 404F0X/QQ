@@ -76,6 +76,7 @@ class OwnQimeiSchedule:
         self.errors = []
         self.sealed = False
         self.quiescent = False
+        self.retired = False
         self._coord = None
         self._instance = None
         self._callback_threads = threading.local()
@@ -85,7 +86,7 @@ class OwnQimeiSchedule:
             raise QimeiRequestBoundary('scheduler stale epoch')
 
     def check(self):
-        if self.current_epoch(self.runtime) is not self.epoch or self.quiescent:
+        if self.current_epoch(self.runtime) is not self.epoch or self.retired:
             raise QimeiRequestBoundary('scheduler epoch unavailable')
 
     def _call(self, name, result, types, *args):
@@ -115,6 +116,7 @@ class OwnQimeiSchedule:
 
     def coordination(self, appid):
         with self.lock:
+            self.check()
             if self._coord is None:
                 self._coord = self._probe(self._name(b'Coord', hashlib.md5(appid).hexdigest().upper().encode()))
             return self._coord
@@ -125,6 +127,7 @@ class OwnQimeiSchedule:
 
     def dynamic50000(self, appid):
         with self.lock:
+            self.check()
             if self._coord:
                 return True
             self._coord = self._probe(self._name(b'Coord', hashlib.md5(appid).hexdigest().upper().encode()))
@@ -132,6 +135,7 @@ class OwnQimeiSchedule:
 
     def instance_count(self, appid):
         with self.lock:
+            self.check()
             if self._instance is not None:
                 return self._instance
             size = self.api.image_size()
@@ -198,6 +202,8 @@ class OwnQimeiSchedule:
 
     def unregister(self, record):
         with self.lock:
+            if self.quiescent:
+                raise QimeiRequestBoundary('timer queue unavailable')
             if record not in self.timers or not record['handle']:
                 raise QimeiRequestBoundary('unowned/unregistered timer')
             ok, error = self._call('DeleteTimerQueueTimer', C.c_int32,
@@ -220,6 +226,7 @@ class OwnQimeiSchedule:
             if not ok:
                 raise OSError(error, 'queue close debt; backing retained')
         self.queue = None
+        # Accepted workers may still need mutex IO until executor drain finishes.
         self.quiescent = True
 
     def close_mutexes(self):
@@ -236,3 +243,4 @@ class OwnQimeiSchedule:
             raise ExceptionGroup('mutex cleanup debt', errors)
         self.api.close()
         self.timers.clear()
+        self.retired = True

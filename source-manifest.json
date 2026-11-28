@@ -3286,7 +3286,7 @@
     {
       "path": "src/qq_nt_replica/primary_windows_qimei_schedule.py",
       "source_sha256": "b77d222a0311f94cdb815fde8617e51cf618534dc2c892658227984767a55c41",
-      "sha256": "b77d222a0311f94cdb815fde8617e51cf618534dc2c892658227984767a55c41",
+      "sha256": "7dec5dd6b45f82acc755dbb615f6c92ef54f825016b0c3ef9aa43a2a94c27eaa",
       "classification": "project_source",
       "origin": "QIMEI-A2-GETTER-VERTICAL-IMPL/a1 Source-derived authored snapshot: qimei-a2-vertical/first-authored-source/primary_windows_qimei_schedule.py"
     }

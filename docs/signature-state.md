@@ -23,7 +23,7 @@ raw TGT/D2/D2key16 仅作为 Own wire candidate，经 `store_own_type1_peer(...,
 
 a2 独立审查 REQUEST_CHANGES 的 receiver→send 同 original 重入 P1 已由单场景独立复现：第二次 SIGN／wire 消耗并覆盖 encoded，首回复随后关联失败。count4 STOP／Opus重规划后，a3 仅在 encode/SIGN 前占用既有 sending phase，拒绝嵌套进入，保留首 encoded／sequence／原 pending 的单次结算；新增精确 socket.on_send→published receiver 回归保留确定性 SDK 错误。同一独立审查者已对 a3 实际复审 APPROVE，范围仅为 experimental Own bootstrap SDK 增量，见 `A/overall-signing-service/sdk-own-bootstrap/REVIEW-A3.md`。不将受控修复／单测／审查通过作为真实 SDK 材料闭环；a2 原拒绝候选、P1 与复现证据保留。四项旧 pipeline 基线失败仍未通过，不包含在本增量通过范围内。
 
-**Auth51728 已有真实 ONLINE／注册 SSO0；独立SDK consumer 已实现并经独立 APPROVE，随后一次实际交易完成新SDK owner／matching ping／原SIGN封帧与回复关联，远端SSO status=-10003、stage=sso。SDK正材料／安装未达，后续SIGN跳过；server validity、拒绝原因及跨build适用性仍 UNKNOWN。** Source算法／ABI52230 资格与Auth51728／当前服务器接受性分开。 无 TTL、刷新、撤销、rotation/reconnect 接口；本地 deadline 不是票据期限。SDK源码的 experimental 增量 APPROVE 仍仅限上述范围，旧四项 pipeline 基线失败与 Qimei全a2／两P1保持；完整 Goal OPEN。实际 cleanup 故障计入 direction fault5（此前4次composition＋本次实际cleanup），同进程集成路线 STOP，计数不清零，当前无新的 Native／网络／登录执行 GO。
+**Auth51728 已有真实 ONLINE／注册 SSO0；独立SDK consumer 已实现并经独立 APPROVE，随后一次实际交易完成新SDK owner／matching ping／原SIGN封帧与回复关联，远端SSO status=-10003、stage=sso。SDK正材料／安装未达，后续SIGN跳过；server validity、拒绝原因及跨build适用性仍 UNKNOWN。** Source算法／ABI52230 资格与Auth51728／当前服务器接受性分开。 无 TTL、刷新、撤销、rotation/reconnect 接口；本地 deadline 不是票据期限。SDK源码的 experimental 增量 APPROVE 仍仅限上述范围，旧四项 pipeline 基线失败、Qimei全a2与P1#1保持；P1#2关闭／所有权受控修复已获独立APPROVE，范围见下文；完整 Goal OPEN。实际 cleanup 故障计入 direction fault5（此前4次composition＋本次实际cleanup），同进程集成路线 STOP，计数不清零，当前无新的 Native／网络／登录执行 GO。
 
 ### 三次实际登录与保存的Auth候选
 
@@ -67,7 +67,10 @@ PUBLIC LLOneBot8.3.2 支持 `send_pb`，但唯一一次实际 NativeEnvelope SDK
 
 普通first initialize的a2契约已进一步核定：IPC→settings/config→startup→AUX refresh→provider once→executor与任务提交正常return0后，wrapper才发布appid／ready1；cold material job成功不是a2普通返回。50B58可复用既有default settings；61B84是module once构造并发布619C2共享provider，不是arg7 String copy；2CE00(...,5)初始化5个worker，不是等待5秒。619C2有限provider ctor／module once／shared pair及现有retained dispatch的关联已由后续Source补正闭合；当前fresh OwnHost候选实现见下表，Native实际纵向仍未执行。不得手置ready1或增加材料成功barrier。来源：`A/overall-signing-service/QIMEI-A2-ORDINARY-CALL-CONTRACT-20261127.md`。
 
-fresh OwnHost 本地候选 `QIMEI-A2-GETTER-VERTICAL-IMPL/a1` 为 **WIP / REQUEST_CHANGES**，已作为WIP存档于feature commit `c5f59a7`，不是批准的功能交付。最后批准feature版本仍为 `653f7a0`，main `27ad5508` 不动。两P1仍未修：6A923缺完整成功／空／失败续段；timer quiescence提前禁用accepted worker drain所需mutex IO。实际Native纵向 **NOT_RUN**，failed composition count保持 **3**，Native GO资格撤销、观察准备停止。有限材料因果盘点已完成；full a2组装继续撤下优先路线，下一实施合同尚未决定。kind7／13、AD488与52359缺段不能因fresh未触发就省略；其材料影响未排除时保持PotentialImpact／Unknown。full SIGN、SDK/Token发行与通知安装消费、跨restore selector mismatch、empty AUX690A5、nonNULL curl仍OPEN，Goal保持ACTIVE。
+fresh OwnHost 本地候选 `QIMEI-A2-GETTER-VERTICAL-IMPL/a1` 为 **WIP / REQUEST_CHANGES**，已作为WIP存档于feature commit `c5f59a7`，不是批准的功能交付。最后批准feature版本仍为 `653f7a0`，main `27ad5508` 不动。P1#1仍未修：6A923缺完整成功／空／失败续段。P1#2原受控复现确认timer quiescence提前禁用accepted worker drain所需mutex IO；本轮隔离关闭／所有权修复已获独立APPROVE，限定检查与证据见下一段。实际Native纵向 **NOT_RUN**，failed composition count保持 **3**，Native GO资格撤销、观察准备停止。有限材料因果盘点已完成；full a2组装继续撤下优先路线，下一实施合同尚未决定。kind7／13、AD488与52359缺段不能因fresh未触发就省略；其材料影响未排除时保持PotentialImpact／Unknown。full SIGN、SDK/Token发行与通知安装消费、跨restore selector mismatch、empty AUX690A5、nonNULL curl仍OPEN，Goal保持ACTIVE。
+
+
+`QIMEI-SHUTDOWN-DRAIN-IMPL/a1` 仅修关闭／所有权分支：沿用module先封锁新提交、同步停止／等待timer queue、再执行实际executor drain／join、最后close_mutexes的顺序。queue quiescent与整个schedule retired分开；已accepted任务在drain期间仍可进行同epoch的实际mutex／instance-count IO，不预热cache、不补默认计数。新timer与已关闭queue的unregister仍拒绝；最终API退休后包括缓存路径在内的schedule IO均拒绝。queue停止或join未证时保留所需API／mutex／timer thunk与既有module backing及真实debt。25项受控fake API／Python线程检查通过，含原public submit屏障回归（正文尾部、counter IO、completion／release各一次、正常close）及实际零等待join失败的backing保留／清理；独立 `QIMEI-SHUTDOWN-DRAIN-REVIEW/a1` 已实际 **APPROVE**，仅确认此关闭／所有权增量；P1#2受控缺陷已修复，不是Native、真实HTTP／新材料、full a2或完整Goal验收。原P1#1、kind7／13 Unknown、完整Goal OPEN与direction fault5保留；无Native／SDK／登录／QR GO。证据：`A/overall-signing-service/qimei-shutdown-drain-impl/{HANDOFF.md,execution.log,PINS.json,REVIEW.md,DELIVERY-HANDOFF.md}`；原失败复现`qimei-shutdown-drain-repro/`及旧review不改写。当前Source manifest随本候选schedule变更；旧SDK frozen consumer绑定manifest451d仍仅是原版本历史证据，不自动成为新C readiness，未重绑或重跑SDK交易。
 
 | Source family | 材料因果分类／当前范围 |
 | --- | --- |
@@ -533,8 +536,8 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 
 - 四 SDK 命令均消费完整 payload；status0 也加密 payload，没有纯握手空 body 捷径。
   四者均 policy2 SIGN，无合法免签证据；codec 可表达 None 不等于许可 [S]。
-- protocolTokenHex 的实际异步消费者、Native12 或 V8 绑定未闭合。
-  None、空、非法值不得默认补值；SDKToken 与 Qimei 等关系未证。
+- protocolTokenHex 保持原Goal范围。已有具体替代公开异步API参考：已装LLOneBot wrapper的 `acquireSignToken({uin,qua})` 输出token，`signRequest({...protocolTokenHex...})` 消费其UTF8转hex投影；对应候选addon为 `sign-proxy.win-x64.node`。这不是fixed QQ52230 producer／consumer绑定证明；旧“Native12”无具体定义，不能解释为protocol12、12字节或已定位Native函数／V8绑定。
+  wrapper要求 `config.authToken` 并有 `setAuthToken`，不能因acquire仅显式uin／qua就推断Auth-free；“12B”命名与86400常量分别不证明实际长度或服务器TTL，实际加载的versioned temp copy未查。None／空／非法值、材料owner、同build关联及消费位置仍待契约；不移植参考JS的补空／旧值fallback，不将SIGN.token、SDKToken或Qimei按名字等同。证据：`A/overall-signing-service/PROTOCOL-HEX-ORIGIN.md`、`PROTOCOL-HEX-PROXY-QUALIFICATION.md`。
 - SsoTransport 代码存在不等于整体 SDK、真实网络、安装到 next SIGN 已验收。
 - 登录独立 owner 的历史 ONLINE 仅属于 experimental51728/protocol12。
   旧 a6 WMI checkpoint 失败既不证明 native Next 永久挂死，也不证明正常 own137 已通过。
@@ -551,7 +554,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 | SDK回包 / Token | 真实关联回包、校验、解析、安装 | 当前2cee修复optional extension；184B离线解包为SSO -10003／空payload。最新控制无SDK reply／completion，认证、安装、发布及消费仍0；历史143B SDK1003证据仅限原交易。 |
 | Qimei | cold / initialized / restored 各自真实契约 | e846启动identity changed/main跳过；6ec有限Native Own I/O通过但record1仍空。831027 Own hardware GUID实际raw16／hex32配置、持久化／无硬件重采样恢复通过，9项MODEL证据复用；非Native恢复或服务材料，磁盘SPACE具体分支UNKNOWN；fulla2/getter/AUX及发行未证。 |
 | 通知与回调 | 来源合法、注册、分发、生命周期、安装 | 完整真实通知路径未证明 |
-| protocolTokenHex | 异步真实消费者及绑定、空/非法语义 | Native12/V8 等未闭合 |
+| protocolTokenHex | 异步真实消费者及绑定、空/非法语义 | 存在替代公开异步API参考；fixed52230映射未证，Native12未定义；Auth-free／12B／服务器TTL未证 |
 | UIN与配置 | 显式配置到实际消费者，身份一致 | freshOptions源投影及本次已安装machine identity进frame逐bytes匹配；UIN/warm/完整运行仍不足，不输出原值 [BR1] |
 | 刷新 | 真实触发、更新、失败保旧语义 | 仅局部源/受控证据 |
 | 失败与恢复 | 原错误可见，同对象恢复且不伪成功 | key25 一例 [D]，不外推全域 |
@@ -564,7 +567,7 @@ SIGN 既是 SDK 交易的前置依赖，也是新材料的后续消费者；不�
 
 选中TCP路径的Source readiness现已部分闭合：U为`MSFChannelTCP`（ctor3C3CEB8／vtbl4595A38）；VT20表示发送completion仍在途，发送要求AL0，并非SSO reply pending或login枚举；VT28仅表示U+10下层socket owner非空。Source factory先connect，再收到匹配magic／UIN／index的ping，才经callback发布U；不能把raw connect、socket存在或该ping等同账号认证。此结论仅限已核定TCP路径，issuer／account／refresh／expiry／header／endpoint／当前selector仍未闭，旧REPLY_ONLY不升级。[TR]
 
-全局最早未达闭环仍是本方真实成功的SDK材料reply及其后认证、安装、发布与同runtime下一SIGN选材。已有_decode／tokenparse／cache／publish代码不等于这些成功分支已真实通过或全域行为验收；Qimei缺失导致1003等根因无证据，完整a2的必要性／充分性均未建立。Qimei目录、两P1未修、count3、WIP未通过、Native资格撤销与full SIGN等OPEN保持；下一实施合同未定，无自动GO。
+全局最早未达闭环仍是本方真实成功的SDK材料reply及其后认证、安装、发布与同runtime下一SIGN选材。已有_decode／tokenparse／cache／publish代码不等于这些成功分支已真实通过或全域行为验收；Qimei缺失导致1003等根因无证据，完整a2的必要性／充分性均未建立。Qimei目录、P1#1未修、P1#2隔离关闭／所有权受控修复独立APPROVE（不含full a2／新材料／Native）、原composition count3及direction fault5、WIP未通过、Native资格撤销与full SIGN等OPEN保持；full a2下一实施合同未定，无自动GO。
 
 当前同owner本地SIGN结构返回＋正常close的局部里程碑已在a7达成 [L7]，范围NO_NETWORK。
 `c7226cf` 引入有限 reply complete/cancel 入口，后续 fresh binder 已完成一次真实同 owner request→prepare wirecounter→原正常 SIGN 一次→frame→一次发送并收到首个响应 [BR1]。独立读取保存数据确认 command/body、wire32／SDK64、SIGN三字段及sourcefresh配置 bytes 全部匹配，不是长度比较。**当前状态以文首结论为准**：历史SDK1003、实际Own184B的离线SSO -10003、最新NativeEnvelope API1200／PMHQ -2三者分别保留，不混用命名或因果。真实材料链未闭合，完整SIGN独立真值／seq alias仍unknown。既定 exact error boundary 只读核对已完成且无可实施的caller contract修复；此信道已搁置；Qimei有限材料因果盘点及本轮type1／issuer来源图均是静态结果，下一实施合同未定，不自动进入a2组装、issuer adapter或任何新请求。根因未证，不归因于特定凭据、登录owner、KDF、cipher或参数。

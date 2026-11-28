@@ -3,6 +3,7 @@ import base64
 import ctypes as C
 import hashlib
 import json
+import sys
 import threading
 from types import SimpleNamespace as NS
 
@@ -26,6 +27,7 @@ from qq_nt_replica.primary_qimei_cache import _cbc
 from qq_nt_replica.primary_qimei_settings import QimeiSettings
 from qq_nt_replica.primary_windows_qimei_schedule import OwnQimeiSchedule
 from qq_nt_replica.primary_windows_signer_setup import business_metadata
+from qq_nt_replica.primary_windows_qimei_executor import OwnQimeiExecutor
 
 
 class APIs:
@@ -520,3 +522,130 @@ def test_module_partial_worker_start_retains_executor_for_close():
     assert not m.applications[inputs.appid].initialized
     m.close()
     assert m.closed and m.bridge.closed
+
+
+def test_public_accepted_counter_task_survives_timer_quiescence_during_close():
+    """Same public submit/barrier as the controlled shutdown defect reproduction."""
+    m, inputs, api, ios, http_entered, unused_leave = module_fixture(opens=(44,))
+    entered, release = threading.Event(), threading.Event()
+    callbacks, tail, drain = [], [], []
+    launches = []
+    previous_profile = sys.getprofile()
+    def profile(frame, event, arg):
+        if event == 'call' and frame.f_code is OwnQimeiExecutor.shutdown_and_join.__code__:
+            drain.append((m.sealed, m.schedule.sealed, m.schedule.quiescent,
+                          m.schedule.queue, m.schedule.retired, task.done.is_set()))
+            release.set()  # Only release the barrier; execute original drain unchanged.
+    try:
+        m.initialize(inputs)
+        assert m.tasks[0].done.wait(3) and not m.tasks[0].errors
+        assert m.tasks[0].result == 1 and not http_entered.is_set()
+        assert m.schedule._instance is None
+        launches = [slot['launch'] for slot in m.executor._slots]
+        def body(owner):
+            entered.set()
+            assert release.wait(5)
+            assert m.schedule.quiescent and not m.schedule.retired
+            assert m.schedule._instance is None
+            value = m.schedule.instance_count(owner)
+            tail.append(value)
+            return value
+        task = m.executor.submit(inputs.appid, body,
+            lambda t: callbacks.append(('completion', t)),
+            lambda t: callbacks.append(('release', t)))
+        assert entered.wait(3) and not task.done.is_set()
+        sys.setprofile(profile)
+        m.close()
+        sys.setprofile(previous_profile)
+        assert drain == [(True, True, True, None, False, False)]
+        assert task.done.is_set() and task.phase == 'completed'
+        assert task.result == 1 and not task.errors and tail == [1]
+        assert callbacks == [('completion', task), ('release', task)]
+        names = [name for name, args in api.calls]
+        stopped = names.index('DeleteTimerQueueEx')
+        assert names[stopped + 1:] == ['OpenMutexA', 'CreateMutexA', 'CloseHandle']
+        assert names.count('DeleteTimerQueueEx') == 1
+        assert m.closed and m.executor._shutdown and m.bridge.closed
+        assert m.schedule.retired and api.closed and not m.schedule.timers and not m.schedule.mutexes
+        assert not m.bridge._launches and m.ipc.terminal and not m.ipc.backend._leases
+        assert all(io.closed for io in ios) and not http_entered.is_set()
+        assert all(l.joined and l.handle_closed and l.retired and not l.thread.is_alive() for l in launches)
+        print('PUBLIC_ACCEPTED_DRAIN: completed; counter IO after queue stop; completion/release once; five workers retired; resources0')
+    finally:
+        sys.setprofile(previous_profile)
+        release.set()
+        if not m.closed:
+            m.close()
+        for launch in launches:
+            launch.thread.join(2)
+            assert not launch.thread.is_alive()
+
+
+def test_quiescent_queue_seals_timers_but_final_retirement_rejects_cached_io():
+    api = APIs(); s = schedule(api)
+    record = s.register(object(), 60000, lambda r: None)
+    s.close_queue()
+    assert s.quiescent and not s.retired and s.timers == [record]
+    before = len(api.calls)
+    with pytest.raises(QimeiRequestBoundary, match='admission sealed'):
+        s.register(object(), 1, lambda r: None)
+    with pytest.raises(QimeiRequestBoundary, match='timer queue unavailable'):
+        s.unregister(record)
+    assert len(api.calls) == before
+    assert s.coordination(b'app') and s.instance_count(b'app') == 1
+    s.close_mutexes()
+    assert s.retired and api.closed and not s.mutexes and not s.timers
+    before = len(api.calls)
+    for operation in (lambda: s.coordination(b'app'), lambda: s.instance_count(b'app'),
+                      lambda: s.dynamic50000(b'app'), s.timestamp_ms):
+        with pytest.raises(QimeiRequestBoundary, match='epoch unavailable'):
+            operation()
+    assert len(api.calls) == before
+
+
+def test_failed_module_join_keeps_real_schedule_backing_for_accepted_task(monkeypatch):
+    m, inputs, api, ios, http_entered, unused_leave = module_fixture(opens=(44,))
+    entered, release = threading.Event(), threading.Event()
+    launches, tail = [], []
+    try:
+        m.initialize(inputs)
+        assert m.tasks[0].done.wait(3) and not m.tasks[0].errors
+        launches = [slot['launch'] for slot in m.executor._slots]
+        def body(owner):
+            assert not m.schedule.dynamic50000(owner)  # Retain a real fake-API mutex handle.
+            entered.set()
+            assert release.wait(5)
+            tail.append(m.schedule.instance_count(owner))
+        task = m.executor.submit(inputs.appid, body, lambda t: None, lambda t: None)
+        assert entered.wait(3)
+        timer = m.schedule.timers[0]
+        handles = tuple(m.schedule.mutexes)
+        assert handles
+        with monkeypatch.context() as patch:
+            for launch in launches:
+                original = launch.join
+                patch.setattr(launch, 'join', lambda timeout_ms=10000, join=original: join(0))
+            with pytest.raises(ExceptionGroup, match='shutdown debt retained'):
+                m.close()
+        assert not m.closed and not m.executor._shutdown and m.applications and m.provider_pair
+        assert m.schedule.quiescent and not m.schedule.retired and not getattr(api, 'closed', False)
+        assert tuple(m.schedule.mutexes) == handles and m.schedule.timers == [timer]
+        assert timer['thunk'] is api.callbacks[0]
+        assert not m.ipc.terminal and not ios[0].closed and not getattr(m.bridge, 'closed', False)
+        assert m.bridge._launches and any(not l.retired for l in launches)
+        assert not task.done.is_set()
+        release.set()
+        assert task.done.wait(3) and not task.errors and tail == [1]
+        m.close()  # Discharge the intentionally injected zero-wait join debt.
+        assert m.closed and m.schedule.retired and api.closed
+        assert not m.schedule.timers and not m.schedule.mutexes and not m.bridge._launches
+        assert m.ipc.terminal and not m.ipc.backend._leases and all(io.closed for io in ios)
+        assert not http_entered.is_set()
+        print('FAILED_JOIN_BACKING: retained API/mutex/timer/epoch/application/IPC; accepted task completed; cleanup resources0')
+    finally:
+        release.set()
+        if not m.closed:
+            m.close()
+        for launch in launches:
+            launch.thread.join(2)
+            assert launch.joined and launch.handle_closed and launch.retired and not launch.thread.is_alive()
