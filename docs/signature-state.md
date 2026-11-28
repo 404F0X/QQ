@@ -2,7 +2,7 @@
 
 唯一权威标识：`SIGNATURE-STATE`；更新日期：2026-11-28。
 
-本文件是签名业务状态、进度和验收的唯一现行入口。完整 Goal **ACTIVE／NOT_COMPLETE（未完成）**。
+本文件是签名业务状态、进度和验收的唯一现行入口。完整 Goal **BLOCKED／NOT_COMPLETE（等待外部输入，未完成）**。
 旧 HANDOFF、报告、输入快照及 Git 历史只作历史证据，不是现行状态入口。
 COORDINATION 只记录调度和操作，不另立业务状态机。
 原长篇过程记录已由 Git 历史及既有 before/input-versions 快照保留，不再复制归档。
