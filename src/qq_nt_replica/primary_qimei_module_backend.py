@@ -12,6 +12,8 @@ from .primary_qimei_config_business import conditional_kind3, retained_kind4
 from .primary_qimei_records import StartupState, RecordObservations
 from .primary_qimei_reply import QimeiReplyState
 from .primary_qimei_request import QimeiRequestBoundary
+from .primary_qimei_request_state import QimeiModuleRequestState
+from .primary_qimei_status_business import conditional_kind7, status_value
 from .primary_qimei_sdk import QimeiSdkContexts
 from .primary_windows_qimei_executor import create_own_qimei_executor
 
@@ -98,6 +100,7 @@ class OwnQimeiModuleBackend:
         self.tasks = []
         self.io_debt = []
         self._callback = threading.local()
+        self.request_state = QimeiModuleRequestState(0)
 
     def _check(self, *, creator=False):
         if (self.closed or self.current_epoch(self.runtime) is not self.epoch
@@ -195,13 +198,26 @@ class OwnQimeiModuleBackend:
         self._submit(app, '6B01C')
         self._submit(app, '6A923')
 
-    def _submit(self, app, business):
+    def request_status(self, appid, subtype, status=None):
+        """Queue the complete Source kind7 group on this module's provider.
+
+        The caller supplies the Source54211/54411 status. This request does not
+        complete acquisition, publish material or make a getter ready.
+        """
+        self._check(creator=True)
+        status_value(subtype, status)
+        app = self.applications.get(appid)
+        if app is None or not app.initialized or self.sealed:
+            raise QimeiRequestBoundary('status request requires an admitted canonical application')
+        return self._submit(app, ('54211', '542E3', '54411')[subtype - 1], status)
+
+    def _submit(self, app, business, status=None):
         task = self.executor._submit_module(self, app, business,
-                                           lambda owner: self._run(app, business))
+                                           lambda owner: self._run(app, business, status))
         self.tasks.append(task)
         return task
 
-    def _run(self, app, business):
+    def _run(self, app, business, status=None):
         io = self.worker_io_factory(app)
         try:
             self._check()
@@ -210,6 +226,16 @@ class OwnQimeiModuleBackend:
                     or io.settings_dependencies.get('codec') is not self.creator_io.settings_dependencies.get('codec')
                     or io.settings_dependencies.get('context_producer') is not self.creator_io.settings_dependencies.get('context_producer')):
                 raise QimeiRequestBoundary('worker IO cannot replace canonical stores/settings')
+            if business in ('54211', '542E3', '54411'):
+                if (io.adapter.state is not self.creator_io.adapter.state or
+                        io.adapter.state.selector is not io.selector):
+                    raise QimeiRequestBoundary('status request requires the canonical compound adapter owner')
+                return conditional_kind7(app.appid, app.settings,
+                    ('54211', '542E3', '54411').index(business) + 1, status,
+                    settings_dependencies=io.settings_dependencies, adapter=io.adapter,
+                    dispatch=self.provider, module_state=self.request_state,
+                    clock_milliseconds=self.schedule.timestamp_ms,
+                    convert_ansi=io.convert_ansi, io=io)
             if business == '6B01C':
                 return retained_kind4(app.appid, app.settings,
                     settings_dependencies=io.settings_dependencies, sources=io.config_sources,

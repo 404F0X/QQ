@@ -105,7 +105,7 @@ class OwnQimeiExecutor:
     def _submit_module(self, module, app, business, body):
         """Finite scheduler capability; public submit remains creator-only."""
         if (module is not self._module or module.applications.get(app.appid) is not app
-                or business not in ('6B01C', '6A923', '6B0CE')
+                or business not in ('6B01C', '6A923', '6B0CE', '54211', '542E3', '54411')
                 or not module._submission_allowed()):
             raise IPCError('module callback/task admission unavailable')
         with self._condition:

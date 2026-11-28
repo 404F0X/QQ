@@ -7,6 +7,18 @@
 COORDINATION 只记录调度和操作，不另立业务状态机。
 原长篇过程记录已由 Git 历史及既有 before/input-versions 快照保留，不再复制归档。
 
+## Qimei kind7 状态请求整组（QIMEI-KIND7-GROUP-IMPL/a1，受控 MODEL 范围独立审查 APPROVE）
+
+现有 OwnQimeiModuleBackend.request_status(appid, subtype, status=None) 可在同一已初始化 canonical app／epoch／provider 上提交完整 kind7 subtype1/2/3 业务组。FIRST settings.flag13 每次真实 refresh 后分别检查 bit1／2／4，关闭 gate 不读时间／adapter、不发送、不推进 sequence。subtype1／3 的 status 必须由真实 Source caller 提供 signed32 状态（54211：最终 main 非空0／空1；54411：kind2 success XOR1，或 gate skip2）；subtype2 入口542E3固定 b'0'，拒绝外传 status。四个 payload cell 为 subtype DWORD、同 schedule 的 Source local-calendar／_mktime64 毫秒时间、canonical compound adapter 的 IP String、status String；合法空 IP 沿用 Source 空 String 省略编码，不补默认地址或 MAC。
+
+整组沿既有 executor admission／accepted-task drain、worker IO、material／envelope／transport、sequence 和 matching pending／completion。复用 kind2 的单槽52D66解析与通用 net／sever／local 错误，响应恒 TRUE 不代替传输／解码成功；仅实际 request.success 才发布 kind7 request-state bit。正常发送失败保留 request.error 并返回外层，不重试、不增加成功 barrier；异常按既有 dispatcher 保留匹配 pending 与原错误。没有 material install／settings 响应写入。一个 backend／epoch 仅创建一个 QimeiModuleRequestState(0) 供三 subtype 共享，投影 Source 全局122570 零填充初值及3FE14锁内OR语义；既有 kind2 独立组件接受显式 module_state，当前未接到 backend，未来接入须使用此同一对象；既有 config helper 的未建模 publication 未被本候选补齐或冒称完成。
+
+46项受控 MODEL 检查通过：三个真实 gate、四槽值、相同 config／codec／pending／error／success-state、合法空 IP 和失败 join 后 backing 保留／drain。使用既有 fake IO／Python worker bridge 与真实 Python 业务、AES、envelope、transport；不证明 Original Native 等价或网络协议接受。一次测试预期误把空 IP 当成必有 wire field，原失败保留，按既有 Source 空 String 语义修正测试后通过。Source事实、实际命令、输入绑定和冻结差异见 A/overall-signing-service/qimei-kind7-group/。
+
+本入口只完成状态请求组的 Source 组件，不截断 full-a2 并宣称 acquisition 成功；未把它接到未完成的6A923／6A3D4续段。P1#1早退、kind13／flag14后续、publication／notification、完整材料链与完整 Goal 仍 OPEN，getter-ready／新 Qimei／SDK install／下一 SIGN 消费均无新增完成证据。此前 subtype2 映射和 compound owner 修复保持，不再视作整组 unknown。独立审查 QIMEI-KIND7-GROUP-REVIEW/a1 已实际 APPROVE，限整个受控 MODEL 状态请求组；没有发现阻断缺陷或新增实质 Source fault。审查独立核对了 Source 空 IP 省略语义、单一 backend／epoch 共享 state、任务权限与 drain，并复用上述46项有效检查，未重跑测试。该 state 仅证明当前 backend／epoch 投影，不证明任意实例之间的全局等价。fault5／旧 full-a2与login STOP保留，所有实际 QQ／Native／HTTP／SDK／QR 调用关闭。
+
+另已完成一次现有 manifest-pinned 隔离 load／import／core-close 检查：绑定 manifest1fad9f1721e43036d379b8866ae36e4930d87e2d2acffbfaa08bfc25fdd821d8，新 status module 通过真实 _Source loader 加载，core 正常关闭、finder 与隔离模块移除、新增线程0，未创建业务 owner、未触发 Native／网络。证据为同目录 REVIEW.md、manifest-load.log／manifest-load.json；这只建立模块可加载性，不建立材料正例、实际服务器接受或 Native 等价。历史 CURRENT admission 仍只绑定旧 manifest34eb1，未重绑到1fad9f、未复测或重标当前资格。本次仅同步文档，最终八文件绑定见 DELIVERY-PINS.json／DELIVERY-HANDOFF.md；其余七文件保持已审查字节，完整 Goal 仍 OPEN。
+
 ## CURRENT profile-bound SDK caller（SDK-CURRENT-PROFILE-CALLER/a1，代码候选独立审查 APPROVE）
 
 仓库根 `run_own_profile_sdk_candidate.py` 现在是本方 CURRENT channel/phase 的唯一维护实现。`CurrentProfilePhase` 从本方历史 driver 提升，保留原 Native producers、137 records、单次原始 SDK transaction、正 publication/cache 后才进行的同 runtime 后续 SIGN、完整字节选择/digest 观测和失败 close 停止/保留 backing 顺序；正常 `OwnBootstrapSdkSession` 构造显式传 `appid_override=None, bind_profile_appid=True`。Source API 的默认 False 未变。历史 `A/overall-signing-service/sdk-own-bootstrap/actual-preparation/driver.py` 仅为不可变档案，旧 consumer/main、69 pins、captures 没有修改或重新绑定。

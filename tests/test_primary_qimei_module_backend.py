@@ -174,7 +174,7 @@ def module_fixture(opens=(0,), block=False, io_fail=False):
     sched = OwnQimeiSchedule(runtime, epoch, lambda r: epoch, namespace=b'b' * 32, api=api)
     pool = QimeiIPCPool(runtime, epoch, lambda r: epoch, ABI()); bridge = TestBridge()
     entered, leave = threading.Event(), threading.Event(); ios = []
-    shared_selector = QimeiSelectorState(selected6=b'123456')
+    shared_selector = pipeline.material_producer.adapter.state.selector
     class IO:
         debt = []
         def __init__(self, app):

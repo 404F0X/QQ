@@ -2967,7 +2967,7 @@
     {
       "path": "src/qq_nt_replica/primary_windows_qimei_executor.py",
       "source_sha256": "6112eabda06ec3ea1584bcfffffc59cd604529c858f7810db518509301cf7922",
-      "sha256": "8a781c4440fbdf0a879ffb1a6ef11a65f2ef5d2df5846e197d44fa628fa29e97",
+      "sha256": "b08f253d75b967555049cfdfc3ed2787a2a5af6127d82782cff02afb32c27a82",
       "classification": "project_source"
     },
     {
@@ -3272,7 +3272,7 @@
     {
       "path": "src/qq_nt_replica/primary_qimei_module_backend.py",
       "source_sha256": "2e1bb4acc927175480a5583fda0e6a3ebc3aa2c60114d23cf6da0006afe9bf71",
-      "sha256": "2e1bb4acc927175480a5583fda0e6a3ebc3aa2c60114d23cf6da0006afe9bf71",
+      "sha256": "0a02d09e1744a906452f2f8992e84ad91db309e152de137b2f042a01e5f357ea",
       "classification": "project_source",
       "origin": "QIMEI-A2-GETTER-VERTICAL-IMPL/a1 Source-derived authored snapshot: qimei-a2-vertical/first-authored-source/primary_qimei_module_backend.py"
     },
@@ -3289,6 +3289,13 @@
       "sha256": "7dec5dd6b45f82acc755dbb615f6c92ef54f825016b0c3ef9aa43a2a94c27eaa",
       "classification": "project_source",
       "origin": "QIMEI-A2-GETTER-VERTICAL-IMPL/a1 Source-derived authored snapshot: qimei-a2-vertical/first-authored-source/primary_windows_qimei_schedule.py"
+    },
+    {
+      "path": "src/qq_nt_replica/primary_qimei_status_business.py",
+      "source_sha256": "491d16c24c682b89494b23ff96188c51b3b18ed1da0d140b47a06ca21f0756d4",
+      "sha256": "491d16c24c682b89494b23ff96188c51b3b18ed1da0d140b47a06ca21f0756d4",
+      "classification": "project_source",
+      "origin": "QIMEI-KIND7-GROUP-IMPL/a1 Source-derived authored snapshot: qimei-kind7-group/first-authored-source/primary_qimei_status_business.py"
     }
   ],
   "excluded_pending_assets": [
